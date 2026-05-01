@@ -172,6 +172,15 @@ fun OlvideContrasenaScreen(navController: NavController) {
                 )
                 Spacer(modifier = Modifier.height(32.dp))
 
+
+                Text(
+                    text = "Recuerda: Debe tener mínimo 6 caracteres, 1 mayúscula y 1 número.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextSecondary,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(32.dp))
+
                 HomefixTextField(
                     value = email,
                     onValueChange = {

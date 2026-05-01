@@ -197,7 +197,7 @@ data class PasswordValidation(
 
 fun validatePassword(password: String): PasswordValidation {
     return PasswordValidation(
-        hasMinLength = password.length >= 8,
+        hasMinLength = password.length >= 6,
         hasUppercase = password.any { it.isUpperCase() },
         hasNumber = password.any { it.isDigit() }
     )
@@ -216,7 +216,7 @@ fun PasswordRequirements(password: String) {
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         PasswordRequirementItem(
-            text = "Mínimo 8 caracteres",
+            text = "Mínimo 6 caracteres",
             isMet = validation.hasMinLength
         )
         PasswordRequirementItem(

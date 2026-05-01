@@ -54,8 +54,8 @@ fun LoginScreen(navController: NavController) {
         if (password.isBlank()) {
             passwordError = "La contraseña es obligatoria"
             hasError = true
-        } else if (password.length < 8) {
-            passwordError = "Mínimo 8 caracteres"
+        } else if (password.length < 6) {
+            passwordError = "Mínimo 6 caracteres"
             hasError = true
         }
 

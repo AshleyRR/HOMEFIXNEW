@@ -215,7 +215,7 @@ fun RegisterScreen(navController: NavController) {
         } else {
             val validation = validatePassword(password)
             if (!validation.hasMinLength) {
-                passwordError = "Mínimo 8 caracteres"
+                passwordError = "Mínimo 6 caracteres"
                 hasError = true
             } else if (!validation.hasUppercase) {
                 passwordError = "Debe tener al menos una mayúscula"
@@ -343,7 +343,7 @@ fun RegisterScreen(navController: NavController) {
                     e.message?.contains("email") == true ->
                         emailError = "Ese correo ya está registrado"
                     e.message?.contains("password") == true ->
-                        passwordError = "La contraseña debe tener mínimo 8 caracteres"
+                        passwordError = "La contraseña debe tener mínimo 6 caracteres"
                     else -> errorMessage = "Error al registrarse, intenta de nuevo"
                 }
             }
