@@ -10,7 +10,7 @@ class NotificationsRepository {
 
     private val db = FirebaseFirestore.getInstance()
 
-    // Escucha en tiempo real las notificaciones del usuario ordenadas por fecha
+    // Escucha en tiempo real las notificaciones del usuario ordenaAdas por fecha
     fun obtenerNotificaciones(uid: String): Flow<List<NotificationModel>> = callbackFlow {
         val listener = db.collection("notifications")
             .whereEqualTo("userId", uid)

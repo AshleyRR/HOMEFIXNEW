@@ -78,7 +78,7 @@ fun HomeClientScreen(navController: NavController) {
                 ) {
                     Column {
                         Text(
-                            text = "Hola, ${userName.split(" ").firstOrNull() ?: ""} 👋",
+                            text = "Hola, ${userName.split(" ").firstOrNull() ?: ""}",
                             style = MaterialTheme.typography.headlineMedium,
                             color = TextPrimary,
                             fontWeight = FontWeight.Bold

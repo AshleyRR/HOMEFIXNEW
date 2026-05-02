@@ -20,24 +20,21 @@ import com.tunegocio.homefix.ui.theme.*
 import com.tunegocio.homefix.viewmodel.NotificationsViewModel
 import java.text.SimpleDateFormat
 import java.util.*
-
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tunegocio.homefix.navigation.Routes
 import androidx.compose.foundation.clickable
 
 @Composable
 fun NotificationsScreen(navController: NavController) {
 
-    // Obtiene el ViewModel de notificaciones
     val viewModel: NotificationsViewModel = viewModel()
     val notificaciones by viewModel.notificaciones.collectAsState()
     val noLeidas by viewModel.noLeidas.collectAsState()
 
-    // Marca todas como leídas al abrir la pantalla
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(2000) // Espera 2 segundos antes de marcar como leídas
+        kotlinx.coroutines.delay(2000)
         viewModel.marcarTodasComoLeidas()
     }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -47,13 +44,14 @@ fun NotificationsScreen(navController: NavController) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .statusBarsPadding()
                 .padding(horizontal = 20.dp, vertical = 16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { navController.popBackStack() }) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = TextPrimary)
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(24.dp))
             Text(
                 text = "Notificaciones",
                 style = MaterialTheme.typography.headlineMedium,
@@ -61,7 +59,6 @@ fun NotificationsScreen(navController: NavController) {
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.weight(1f))
-            // Badge con cantidad de no leídas
             if (noLeidas > 0) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
@@ -79,11 +76,7 @@ fun NotificationsScreen(navController: NavController) {
         }
 
         if (notificaciones.isEmpty()) {
-            // Estado vacío
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(text = "🔔", style = MaterialTheme.typography.headlineLarge)
                     Spacer(modifier = Modifier.height(8.dp))
@@ -112,16 +105,26 @@ fun NotificationsScreen(navController: NavController) {
                         onClick = {
                             if (notificacion.requestId.isNotEmpty()) {
                                 when (notificacion.type) {
-                                    // Solo estas llegan al cliente → va a seguimiento
-                                    "tecnico_aceptado", "en_camino", "completado" ->
-                                        navController.navigate(Routes.requestTracking(notificacion.requestId))
-                                    // Todo lo demás (nueva_solicitud, tecnico_elegido, tecnico_rechazado) → va al detalle
+                                    // Notificaciones que llevan al CLIENTE al tracking de su solicitud
+                                    "tecnico_aceptado",
+                                    "en_camino",
+                                    "completado",
+                                    "tecnico_cancelo",
+                                    "confirmar_completado",
+                                     "confirmar_sin_continuar"->
+                                        navController.navigate(
+                                            Routes.requestTracking(notificacion.requestId)
+                                        )
+                                    // El resto lleva al detalle (vista técnico)
                                     else ->
-                                        navController.navigate(Routes.requestDetail(notificacion.requestId))
+                                        navController.navigate(
+                                            Routes.requestDetail(notificacion.requestId)
+                                        )
                                 }
                             }
                         }
-                    )                }
+                    )
+                }
                 item { Spacer(modifier = Modifier.height(20.dp)) }
             }
         }
@@ -136,15 +139,20 @@ fun NotificacionCard(
     val fechaFormato = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
     val fecha = fechaFormato.format(Date(notificacion.createdAt))
 
-    // Emoji + color según tipo
     val (emoji, color) = when (notificacion.type) {
-        "nueva_solicitud"  -> "🔧" to Primary
-        "tecnico_aceptado" -> "👋" to Info
-        "tecnico_elegido"  -> "🎉" to Success
-        "tecnico_rechazado"-> "❌" to Error
-        "en_camino"        -> "🚗" to Warning
-        "completado"       -> "✅" to Success
-        else               -> "🔔" to TextSecondary
+        "nueva_solicitud"   -> "🔧" to Primary
+        "tecnico_aceptado"  -> "👋" to Info
+        "tecnico_elegido"   -> "🎉" to Success
+        "tecnico_rechazado" -> "❌" to Error
+        "tecnico_cancelo"   -> "🚫" to Error
+        "en_camino"         -> "🚗" to Warning
+        "completado"        -> "✅" to Success
+
+        "confirmar_completado"    -> "✅" to Warning
+        "confirmar_sin_continuar" -> "⚠️" to Error
+        "completado_rechazado"    -> "❌" to Error
+        "sin_continuar_confirmado"-> "🚫" to TextSecondary
+        else                -> "🔔" to TextSecondary
     }
 
     Card(
@@ -168,17 +176,13 @@ fun NotificacionCard(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.Top
         ) {
-            // Círculo con emoji
             Surface(
                 modifier = Modifier.size(44.dp),
                 shape = RoundedCornerShape(12.dp),
                 color = color.copy(alpha = 0.12f)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Text(
-                        text = emoji,
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                    Text(text = emoji, style = MaterialTheme.typography.titleMedium)
                 }
             }
 
@@ -197,7 +201,6 @@ fun NotificacionCard(
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f)
                     )
-                    // Punto no leída
                     if (!notificacion.isRead) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Surface(
@@ -215,7 +218,6 @@ fun NotificacionCard(
                     maxLines = 2
                 )
                 Spacer(modifier = Modifier.height(6.dp))
-                // Badge tipo + fecha
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -230,9 +232,17 @@ fun NotificacionCard(
                                 "tecnico_aceptado"  -> "Técnico interesado"
                                 "tecnico_elegido"   -> "¡Te eligieron!"
                                 "tecnico_rechazado" -> "No seleccionado"
+                                "tecnico_cancelo"   -> "Técnico canceló"
                                 "en_camino"         -> "En camino"
                                 "completado"        -> "Completado"
+
+                                "confirmar_completado"     -> "Confirmar trabajo"
+                                "confirmar_sin_continuar"  -> "Confirmar cierre"
+                                "completado_rechazado"     -> "Trabajo rechazado"
+                                "sin_continuar_confirmado" -> "Proceso cerrado"
+
                                 else                -> "Notificación"
+
                             },
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             style = MaterialTheme.typography.labelSmall,

@@ -310,7 +310,7 @@ fun ProfileScreen(navController: NavController) {
                     ClientColor.copy(alpha = 0.1f)
             ) {
                 Text(
-                    text = if (u.role == "technician") "🔧 Técnico" else "🙋 Cliente",
+                    text = if (u.role == "technician") " Técnico" else " Cliente",
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelLarge,
                     color = if (u.role == "technician") TechnicianColor else ClientColor,

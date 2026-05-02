@@ -24,6 +24,7 @@ import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.foundation.BorderStroke
 
 @Composable
 fun EarningsScreen(navController: NavController) {
@@ -39,6 +40,8 @@ fun EarningsScreen(navController: NavController) {
 
     var seccionReseñasExpandida by remember { mutableStateOf(true) }
     var seccionServiciosExpandida by remember { mutableStateOf(true) }
+
+    var activeRequests by remember { mutableStateOf(listOf<RequestModel>()) }
 
     LaunchedEffect(uid) {
         // Cargar servicios completados
@@ -63,6 +66,19 @@ fun EarningsScreen(navController: NavController) {
                     reviews.map { it.stars }.average().toFloat()
                 } else 0f
             }
+
+
+        // Dentro del LaunchedEffect, agrega:
+        db.collection("requests")
+            .whereEqualTo("technicianId", uid)
+            .whereEqualTo("status", "aceptada")
+            .addSnapshotListener { snapshot, _ ->
+                activeRequests = snapshot?.documents?.mapNotNull {
+                    it.toObject(RequestModel::class.java)
+                } ?: emptyList()
+            }
+
+
     }
 
     // Servicios del mes actual
@@ -156,6 +172,39 @@ fun EarningsScreen(navController: NavController) {
                         )
                     }
                 }
+
+
+
+
+                if (activeRequests.isNotEmpty()) {
+                    item {
+                        Text("En curso", style = MaterialTheme.typography.titleLarge, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                    }
+                    items(activeRequests) { request ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                navController.navigate(Routes.requestDetail(request.requestId))
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(containerColor = Info.copy(alpha = 0.08f)),
+                            border = BorderStroke(1.dp, Info.copy(alpha = 0.3f))
+                        ) {
+                            Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Text("🔧", style = MaterialTheme.typography.titleLarge)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(request.serviceType, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
+                                    Text(request.district.ifEmpty { request.address }, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                                }
+                                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = Info)
+                            }
+                        }
+                    }
+                }
+
+
+
+
 
                 // Reseñas recientes
                 if (reviews.isNotEmpty()) {

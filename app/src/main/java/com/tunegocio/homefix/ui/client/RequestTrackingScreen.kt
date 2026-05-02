@@ -3,6 +3,7 @@ package com.tunegocio.homefix.ui.client
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,15 +19,22 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.tunegocio.homefix.data.NotificationsRepository
 import com.tunegocio.homefix.data.model.RequestModel
+import com.tunegocio.homefix.data.model.ReviewModel
 import com.tunegocio.homefix.data.model.UserModel
 import com.tunegocio.homefix.navigation.Routes
+import com.tunegocio.homefix.ui.components.HomefixButton
 import com.tunegocio.homefix.ui.theme.*
+import java.util.UUID
 
 @Composable
 fun RequestTrackingScreen(
@@ -34,28 +42,39 @@ fun RequestTrackingScreen(
     requestId: String
 ) {
     val db = FirebaseFirestore.getInstance()
+    val auth = FirebaseAuth.getInstance()
     val context = LocalContext.current
+    val uid = auth.currentUser?.uid ?: ""
 
     var request by remember { mutableStateOf<RequestModel?>(null) }
-
-    // Lista de técnicos interesados con sus datos
     var tecnicosInteresados by remember { mutableStateOf<List<UserModel>>(emptyList()) }
     var eligiendoTecnicoId by remember { mutableStateOf("") }
-
     val notificationsRepo = remember { NotificationsRepository() }
-
     var technician by remember { mutableStateOf<UserModel?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var showCancelDialog by remember { mutableStateOf(false) }
 
-    // Escuchar cambios en tiempo real
+    // ── Confirmación completado ───────────────────────────────
+    var showConfirmarCompletadoDialog by remember { mutableStateOf(false) }
+    var showRechazarCompletadoDialog by remember { mutableStateOf(false) }
+
+    // ── Confirmación sin continuar ────────────────────────────
+    var showConfirmarSinContinuarDialog by remember { mutableStateOf(false) }
+
+    // ── Modal de calificación inline ──────────────────────────
+    var showRatingModal by remember { mutableStateOf(false) }
+    var selectedStars by remember { mutableStateOf(0) }
+    var ratingComment by remember { mutableStateOf("") }
+    var ratingLoading by remember { mutableStateOf(false) }
+    var starsError by remember { mutableStateOf("") }
+
+    // Escucha en tiempo real
     LaunchedEffect(requestId) {
         db.collection("requests").document(requestId)
             .addSnapshotListener { snapshot, _ ->
                 isLoading = false
                 request = snapshot?.toObject(RequestModel::class.java)
 
-                // Cargar datos de cada técnico interesado
                 val interesados = snapshot?.get("interestedTechnicians") as? List<String> ?: emptyList()
                 if (interesados.isNotEmpty()) {
                     val listaTemp = mutableListOf<UserModel>()
@@ -63,9 +82,7 @@ fun RequestTrackingScreen(
                     interesados.forEach { techId ->
                         db.collection("users").document(techId).get()
                             .addOnSuccessListener { doc ->
-                                doc.toObject(UserModel::class.java)?.let {
-                                    listaTemp.add(it.copy(uid = techId))
-                                }
+                                doc.toObject(UserModel::class.java)?.let { listaTemp.add(it.copy(uid = techId)) }
                                 pendientes--
                                 if (pendientes == 0) tecnicosInteresados = listaTemp.toList()
                             }
@@ -78,25 +95,17 @@ fun RequestTrackingScreen(
                     tecnicosInteresados = emptyList()
                 }
 
-                // Cargar técnico si ya fue asignado
                 val techId = snapshot?.getString("technicianId") ?: ""
                 if (techId.isNotEmpty()) {
                     db.collection("users").document(techId).get()
-                        .addOnSuccessListener { doc ->
-                            technician = doc.toObject(UserModel::class.java)
-                        }
+                        .addOnSuccessListener { doc -> technician = doc.toObject(UserModel::class.java) }
                 }
             }
     }
 
     fun cancelRequest() {
         db.collection("requests").document(requestId)
-            .update(
-                mapOf(
-                    "status" to "cancelada",
-                    "updatedAt" to System.currentTimeMillis()
-                )
-            )
+            .update(mapOf("status" to "cancelada", "updatedAt" to System.currentTimeMillis()))
             .addOnSuccessListener {
                 navController.navigate(Routes.HOME_CLIENT) {
                     popUpTo(Routes.HOME_CLIENT) { inclusive = true }
@@ -109,24 +118,14 @@ fun RequestTrackingScreen(
         val fullNumber = if (number.startsWith("51")) number else "51$number"
         val message = "Hola, soy el cliente de HomeFix. ¿Cómo va el servicio?"
         val uri = Uri.parse("https://wa.me/$fullNumber?text=${Uri.encode(message)}")
-        val intent = Intent(Intent.ACTION_VIEW, uri)
-        try {
-            context.startActivity(intent)
-        } catch (e: Exception) { }
+        try { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) } catch (e: Exception) { }
     }
 
     fun elegirTecnico(tecnicoElegidoId: String) {
         eligiendoTecnicoId = tecnicoElegidoId
         db.collection("requests").document(requestId)
-            .update(
-                mapOf(
-                    "status" to "aceptada",
-                    "technicianId" to tecnicoElegidoId,
-                    "updatedAt" to System.currentTimeMillis()
-                )
-            )
+            .update(mapOf("status" to "aceptada", "technicianId" to tecnicoElegidoId, "updatedAt" to System.currentTimeMillis()))
             .addOnSuccessListener {
-                // Notificar al técnico elegido
                 notificationsRepo.crearNotificacion(
                     userId = tecnicoElegidoId,
                     titulo = "¡Te eligieron!",
@@ -134,58 +133,256 @@ fun RequestTrackingScreen(
                     tipo = "tecnico_elegido",
                     requestId = requestId
                 )
-                // Notificar a los técnicos NO elegidos
-                tecnicosInteresados
-                    .filter { it.uid != tecnicoElegidoId }
-                    .forEach { tecnico ->
-                        notificationsRepo.crearNotificacion(
-                            userId = tecnico.uid,
-                            titulo = "Solicitud asignada a otro",
-                            cuerpo = "El cliente eligió a otro técnico para esta solicitud.",
-                            tipo = "tecnico_rechazado",
-                            requestId = requestId
-                        )
-                    }
+                tecnicosInteresados.filter { it.uid != tecnicoElegidoId }.forEach { tecnico ->
+                    notificationsRepo.crearNotificacion(
+                        userId = tecnico.uid,
+                        titulo = "Solicitud asignada a otro",
+                        cuerpo = "El cliente eligió a otro técnico para esta solicitud.",
+                        tipo = "tecnico_rechazado",
+                        requestId = requestId
+                    )
+                }
                 eligiendoTecnicoId = ""
             }
-            .addOnFailureListener {
-                eligiendoTecnicoId = ""
+            .addOnFailureListener { eligiendoTecnicoId = "" }
+    }
+
+    // Cliente confirma que el trabajo fue completado → abre modal calificación
+    fun confirmarCompletado() {
+        db.collection("requests").document(requestId)
+            .update(mapOf("status" to "completada", "updatedAt" to System.currentTimeMillis()))
+            .addOnSuccessListener {
+                showConfirmarCompletadoDialog = false
+                showRatingModal = true
             }
     }
 
-    // Diálogo de cancelación
+    // Cliente rechaza que el trabajo fue completado → notifica al técnico
+    fun rechazarCompletado() {
+        db.collection("requests").document(requestId)
+            .update(mapOf("status" to "aceptada", "updatedAt" to System.currentTimeMillis()))
+            .addOnSuccessListener {
+                request?.technicianId?.let { techId ->
+                    notificationsRepo.crearNotificacion(
+                        userId = techId,
+                        titulo = "El cliente no confirmó el trabajo",
+                        cuerpo = "El cliente indicó que el trabajo no fue completado. Revisa la situación.",
+                        tipo = "completado_rechazado",
+                        requestId = requestId
+                    )
+                }
+                showRechazarCompletadoDialog = false
+            }
+    }
+
+    // Cliente confirma proceso sin continuar
+    fun confirmarSinContinuar() {
+        db.collection("requests").document(requestId)
+            .update(mapOf("status" to "sin_continuar", "updatedAt" to System.currentTimeMillis()))
+            .addOnSuccessListener {
+                request?.technicianId?.let { techId ->
+                    notificationsRepo.crearNotificacion(
+                        userId = techId,
+                        titulo = "Proceso confirmado como no continuado",
+                        cuerpo = "El cliente confirmó que el proceso no continuó.",
+                        tipo = "sin_continuar_confirmado",
+                        requestId = requestId
+                    )
+                }
+                showConfirmarSinContinuarDialog = false
+                navController.navigate(Routes.HISTORY) {
+                    popUpTo(Routes.HOME_CLIENT) { inclusive = false }
+                }
+            }
+    }
+
+    // Enviar calificación y redirigir al historial
+    fun submitRating() {
+        if (selectedStars == 0) { starsError = "Selecciona una calificación"; return }
+        ratingLoading = true
+        val techId = request?.technicianId ?: ""
+        val reviewId = UUID.randomUUID().toString()
+        val review = ReviewModel(
+            reviewId = reviewId,
+            requestId = requestId,
+            clientId = uid,
+            technicianId = techId,
+            stars = selectedStars,
+            comment = ratingComment.trim(),
+            createdAt = System.currentTimeMillis()
+        )
+        db.collection("reviews").document(reviewId).set(review)
+            .addOnSuccessListener {
+                // Actualizar promedio del técnico
+                if (techId.isNotEmpty()) {
+                    db.collection("reviews").whereEqualTo("technicianId", techId).get()
+                        .addOnSuccessListener { snapshot ->
+                            val reviews = snapshot.documents.mapNotNull { it.toObject(ReviewModel::class.java) }
+                            val average = reviews.map { it.stars }.average().toFloat()
+                            db.collection("users").document(techId).update("rating", average)
+                        }
+                }
+                ratingLoading = false
+                navController.navigate(Routes.HISTORY) {
+                    popUpTo(Routes.HOME_CLIENT) { inclusive = false }
+                }
+            }
+            .addOnFailureListener { ratingLoading = false }
+    }
+
+    // ── Diálogo cancelar solicitud
     if (showCancelDialog) {
         AlertDialog(
             onDismissRequest = { showCancelDialog = false },
-            title = {
-                Text("Cancelar solicitud", fontWeight = FontWeight.Bold)
-            },
-            text = {
-                Text("¿Estás seguro que deseas cancelar esta solicitud?")
-            },
+            title = { Text("Cancelar solicitud", fontWeight = FontWeight.Bold) },
+            text = { Text("¿Estás seguro que deseas cancelar esta solicitud?") },
             confirmButton = {
-                TextButton(
-                    onClick = { cancelRequest() },
-                    colors = ButtonDefaults.textButtonColors(contentColor = Error)
-                ) {
+                TextButton(onClick = { cancelRequest() }, colors = ButtonDefaults.textButtonColors(contentColor = Error)) {
                     Text("Sí, cancelar", fontWeight = FontWeight.SemiBold)
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showCancelDialog = false }) {
-                    Text("No, mantener")
+            dismissButton = { TextButton(onClick = { showCancelDialog = false }) { Text("No, mantener") } }
+        )
+    }
+
+    // ── Diálogo: confirmar trabajo completado
+    if (showConfirmarCompletadoDialog) {
+        AlertDialog(
+            onDismissRequest = { /* no cerrar tocando afuera */ },
+            title = { Text("¿El trabajo fue completado?", fontWeight = FontWeight.Bold) },
+            text = { Text("El técnico indicó que terminó el trabajo. ¿Confirmas esto?") },
+            confirmButton = {
+                Button(onClick = { confirmarCompletado() }, colors = ButtonDefaults.buttonColors(containerColor = Success)) {
+                    Text("Sí, confirmar", color = Color.White)
                 }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showConfirmarCompletadoDialog = false; showRechazarCompletadoDialog = true },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Error)
+                ) { Text("No, no terminó") }
             }
         )
     }
 
+    // ── Diálogo: rechazar completado
+    if (showRechazarCompletadoDialog) {
+        AlertDialog(
+            onDismissRequest = { showRechazarCompletadoDialog = false },
+            title = { Text("¿El trabajo no fue completado?", fontWeight = FontWeight.Bold) },
+            text = { Text("Se notificará al técnico que el trabajo no fue aceptado como completado.") },
+            confirmButton = {
+                Button(onClick = { rechazarCompletado() }, colors = ButtonDefaults.buttonColors(containerColor = Error)) {
+                    Text("Confirmar", color = Color.White)
+                }
+            },
+            dismissButton = { TextButton(onClick = { showRechazarCompletadoDialog = false }) { Text("Cancelar") } }
+        )
+    }
+
+    // ── Diálogo: confirmar sin continuar
+    if (showConfirmarSinContinuarDialog) {
+        AlertDialog(
+            onDismissRequest = { /* no cerrar tocando afuera */ },
+            title = { Text("El técnico no puede continuar", fontWeight = FontWeight.Bold) },
+            text = { Text("El técnico indicó que no puede continuar con el servicio. ¿Confirmas esto?") },
+            confirmButton = {
+                Button(onClick = { confirmarSinContinuar() }, colors = ButtonDefaults.buttonColors(containerColor = Primary)) {
+                    Text("Sí, confirmar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showConfirmarSinContinuarDialog = false },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Error)
+                ) { Text("No, el técnico sí puede") }
+            }
+        )
+    }
+
+    // ── Modal calificación inline ─────────────────────────────
+    if (showRatingModal) {
+        Dialog(onDismissRequest = { /* no cerrar sin calificar */ }) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = CardBackground)
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text("⭐", fontSize = 40.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Califica el servicio", style = MaterialTheme.typography.titleLarge, color = TextPrimary, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    technician?.let { tech ->
+                        Text("¿Cómo fue tu experiencia con ${tech.name}?", style = MaterialTheme.typography.bodyMedium, color = TextSecondary, textAlign = TextAlign.Center)
+                    }
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Estrellas
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        (1..5).forEach { star ->
+                            Icon(
+                                imageVector = if (star <= selectedStars) Icons.Default.Star else Icons.Default.StarBorder,
+                                contentDescription = "Estrella $star",
+                                tint = if (star <= selectedStars) Warning else TextHint,
+                                modifier = Modifier.size(44.dp).clickable { selectedStars = star; starsError = "" }
+                            )
+                        }
+                    }
+
+                    if (selectedStars > 0) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = when (selectedStars) {
+                                1 -> "Muy malo 😞"; 2 -> "Malo 😕"; 3 -> "Regular 😐"
+                                4 -> "Bueno 😊"; 5 -> "Excelente 🤩"; else -> ""
+                            },
+                            style = MaterialTheme.typography.titleSmall,
+                            color = when (selectedStars) { 1, 2 -> Error; 3 -> Warning; else -> Success },
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    if (starsError.isNotEmpty()) {
+                        Text(starsError, color = Error, style = MaterialTheme.typography.labelSmall)
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Comentario
+                    OutlinedTextField(
+                        value = ratingComment,
+                        onValueChange = { if (it.length <= 300) ratingComment = it },
+                        modifier = Modifier.fillMaxWidth().height(90.dp),
+                        placeholder = { Text("Comentario opcional...", color = TextHint) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, unfocusedBorderColor = CardBorder)
+                    )
+                    Text("${ratingComment.length}/300", style = MaterialTheme.typography.labelSmall, color = TextSecondary, modifier = Modifier.align(Alignment.End))
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    HomefixButton(text = "Enviar calificación", onClick = { submitRating() }, isLoading = ratingLoading)
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    TextButton(
+                        onClick = {
+                            navController.navigate(Routes.HISTORY) {
+                                popUpTo(Routes.HOME_CLIENT) { inclusive = false }
+                            }
+                        }
+                    ) {
+                        Text("Omitir por ahora", color = TextSecondary)
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Loading
     if (isLoading) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Background),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(modifier = Modifier.fillMaxSize().background(Background), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = Primary)
         }
         return
@@ -193,11 +390,15 @@ fun RequestTrackingScreen(
 
     val req = request ?: return
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Background)
-    ) {
+    // Mostrar diálogos automáticamente cuando el status cambia
+    LaunchedEffect(req.status) {
+        when (req.status) {
+            "pendiente_confirmacion"  -> showConfirmarCompletadoDialog = true
+            "pendiente_sin_continuar" -> showConfirmarSinContinuarDialog = true
+        }
+    }
+
+    Box(modifier = Modifier.fillMaxSize().background(Background)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -207,32 +408,15 @@ fun RequestTrackingScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             // Header
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = "Volver",
-                            tint = TextPrimary
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = TextPrimary)
                     }
-                    Text(
-                        text = "Mi solicitud",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("Mi solicitud", style = MaterialTheme.typography.headlineMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
                 }
-                // Botón cancelar solo si está pendiente
-                if (req.status == "pendiente") {
-                    TextButton(
-                        onClick = { showCancelDialog = true },
-                        colors = ButtonDefaults.textButtonColors(contentColor = Error)
-                    ) {
+                if (req.status == "pendiente" || req.status == "en_revision") {
+                    TextButton(onClick = { showCancelDialog = true }, colors = ButtonDefaults.textButtonColors(contentColor = Error)) {
                         Text("Cancelar", fontWeight = FontWeight.Medium)
                     }
                 }
@@ -240,357 +424,98 @@ fun RequestTrackingScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Barra de progreso de estados
+            // Barra de progreso
             StatusProgressBar(status = req.status)
 
-            // Sección técnicos interesados — solo cuando está pendiente y hay interesados
-            if (req.status == "pendiente" && tecnicosInteresados.isNotEmpty()) {
+            // Técnicos interesados — pendiente o en_revision
+            if ((req.status == "pendiente" || req.status == "en_revision") && tecnicosInteresados.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(20.dp))
-                Text(
-                    text = "Técnicos interesados (${tecnicosInteresados.size})",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text("Técnicos interesados (${tecnicosInteresados.size})", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(8.dp))
                 tecnicosInteresados.forEach { tecnico ->
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = CardBackground),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    // Avatar con inicial
-                                    Surface(
-                                        modifier = Modifier.size(48.dp),
-                                        shape = RoundedCornerShape(24.dp),
-                                        color = TechnicianColor.copy(alpha = 0.15f)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Text(
-                                                text = tecnico.name
-                                                    .firstOrNull()?.toString()?.uppercase() ?: "T",
-                                                style = MaterialTheme.typography.titleMedium,
-                                                color = TechnicianColor,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column {
-                                        Text(
-                                            text = tecnico.name,
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = TextPrimary,
-                                            fontWeight = FontWeight.Medium
-                                        )
-                                        if (tecnico.rating > 0) {
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(
-                                                    Icons.Default.Star,
-                                                    contentDescription = null,
-                                                    tint = Warning,
-                                                    modifier = Modifier.size(14.dp)
-                                                )
-                                                Spacer(modifier = Modifier.width(2.dp))
-                                                Text(
-                                                    text = "${"%.1f".format(tecnico.rating)}",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = TextSecondary
-                                                )
-                                            }
-                                        }
-                                        if (tecnico.specialties.isNotEmpty()) {
-                                            Text(
-                                                text = tecnico.specialties.take(2).joinToString(", "),
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = TextSecondary
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            // Botón Elegir
-                            Button(
-                                onClick = { elegirTecnico(tecnico.uid) },
-                                enabled = eligiendoTecnicoId.isEmpty(),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(44.dp),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = Success)
-                            ) {
-                                if (eligiendoTecnicoId == tecnico.uid) {
-                                    CircularProgressIndicator(
-                                        color = Color.White,
-                                        modifier = Modifier.size(18.dp),
-                                        strokeWidth = 2.dp
-                                    )
-                                } else {
-                                    Text(
-                                        text = "✓ Elegir este técnico",
-                                        color = Color.White,
-                                        style = MaterialTheme.typography.labelLarge
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    TecnicoInteresadoCard(
+                        tecnico = tecnico,
+                        eligiendoId = eligiendoTecnicoId,
+                        onElegir = { elegirTecnico(tecnico.uid) }
+                    )
                     Spacer(modifier = Modifier.height(10.dp))
                 }
             }
 
-            // Detalle de la solicitud
+            // Detalle
             Spacer(modifier = Modifier.height(20.dp))
-            Text(
-                text = "Detalle",
-                style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary,
-                fontWeight = FontWeight.SemiBold
-            )
+            Text("Detalle", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = CardBackground), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = Primary.copy(alpha = 0.1f)
-                        ) {
-                            Text(
-                                text = req.serviceType,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = Primary,
-                                fontWeight = FontWeight.SemiBold
-                            )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Surface(shape = RoundedCornerShape(8.dp), color = Primary.copy(alpha = 0.1f)) {
+                            Text(req.serviceType, modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), style = MaterialTheme.typography.labelLarge, color = Primary, fontWeight = FontWeight.SemiBold)
                         }
                         if (req.isUrgent) {
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = Error.copy(alpha = 0.1f)
-                            ) {
-                                Text(
-                                    text = "⚡ Urgente",
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    color = Error
-                                )
+                            Surface(shape = RoundedCornerShape(8.dp), color = Error.copy(alpha = 0.1f)) {
+                                Text("⚡ Urgente", modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), style = MaterialTheme.typography.labelLarge, color = Error)
                             }
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = req.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = TextPrimary
-                    )
+                    Text(req.description, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
                     if (req.address.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.LocationOn,
-                                contentDescription = null,
-                                tint = TextSecondary,
-                                modifier = Modifier.size(16.dp)
-                            )
+                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = req.address,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary
-                            )
+                            Text(req.address, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                         }
                     }
-                    // Foto si tiene
                     if (req.imageUrls.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(12.dp))
-                        AsyncImage(
-                            model = req.imageUrls.first(),
-                            contentDescription = "Foto del problema",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(160.dp)
-                                .clip(RoundedCornerShape(12.dp)),
-                            contentScale = ContentScale.Crop
-                        )
+                        AsyncImage(model = req.imageUrls.first(), contentDescription = null, modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
                     }
                 }
             }
 
             // Técnico asignado
-            if (technician != null && req.status != "pendiente") {
+            if (technician != null && req.status != "pendiente" && req.status != "en_revision") {
                 Spacer(modifier = Modifier.height(20.dp))
-                Text(
-                    text = "Técnico asignado",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text("Técnico asignado", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(8.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = CardBackground),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                TecnicoAsignadoCard(technician = technician!!, onWhatsApp = { openWhatsApp(technician!!.whatsapp) })
+            }
+
+            // Completada
+            if (req.status == "completada") {
+                Spacer(modifier = Modifier.height(20.dp))
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Success.copy(alpha = 0.08f))) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("✅", style = MaterialTheme.typography.headlineMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text("Servicio completado", style = MaterialTheme.typography.titleMedium, color = Success, fontWeight = FontWeight.SemiBold)
+                        Text("¿Cómo fue tu experiencia?", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = { navController.navigate(Routes.rating(requestId)) },
+                            modifier = Modifier.fillMaxWidth().height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Primary)
                         ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    modifier = Modifier.size(48.dp),
-                                    shape = RoundedCornerShape(24.dp),
-                                    color = TechnicianColor.copy(alpha = 0.15f)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Text(
-                                            text = technician!!.name
-                                                .firstOrNull()?.toString()?.uppercase() ?: "T",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            color = TechnicianColor,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(
-                                        text = technician!!.name,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = TextPrimary,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    if (technician!!.rating > 0) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                Icons.Default.Star,
-                                                contentDescription = null,
-                                                tint = Warning,
-                                                modifier = Modifier.size(14.dp)
-                                            )
-                                            Spacer(modifier = Modifier.width(2.dp))
-                                            Text(
-                                                text = "${"%.1f".format(technician!!.rating)}",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = TextSecondary
-                                            )
-                                        }
-                                    }
-                                    if (technician!!.specialties.isNotEmpty()) {
-                                        Text(
-                                            text = technician!!.specialties.take(2)
-                                                .joinToString(", "),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = TextSecondary
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        // Botón WhatsApp al técnico
-                        if (technician!!.whatsapp.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(
-                                onClick = { openWhatsApp(technician!!.whatsapp) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(44.dp),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen)
-                            ) {
-                                Icon(
-                                    Icons.Default.Phone,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Contactar por WhatsApp",
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.labelLarge
-                                )
-                            }
+                            Icon(Icons.Default.Star, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Calificar servicio", color = Color.White, style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
             }
 
-            // Mensaje si está completada
-            if (req.status == "completada") {
+            // Sin continuar
+            if (req.status == "sin_continuar") {
                 Spacer(modifier = Modifier.height(20.dp))
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Success.copy(alpha = 0.08f)
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(20.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "✅",
-                            style = MaterialTheme.typography.headlineMedium
-                        )
+                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Error.copy(alpha = 0.08f))) {
+                    Column(modifier = Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("❌", style = MaterialTheme.typography.headlineMedium)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Servicio completado",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Success,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "¿Cómo fue tu experiencia?",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = {
-                                navController.navigate(Routes.rating(requestId))
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Primary)
-                        ) {
-                            Icon(
-                                Icons.Default.Star,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                "Calificar servicio",
-                                color = Color.White,
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                        }
+                        Text("Proceso no continuado", style = MaterialTheme.typography.titleMedium, color = Error, fontWeight = FontWeight.SemiBold)
+                        Text("El técnico no pudo continuar con este servicio.", style = MaterialTheme.typography.bodyMedium, color = TextSecondary, textAlign = TextAlign.Center)
                     }
                 }
             }
@@ -605,18 +530,11 @@ fun RequestTrackingScreen(
 // ─────────────────────────────────────────────────────────────
 
 @Composable
-fun StatusProgressBar(status: String) {
-    val steps = listOf(
-        "pendiente"   to "Pendiente",
-        "en_revision" to "En revisión",
-        "aceptada"    to "Aceptada",
-        "en_camino"   to "En camino",
-        "completada"  to "Completada"
-    )
-
-    val currentIndex = steps.indexOfFirst { it.first == status }
-        .let { if (it == -1) 0 else it }
-
+fun TecnicoInteresadoCard(
+    tecnico: UserModel,
+    eligiendoId: String,
+    onElegir: () -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -624,89 +542,200 @@ fun StatusProgressBar(status: String) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(
-                text = "Estado del servicio",
-                style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary,
-                fontWeight = FontWeight.SemiBold
-            )
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                // Avatar
+                Surface(modifier = Modifier.size(48.dp), shape = RoundedCornerShape(24.dp), color = TechnicianColor.copy(alpha = 0.15f)) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text(tecnico.name.firstOrNull()?.toString()?.uppercase() ?: "T", style = MaterialTheme.typography.titleMedium, color = TechnicianColor, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(tecnico.name, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+
+                    // Rating con estrellas
+                    if (tecnico.rating > 0) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            (1..5).forEach { star ->
+                                Icon(
+                                    imageVector = if (star <= tecnico.rating) Icons.Default.Star else Icons.Default.StarBorder,
+                                    contentDescription = null,
+                                    tint = if (star <= tecnico.rating) Warning else TextHint,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("${"%.1f".format(tecnico.rating)}", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                        }
+                    } else {
+                        Text("Sin calificaciones aún", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                    }
+
+                    // Especialidades
+                    if (tecnico.specialties.isNotEmpty()) {
+                        Text(tecnico.specialties.take(2).joinToString(", "), style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                    }
+                }
+            }
+
+            // Años de experiencia y descripción
+            if (tecnico.yearsExp > 0 || tecnico.bio.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider(color = CardBorder)
+                Spacer(modifier = Modifier.height(10.dp))
+
+                if (tecnico.yearsExp > 0) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.WorkHistory, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            "${tecnico.yearsExp} año${if (tecnico.yearsExp != 1) "s" else ""} de experiencia",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
+
+                if (tecnico.bio.isNotEmpty()) {
+                    Text(tecnico.bio, style = MaterialTheme.typography.bodySmall, color = TextSecondary, maxLines = 2)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            Button(
+                onClick = onElegir,
+                enabled = eligiendoId.isEmpty(),
+                modifier = Modifier.fillMaxWidth().height(44.dp),
+                shape = RoundedCornerShape(10.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Success)
+            ) {
+                if (eligiendoId == tecnico.uid) {
+                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Text(" Elegir este técnico", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(modifier = Modifier.size(48.dp), shape = RoundedCornerShape(24.dp), color = TechnicianColor.copy(alpha = 0.15f)) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(technician.name.firstOrNull()?.toString()?.uppercase() ?: "T", style = MaterialTheme.typography.titleMedium, color = TechnicianColor, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(technician.name, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
+                        if (technician.rating > 0) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                (1..5).forEach { star ->
+                                    Icon(
+                                        imageVector = if (star <= technician.rating) Icons.Default.Star else Icons.Default.StarBorder,
+                                        contentDescription = null,
+                                        tint = if (star <= technician.rating) Warning else TextHint,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("${"%.1f".format(technician.rating)}", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                            }
+                        }
+                        if (technician.specialties.isNotEmpty()) {
+                            Text(technician.specialties.take(2).joinToString(", "), style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                        }
+                    }
+                }
+            }
+            if (technician.yearsExp > 0) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.WorkHistory, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("${technician.yearsExp} año${if (technician.yearsExp != 1) "s" else ""} de experiencia", style = MaterialTheme.typography.bodySmall, color = TextPrimary, fontWeight = FontWeight.Medium)
+                }
+            }
+            if (technician.whatsapp.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Button(onClick = onWhatsApp, modifier = Modifier.fillMaxWidth().height(44.dp), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen)) {
+                    Icon(Icons.Default.Phone, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Contactar por WhatsApp", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StatusProgressBar(status: String) {
+    // "en_camino" eliminado del flujo
+    val steps = listOf(
+        "pendiente"   to "Pendiente",
+        "en_revision" to "En revisión",
+        "aceptada"    to "Aceptada",
+        "completada"  to "Completada"
+    )
+
+    // Estados intermedios de confirmación se mapean visualmente a "aceptada"
+    val statusVisual = when (status) {
+        "pendiente_confirmacion", "pendiente_sin_continuar" -> "aceptada"
+        "sin_continuar" -> "completada"
+        else -> status
+    }
+
+    val currentIndex = steps.indexOfFirst { it.first == statusVisual }.let { if (it == -1) 0 else it }
+
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = CardBackground), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Estado del servicio", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(16.dp))
 
             steps.forEachIndexed { index, (_, label) ->
-                val isDone    = index < currentIndex
+                val isDone = index < currentIndex
                 val isCurrent = index == currentIndex
 
-                Row(
-                    verticalAlignment = Alignment.Top,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Línea vertical + círculo
+                Row(verticalAlignment = Alignment.Top, modifier = Modifier.fillMaxWidth()) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Surface(
                             modifier = Modifier.size(24.dp),
                             shape = RoundedCornerShape(12.dp),
-                            color = when {
-                                isDone    -> Success
-                                isCurrent -> Primary
-                                else      -> SurfaceVariant
-                            }
+                            color = when { isDone -> Success; isCurrent -> Primary; else -> SurfaceVariant }
                         ) {
                             Box(contentAlignment = Alignment.Center) {
-                                if (isDone) {
-                                    Icon(
-                                        Icons.Default.Check,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                } else {
-                                    Text(
-                                        text = "${index + 1}",
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = if (isCurrent) Color.White else TextSecondary,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
+                                if (isDone) Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                else Text("${index + 1}", style = MaterialTheme.typography.labelSmall, color = if (isCurrent) Color.White else TextSecondary, fontWeight = FontWeight.Bold)
                             }
                         }
-                        // Línea conectora
                         if (index < steps.size - 1) {
-                            Box(
-                                modifier = Modifier
-                                    .width(2.dp)
-                                    .height(28.dp)
-                                    .background(
-                                        color = if (isDone) Success else CardBorder,
-                                        shape = RoundedCornerShape(1.dp)
-                                    )
-                            )
+                            Box(modifier = Modifier.width(2.dp).height(28.dp).background(color = if (isDone) Success else CardBorder, shape = RoundedCornerShape(1.dp)))
                         }
                     }
-
                     Spacer(modifier = Modifier.width(12.dp))
-
-                    // Texto del paso
                     Column(modifier = Modifier.padding(top = 2.dp)) {
                         Text(
                             text = label,
                             style = MaterialTheme.typography.bodyMedium,
-                            color = when {
-                                isDone    -> Success
-                                isCurrent -> Primary
-                                else      -> TextSecondary
-                            },
+                            color = when { isDone -> Success; isCurrent -> Primary; else -> TextSecondary },
                             fontWeight = if (isCurrent) FontWeight.SemiBold else FontWeight.Normal
                         )
                         if (isCurrent) {
-                            Text(
-                                text = getStatusDescription(status),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = TextSecondary
-                            )
+                            Text(getStatusDescription(status), style = MaterialTheme.typography.bodySmall, color = TextSecondary)
                         }
-                        if (index < steps.size - 1) {
-                            Spacer(modifier = Modifier.height(20.dp))
-                        }
+                        if (index < steps.size - 1) Spacer(modifier = Modifier.height(20.dp))
                     }
                 }
             }
@@ -715,11 +744,13 @@ fun StatusProgressBar(status: String) {
 }
 
 fun getStatusDescription(status: String): String = when (status) {
-    "pendiente"   -> "Esperando que un técnico acepte..."
-    "en_revision" -> "Un técnico está evaluando tu solicitud"
-    "aceptada"    -> "¡Un técnico aceptó tu solicitud!"
-    "en_camino"   -> "El técnico está en camino a tu ubicación"
-    "completada"  -> "El servicio fue completado exitosamente"
-    "cancelada"   -> "La solicitud fue cancelada"
-    else          -> ""
+    "pendiente"               -> "Esperando que un técnico acepte..."
+    "en_revision"             -> "Hay técnicos interesados, elige uno"
+    "aceptada"                -> "¡Elegiste un técnico!"
+    "pendiente_confirmacion"  -> "El técnico terminó, confirma el trabajo"
+    "pendiente_sin_continuar" -> "El técnico no puede continuar, confirma"
+    "completada"              -> "El servicio fue completado exitosamente"
+    "sin_continuar"           -> "El proceso no pudo completarse"
+    "cancelada"               -> "La solicitud fue cancelada"
+    else                      -> ""
 }

@@ -57,7 +57,7 @@ fun HistoryScreen(navController: NavController) {
                 requests = snapshot?.documents?.mapNotNull {
                     it.toObject(RequestModel::class.java)
                 }?.filter {
-                    it.status == "completada" || it.status == "cancelada"
+                    it.status == "completada" || it.status == "cancelada" || it.status == "sin_continuar"
                 }?.sortedByDescending { it.createdAt } ?: emptyList()
             }
     }
@@ -197,9 +197,27 @@ fun HistoryCard(
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val date = dateFormat.format(Date(request.createdAt))
 
-    val statusColor = if (request.status == "completada") Success else Error
+    /*val statusColor = if (request.status == "completada") Success else Error
     val statusLabel = if (request.status == "completada") "Completada" else "Cancelada"
-    val statusEmoji = if (request.status == "completada") "✅" else "❌"
+    val statusEmoji = if (request.status == "completada") "" else ""*/
+
+
+    val statusColor = when (request.status) {
+        "completada"    -> Success
+        "sin_continuar" -> Warning
+        else            -> Error
+    }
+    val statusLabel = when (request.status) {
+        "completada"    -> "Completada"
+        "sin_continuar" -> "No continuada"
+        else            -> "Cancelada"
+    }
+    val statusEmoji = when (request.status) {
+        "completada"    -> ""
+        "sin_continuar" -> ""
+        else            -> ""
+    }
+
 
     Card(
         modifier = Modifier
