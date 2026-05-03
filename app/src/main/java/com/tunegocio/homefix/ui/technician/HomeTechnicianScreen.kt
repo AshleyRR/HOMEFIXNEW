@@ -31,6 +31,9 @@ import com.tunegocio.homefix.data.model.RequestModel
 import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.theme.*
 import com.tunegocio.homefix.viewmodel.NotificationsViewModel
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 
 @SuppressLint("MissingPermission")
 @Composable
@@ -51,6 +54,8 @@ fun HomeTechnicianScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(true) }
     var selectedDistrictFilter by remember { mutableStateOf("Todos") }
     var techSpecialties by remember { mutableStateOf(listOf<String>()) }
+
+    var userPhotoUrl by remember { mutableStateOf("") }
 
     // ViewModel para badge de notificaciones no leídas
     val notificationsViewModel: NotificationsViewModel = viewModel()
@@ -92,6 +97,8 @@ fun HomeTechnicianScreen(navController: NavController) {
                 techLat = doc.getDouble("lat") ?: 0.0
                 techLng = doc.getDouble("lng") ?: 0.0
                 hasGps = techLat != 0.0 && techLng != 0.0
+
+                userPhotoUrl = doc.getString("selfieUrl") ?: ""
 
                 // Cargar especialidades del técnico
                 @Suppress("UNCHECKED_CAST")
@@ -265,13 +272,33 @@ fun HomeTechnicianScreen(navController: NavController) {
                                     )
                                 }
                             }
-                            IconButton(onClick = { navController.navigate(Routes.PROFILE) }) {
+                            /*IconButton(onClick = { navController.navigate(Routes.PROFILE) }) {
                                 Icon(
                                     Icons.Default.AccountCircle,
                                     contentDescription = "Perfil",
                                     tint = Primary,
                                     modifier = Modifier.size(36.dp)
                                 )
+                            }*/
+
+                            IconButton(onClick = { navController.navigate(Routes.PROFILE) }) {
+                                if (userPhotoUrl.isNotEmpty()) {
+                                    AsyncImage(
+                                        model = userPhotoUrl,
+                                        contentDescription = "Perfil",
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(RoundedCornerShape(18.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Icon(
+                                        Icons.Default.AccountCircle,
+                                        contentDescription = "Perfil",
+                                        tint = Primary,
+                                        modifier = Modifier.size(36.dp)
+                                    )
+                                }
                             }
                         }
                     }
@@ -381,9 +408,15 @@ fun HomeTechnicianScreen(navController: NavController) {
                                 .padding(32.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text(
+                            /*Text(
                                 text = "😴",
                                 style = MaterialTheme.typography.headlineLarge
+                            )*/
+                            Icon(
+                                imageVector = Icons.Default.BedtimeOff, // o el que elijas
+                                contentDescription = null,
+                                tint = TextSecondary, // cambia el color aquí
+                                modifier = Modifier.size(48.dp)
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
@@ -539,9 +572,12 @@ fun HomeTechnicianScreen(navController: NavController) {
                                         .padding(32.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(
-                                        text = "🎉",
-                                        style = MaterialTheme.typography.headlineLarge
+
+                                    Icon(
+                                        imageVector = Icons.Default.HourglassBottom, // o el que elijas
+                                        contentDescription = null,
+                                        tint = TextSecondary, // cambia el color aquí
+                                        modifier = Modifier.size(48.dp)
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(

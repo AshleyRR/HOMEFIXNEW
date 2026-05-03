@@ -22,6 +22,14 @@ import com.tunegocio.homefix.ui.components.HomefixTextField
 import com.tunegocio.homefix.ui.components.isValidEmail
 import com.tunegocio.homefix.ui.theme.*
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import com.tunegocio.homefix.R
+
+import androidx.compose.ui.graphics.Color
 @Composable
 fun LoginScreen(navController: NavController) {
 
@@ -121,11 +129,16 @@ fun LoginScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(60.dp))
 
-            Text(
-                text = "🔧",
-                style = MaterialTheme.typography.headlineLarge
+            Image(
+                painter = painterResource(id = R.drawable.login_home),
+                contentDescription = null,
+                modifier = Modifier
+                    .size(130.dp)
+                    .clip(RoundedCornerShape(80.dp)),
+                contentScale = ContentScale.Crop
             )
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
                 text = "Bienvenido a HomeFix",
                 style = MaterialTheme.typography.headlineMedium,

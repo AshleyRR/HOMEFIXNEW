@@ -74,7 +74,7 @@ fun RequestDetailScreen(
             }
     }
 
-    // ── Acciones ──────────────────────────────────────────────
+    // ── Acciones
 
     fun acceptRequest() {
         actionLoading = true
@@ -355,15 +355,15 @@ fun RequestDetailScreen(
                         }
                     }
                     if (req.lat != 0.0 || req.address.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(20.dp))
                         Button(
                             onClick = { openGoogleMaps(req.lat, req.lng, req.address) },
                             modifier = Modifier.fillMaxWidth().height(44.dp),
                             shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4285F4))
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4C7EDE))
                         ) {
                             Icon(Icons.Default.Map, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(16.dp))
                             Text("Ver en Google Maps", color = Color.White, style = MaterialTheme.typography.labelLarge)
                         }
                     }
@@ -408,7 +408,7 @@ fun RequestDetailScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ── Botones según estado ──────────────────────────
+            // ── Botones según estado
             when (req.status) {
 
                 "pendiente", "en_revision" -> {
@@ -420,7 +420,12 @@ fun RequestDetailScreen(
                             border = androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.3f))
                         ) {
                             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text("⏳", style = MaterialTheme.typography.titleLarge)
+                                Icon(
+                                    imageVector = Icons.Filled.HourglassBottom,
+                                    contentDescription = null,
+                                    tint = Color(0xFFE8D53E), // cambia el color aquí
+                                    modifier = Modifier.size(48.dp)
+                                )
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
                                     Text("Solicitud enviada", style = MaterialTheme.typography.titleMedium, color = Primary, fontWeight = FontWeight.SemiBold)
@@ -465,7 +470,7 @@ fun RequestDetailScreen(
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = Error),
                             border = androidx.compose.foundation.BorderStroke(1.dp, Error.copy(alpha = 0.5f))
                         ) {
-                            Text("✕ Proceso sin continuar", style = MaterialTheme.typography.labelLarge)
+                            Text("Proceso sin continuar", style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
@@ -478,7 +483,12 @@ fun RequestDetailScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, Warning.copy(alpha = 0.4f))
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("⏳", style = MaterialTheme.typography.titleLarge)
+                            Icon(
+                                imageVector = Icons.Default.HourglassBottom,
+                                contentDescription = null,
+                                tint = Color(0xFFE8D53E), // cambia el color aquí
+                                modifier = Modifier.size(48.dp)
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text("Esperando confirmación", style = MaterialTheme.typography.titleMedium, color = Warning, fontWeight = FontWeight.SemiBold)
@@ -496,7 +506,12 @@ fun RequestDetailScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, Error.copy(alpha = 0.4f))
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("⏳", style = MaterialTheme.typography.titleLarge)
+                            Icon(
+                                imageVector = Icons.Default.HourglassBottom,
+                                contentDescription = null,
+                                tint = Color(0xFFE8D53E), // cambia el color aquí
+                                modifier = Modifier.size(48.dp)
+                            )
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text("Esperando confirmación", style = MaterialTheme.typography.titleMedium, color = Error, fontWeight = FontWeight.SemiBold)

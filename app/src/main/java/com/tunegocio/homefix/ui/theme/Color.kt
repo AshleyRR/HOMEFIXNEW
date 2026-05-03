@@ -29,7 +29,7 @@ val Error = Color(0xFFEF4444)
 val Info = Color(0xFF3B82F6)
 
 // WhatsApp
-val WhatsAppGreen = Color(0xFF25D366)
+val WhatsAppGreen = Color(0xFF30AF60)
 
 // Roles
 val ClientColor = Color(0xFF3B82F6)

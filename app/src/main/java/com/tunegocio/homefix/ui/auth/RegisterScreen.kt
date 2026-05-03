@@ -43,6 +43,11 @@ import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.launch
 
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
+import com.tunegocio.homefix.R
+
+
 val LIMA_DISTRICTS = listOf(
     "Ancón", "Ate", "Barranco", "Breña", "Carabayllo",
     "Cercado de Lima", "Chaclacayo", "Chorrillos", "Cieneguilla",
@@ -1119,7 +1124,19 @@ fun RoleCard(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(text = emoji, style = MaterialTheme.typography.headlineLarge)
+
+            Image(
+                painter = painterResource(
+                    id = if (title == "Cliente") R.drawable.registro_cliente else R.drawable.registro_tecnico
+                ),
+                contentDescription = title,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(100.dp),
+                contentScale = ContentScale.Fit
+            )
+
+
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = title,
@@ -1136,3 +1153,6 @@ fun RoleCard(
         }
     }
 }
+
+
+

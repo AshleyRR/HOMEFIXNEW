@@ -24,6 +24,9 @@ import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.theme.*
 import com.tunegocio.homefix.viewmodel.NotificationsViewModel
 
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 @Composable
 fun HomeClientScreen(navController: NavController) {
 
@@ -35,6 +38,8 @@ fun HomeClientScreen(navController: NavController) {
     var requests by remember { mutableStateOf(listOf<RequestModel>()) }
     var isLoading by remember { mutableStateOf(true) }
 
+    var userPhotoUrl by remember { mutableStateOf("") }
+
     // ViewModel para mostrar badge de notificaciones no leídas
     val notificationsViewModel: NotificationsViewModel = viewModel()
     val noLeidas by notificationsViewModel.noLeidas.collectAsState()
@@ -44,6 +49,7 @@ fun HomeClientScreen(navController: NavController) {
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
                 userName = doc.getString("name") ?: ""
+                userPhotoUrl = doc.getString("selfieUrl") ?: ""
             }
 
         // Escuchar solicitudes en tiempo real
@@ -108,14 +114,24 @@ fun HomeClientScreen(navController: NavController) {
                                 )
                             }
                         }
-                        // Ícono perfil
                         IconButton(onClick = { navController.navigate(Routes.PROFILE) }) {
-                            Icon(
-                                Icons.Default.AccountCircle,
-                                contentDescription = "Perfil",
-                                tint = Primary,
-                                modifier = Modifier.size(36.dp)
-                            )
+                            if (userPhotoUrl.isNotEmpty()) {
+                                AsyncImage(
+                                    model = userPhotoUrl,
+                                    contentDescription = "Perfil",
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(18.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.AccountCircle,
+                                    contentDescription = "Perfil",
+                                    tint = Primary,
+                                    modifier = Modifier.size(36.dp)
+                                )
+                            }
                         }
                     }
                 }

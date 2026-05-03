@@ -125,14 +125,14 @@ fun TechnicianListScreen(navController: NavController) {
                         fontWeight = FontWeight.Bold
                     )
 
-                    IconButton(onClick = { navController.navigate(Routes.PROFILE) }) {
+                    /*IconButton(onClick = { navController.navigate(Routes.PROFILE) }) {
                         Icon(
                             Icons.Default.AccountCircle,
                             contentDescription = "Perfil",
                             tint = Primary,
                             modifier = Modifier.size(32.dp)
                         )
-                    }
+                    }*/
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
