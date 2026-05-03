@@ -44,9 +44,16 @@ fun HomeTechnicianScreen(navController: NavController) {
     val context = LocalContext.current
     val uid = auth.currentUser?.uid ?: ""
 
+    // Colores dinámicos
+    val bgColor = MaterialTheme.colorScheme.background
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val outlineColor = MaterialTheme.colorScheme.outline
+    val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+
     var userName by remember { mutableStateOf("") }
     var userDistrict by remember { mutableStateOf("") }
-    var isActive by remember { mutableStateOf(false) } // false es el valor correcto por defecto
+    var isActive by remember { mutableStateOf(false) }
     var techLat by remember { mutableStateOf(0.0) }
     var techLng by remember { mutableStateOf(0.0) }
     var hasGps by remember { mutableStateOf(false) }
@@ -54,14 +61,11 @@ fun HomeTechnicianScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(true) }
     var selectedDistrictFilter by remember { mutableStateOf("Todos") }
     var techSpecialties by remember { mutableStateOf(listOf<String>()) }
-
     var userPhotoUrl by remember { mutableStateOf("") }
 
-    // ViewModel para badge de notificaciones no leídas
     val notificationsViewModel: NotificationsViewModel = viewModel()
     val noLeidas by notificationsViewModel.noLeidas.collectAsState()
 
-    // Launcher para pedir permiso de ubicación
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -72,11 +76,9 @@ fun HomeTechnicianScreen(navController: NavController) {
                     techLat = location.latitude
                     techLng = location.longitude
                     hasGps = true
-                    // Guardar ubicación en Firestore
                     db.collection("users").document(uid)
                         .update(mapOf("lat" to techLat, "lng" to techLng))
                 } else {
-                    // Usar coordenadas del distrito registrado como fallback
                     val coords = LocationUtils.districtCoordinates[userDistrict]
                     if (coords != null) {
                         techLat = coords.first
@@ -88,7 +90,6 @@ fun HomeTechnicianScreen(navController: NavController) {
     }
 
     LaunchedEffect(uid) {
-        // Cargar datos del técnico
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
                 userName = doc.getString("name") ?: ""
@@ -97,123 +98,65 @@ fun HomeTechnicianScreen(navController: NavController) {
                 techLat = doc.getDouble("lat") ?: 0.0
                 techLng = doc.getDouble("lng") ?: 0.0
                 hasGps = techLat != 0.0 && techLng != 0.0
-
                 userPhotoUrl = doc.getString("selfieUrl") ?: ""
-
-                // Cargar especialidades del técnico
                 @Suppress("UNCHECKED_CAST")
                 techSpecialties = (doc.get("specialties") as? List<String>) ?: emptyList()
-
-                // Si está activo, actualizar ubicación al abrir
                 if (isActive) {
                     locationPermissionLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION
-                        )
+                        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
                     )
                 }
-
-                // Si no tiene GPS, usar coordenadas del distrito como fallback
                 if (!hasGps) {
                     val coords = LocationUtils.districtCoordinates[userDistrict]
-                    if (coords != null) {
-                        techLat = coords.first
-                        techLng = coords.second
-                    }
+                    if (coords != null) { techLat = coords.first; techLng = coords.second }
                 }
             }
-
-        // Escuchar solicitudes pendientes en tiempo real
         db.collection("requests")
             .whereEqualTo("status", "pendiente")
             .addSnapshotListener { snapshot, _ ->
                 isLoading = false
-                allRequests = snapshot?.documents?.mapNotNull {
-                    it.toObject(RequestModel::class.java)
-                } ?: emptyList()
+                allRequests = snapshot?.documents?.mapNotNull { it.toObject(RequestModel::class.java) } ?: emptyList()
             }
     }
 
     fun toggleActive(newValue: Boolean) {
         isActive = newValue
-        val updates = mutableMapOf<String, Any>("isActive" to newValue)
         if (newValue) {
             locationPermissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                )
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
             )
         }
-        db.collection("users").document(uid).update(updates)
+        db.collection("users").document(uid).update(mapOf("isActive" to newValue))
     }
 
     fun refreshLocation() {
         locationPermissionLauncher.launch(
-            arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            )
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
         )
     }
 
-    // Filtrar por especialidad del técnico (independencia de especialidad)
-    val specialtyFilteredRequests = if (techSpecialties.isEmpty()) {
-        allRequests // Sin especialidades registradas: ve todas
-    } else {
-        allRequests.filter { request ->
-            techSpecialties.any { specialty ->
-                specialty.equals(request.serviceType, ignoreCase = true)
-            }
-        }
-    }
+    val specialtyFilteredRequests = if (techSpecialties.isEmpty()) allRequests
+    else allRequests.filter { request -> techSpecialties.any { it.equals(request.serviceType, ignoreCase = true) } }
 
-    // Calcular distancia sobre las solicitudes ya filtradas por especialidad
     val requestsWithDistance = specialtyFilteredRequests.map { request ->
-        val distance = if (techLat != 0.0 && techLng != 0.0 &&
-            request.lat != 0.0 && request.lng != 0.0
-        ) {
+        val distance = if (techLat != 0.0 && techLng != 0.0 && request.lat != 0.0 && request.lng != 0.0)
             LocationUtils.haversineDistance(techLat, techLng, request.lat, request.lng)
-        } else null
+        else null
         Pair(request, distance)
     }
 
-    // Filtrar por distrito si hay filtro activo
-    val filteredRequests = if (selectedDistrictFilter == "Todos") {
-        requestsWithDistance
-    } else {
-        requestsWithDistance.filter { (request, _) ->
-            request.district == selectedDistrictFilter
-        }
-    }
+    val filteredRequests = if (selectedDistrictFilter == "Todos") requestsWithDistance
+    else requestsWithDistance.filter { (request, _) -> request.district == selectedDistrictFilter }
 
-    // Separar en cercanas (≤10 km) y otras
-    val nearbyRequests = filteredRequests
-        .filter { (_, distance) -> distance != null && distance <= 10.0 }
-        .sortedBy { (_, distance) -> distance }
-
-    val otherRequests = filteredRequests
-        .filter { (_, distance) -> distance == null || distance > 10.0 }
-        .sortedBy { (_, distance) -> distance ?: Double.MAX_VALUE }
-
-    // Distritos únicos de las solicitudes para el filtro
-    val availableDistricts = listOf("Todos") +
-            allRequests.map { it.district }
-                .filter { it.isNotEmpty() }
-                .distinct()
-                .sorted()
+    val nearbyRequests = filteredRequests.filter { (_, d) -> d != null && d <= 10.0 }.sortedBy { (_, d) -> d }
+    val otherRequests = filteredRequests.filter { (_, d) -> d == null || d > 10.0 }.sortedBy { (_, d) -> d ?: Double.MAX_VALUE }
+    val availableDistricts = listOf("Todos") + allRequests.map { it.district }.filter { it.isNotEmpty() }.distinct().sorted()
 
     Scaffold(
-        bottomBar = {
-            TechnicianBottomBar(navController = navController, current = "home")
-        }
+        bottomBar = { TechnicianBottomBar(navController = navController, current = "home") }
     ) { padding ->
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Background)
-                .padding(padding),
+            modifier = Modifier.fillMaxSize().background(bgColor).padding(padding),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Header
@@ -229,75 +172,37 @@ fun HomeTechnicianScreen(navController: NavController) {
                             Text(
                                 text = "Hola, ${userName.split(" ").firstOrNull() ?: ""} ",
                                 style = MaterialTheme.typography.headlineMedium,
-                                color = TextPrimary,
+                                color = textColor,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = if (isActive) "Estás disponible" else "Estás inactivo",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (isActive) Success else TextSecondary
+                                color = if (isActive) Success else secondaryText
                             )
                             if (userDistrict.isNotEmpty()) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        Icons.Default.LocationOn,
-                                        contentDescription = null,
-                                        tint = TextSecondary,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Text(
-                                        text = userDistrict,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = TextSecondary
-                                    )
+                                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = secondaryText, modifier = Modifier.size(14.dp))
+                                    Text(text = userDistrict, style = MaterialTheme.typography.bodySmall, color = secondaryText)
                                 }
                             }
                         }
-
-                        // Íconos de notificaciones y perfil
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            BadgedBox(
-                                badge = {
-                                    if (noLeidas > 0) {
-                                        Badge { Text(text = noLeidas.toString()) }
-                                    }
-                                }
-                            ) {
+                            BadgedBox(badge = { if (noLeidas > 0) Badge { Text(noLeidas.toString()) } }) {
                                 IconButton(onClick = { navController.navigate(Routes.NOTIFICATIONS) }) {
-                                    Icon(
-                                        Icons.Default.Notifications,
-                                        contentDescription = "Notificaciones",
-                                        tint = Primary,
-                                        modifier = Modifier.size(28.dp)
-                                    )
+                                    Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", tint = Primary, modifier = Modifier.size(28.dp))
                                 }
                             }
-                            /*IconButton(onClick = { navController.navigate(Routes.PROFILE) }) {
-                                Icon(
-                                    Icons.Default.AccountCircle,
-                                    contentDescription = "Perfil",
-                                    tint = Primary,
-                                    modifier = Modifier.size(36.dp)
-                                )
-                            }*/
-
                             IconButton(onClick = { navController.navigate(Routes.PROFILE) }) {
                                 if (userPhotoUrl.isNotEmpty()) {
                                     AsyncImage(
                                         model = userPhotoUrl,
                                         contentDescription = "Perfil",
-                                        modifier = Modifier
-                                            .size(36.dp)
-                                            .clip(RoundedCornerShape(18.dp)),
+                                        modifier = Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)),
                                         contentScale = ContentScale.Crop
                                     )
                                 } else {
-                                    Icon(
-                                        Icons.Default.AccountCircle,
-                                        contentDescription = "Perfil",
-                                        tint = Primary,
-                                        modifier = Modifier.size(36.dp)
-                                    )
+                                    Icon(Icons.Default.AccountCircle, contentDescription = "Perfil", tint = Primary, modifier = Modifier.size(36.dp))
                                 }
                             }
                         }
@@ -308,14 +213,10 @@ fun HomeTechnicianScreen(navController: NavController) {
             // Toggle disponibilidad
             item {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isActive)
-                            Success.copy(alpha = 0.1f)
-                        else SurfaceVariant
+                        containerColor = if (isActive) Success.copy(alpha = 0.1f) else surfaceColor
                     )
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -328,32 +229,24 @@ fun HomeTechnicianScreen(navController: NavController) {
                                 Text(
                                     text = if (isActive) "Disponible" else "No disponible",
                                     style = MaterialTheme.typography.titleMedium,
-                                    color = if (isActive) Success else TextPrimary,
+                                    color = if (isActive) Success else textColor,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    text = if (isActive)
-                                        "Recibes solicitudes de clientes"
-                                    else
-                                        "Actívate para recibir solicitudes",
+                                    text = if (isActive) "Recibes solicitudes de clientes" else "Actívate para recibir solicitudes",
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = TextSecondary
+                                    color = secondaryText
                                 )
                             }
                             Switch(
                                 checked = isActive,
                                 onCheckedChange = { toggleActive(it) },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = Success
-                                )
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Success)
                             )
                         }
-
-                        // Banner GPS + botón refrescar
                         if (isActive) {
                             Spacer(modifier = Modifier.height(10.dp))
-                            HorizontalDivider(color = CardBorder)
+                            HorizontalDivider(color = outlineColor)
                             Spacer(modifier = Modifier.height(10.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -361,31 +254,16 @@ fun HomeTechnicianScreen(navController: NavController) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Surface(
-                                        modifier = Modifier.size(8.dp),
-                                        shape = RoundedCornerShape(4.dp),
-                                        color = if (hasGps) Success else Warning
-                                    ) {}
+                                    Surface(modifier = Modifier.size(8.dp), shape = RoundedCornerShape(4.dp), color = if (hasGps) Success else Warning) {}
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = if (hasGps)
-                                            "GPS activo — solicitudes ordenadas por distancia"
-                                        else
-                                            "Sin GPS — usando distrito: $userDistrict",
+                                        text = if (hasGps) "GPS activo — solicitudes ordenadas por distancia" else "Sin GPS — usando distrito: $userDistrict",
                                         style = MaterialTheme.typography.labelSmall,
                                         color = if (hasGps) Success else Warning
                                     )
                                 }
-                                IconButton(
-                                    onClick = { refreshLocation() },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Refresh,
-                                        contentDescription = "Actualizar ubicación",
-                                        tint = Primary,
-                                        modifier = Modifier.size(18.dp)
-                                    )
+                                IconButton(onClick = { refreshLocation() }, modifier = Modifier.size(32.dp)) {
+                                    Icon(Icons.Default.Refresh, contentDescription = "Actualizar ubicación", tint = Primary, modifier = Modifier.size(18.dp))
                                 }
                             }
                         }
@@ -396,73 +274,32 @@ fun HomeTechnicianScreen(navController: NavController) {
             if (!isActive) {
                 item {
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+                        colors = CardDefaults.cardColors(containerColor = surfaceColor)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            /*Text(
-                                text = "😴",
-                                style = MaterialTheme.typography.headlineLarge
-                            )*/
-                            Icon(
-                                imageVector = Icons.Default.BedtimeOff, // o el que elijas
-                                contentDescription = null,
-                                tint = TextSecondary, // cambia el color aquí
-                                modifier = Modifier.size(48.dp)
-                            )
+                        Column(modifier = Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(imageVector = Icons.Default.BedtimeOff, contentDescription = null, tint = secondaryText, modifier = Modifier.size(48.dp))
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Estás inactivo",
-                                style = MaterialTheme.typography.titleMedium,
-                                color = TextPrimary
-                            )
-                            Text(
-                                text = "Activa tu disponibilidad para ver solicitudes",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = TextSecondary
-                            )
+                            Text("Estás inactivo", style = MaterialTheme.typography.titleMedium, color = textColor)
+                            Text("Activa tu disponibilidad para ver solicitudes", style = MaterialTheme.typography.bodyMedium, color = secondaryText)
                         }
                     }
                 }
             } else {
-
                 // Filtro por distrito
                 item {
                     Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                        Text(
-                            text = "Filtrar por distrito",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = TextSecondary,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Text("Filtrar por distrito", style = MaterialTheme.typography.bodyMedium, color = secondaryText, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.height(6.dp))
                     }
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 20.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
+                    LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(availableDistricts) { district ->
                             FilterChip(
                                 selected = selectedDistrictFilter == district,
                                 onClick = { selectedDistrictFilter = district },
-                                label = {
-                                    Text(
-                                        district,
-                                        style = MaterialTheme.typography.labelMedium
-                                    )
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Primary,
-                                    selectedLabelColor = Color.White
-                                )
+                                label = { Text(district, style = MaterialTheme.typography.labelMedium) },
+                                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Primary, selectedLabelColor = Color.White)
                             )
                         }
                     }
@@ -470,126 +307,66 @@ fun HomeTechnicianScreen(navController: NavController) {
 
                 if (isLoading) {
                     item {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(120.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(modifier = Modifier.fillMaxWidth().height(120.dp), contentAlignment = Alignment.Center) {
                             CircularProgressIndicator(color = Primary)
                         }
                     }
                 } else {
-
-                    // Sección: Cerca de ti
                     if (nearbyRequests.isNotEmpty()) {
                         item {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 20.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.LocationOn,
-                                    contentDescription = null,
-                                    tint = Success,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = Success, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Cerca de ti (${nearbyRequests.size})",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = TextPrimary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                                Text("Cerca de ti (${nearbyRequests.size})", style = MaterialTheme.typography.titleLarge, color = textColor, fontWeight = FontWeight.SemiBold)
                             }
                         }
-
                         items(nearbyRequests) { (request, distance) ->
                             NearbyRequestCard(
                                 request = request,
                                 distance = distance?.let { LocationUtils.formatDistance(it) },
-                                onClick = {
-                                    navController.navigate(Routes.requestDetail(request.requestId))
-                                },
-                                modifier = Modifier.padding(horizontal = 20.dp)
+                                onClick = { navController.navigate(Routes.requestDetail(request.requestId)) },
+                                modifier = Modifier.padding(horizontal = 20.dp),
+                                textColor = textColor,
+                                secondaryText = secondaryText,
+                                cardColor = surfaceColor
                             )
                         }
                     }
 
-                    // Sección: Otros distritos
                     if (otherRequests.isNotEmpty()) {
                         item {
                             Spacer(modifier = Modifier.height(4.dp))
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 20.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.Map,
-                                    contentDescription = null,
-                                    tint = TextSecondary,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Map, contentDescription = null, tint = secondaryText, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Otros distritos (${otherRequests.size})",
-                                    style = MaterialTheme.typography.titleLarge,
-                                    color = TextPrimary,
-                                    fontWeight = FontWeight.SemiBold
-                                )
+                                Text("Otros distritos (${otherRequests.size})", style = MaterialTheme.typography.titleLarge, color = textColor, fontWeight = FontWeight.SemiBold)
                             }
                         }
-
                         items(otherRequests) { (request, distance) ->
                             NearbyRequestCard(
                                 request = request,
                                 distance = distance?.let { LocationUtils.formatDistance(it) },
-                                onClick = {
-                                    navController.navigate(Routes.requestDetail(request.requestId))
-                                },
-                                modifier = Modifier.padding(horizontal = 20.dp)
+                                onClick = { navController.navigate(Routes.requestDetail(request.requestId)) },
+                                modifier = Modifier.padding(horizontal = 20.dp),
+                                textColor = textColor,
+                                secondaryText = secondaryText,
+                                cardColor = surfaceColor
                             )
                         }
                     }
 
-                    // Sin solicitudes
                     if (nearbyRequests.isEmpty() && otherRequests.isEmpty()) {
                         item {
                             Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 20.dp),
+                                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+                                colors = CardDefaults.cardColors(containerColor = surfaceColor)
                             ) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(32.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-
-                                    Icon(
-                                        imageVector = Icons.Default.HourglassBottom, // o el que elijas
-                                        contentDescription = null,
-                                        tint = TextSecondary, // cambia el color aquí
-                                        modifier = Modifier.size(48.dp)
-                                    )
+                                Column(modifier = Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(imageVector = Icons.Default.HourglassBottom, contentDescription = null, tint = secondaryText, modifier = Modifier.size(48.dp))
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "Sin solicitudes por ahora",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = TextPrimary
-                                    )
-                                    Text(
-                                        text = "Te notificaremos cuando llegue una nueva",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = TextSecondary
-                                    )
+                                    Text("Sin solicitudes por ahora", style = MaterialTheme.typography.titleMedium, color = textColor)
+                                    Text("Te notificaremos cuando llegue una nueva", style = MaterialTheme.typography.bodyMedium, color = secondaryText)
                                 }
                             }
                         }
@@ -607,91 +384,47 @@ fun NearbyRequestCard(
     request: RequestModel,
     distance: String?,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    textColor: androidx.compose.ui.graphics.Color = TextPrimary,
+    secondaryText: androidx.compose.ui.graphics.Color = TextSecondary,
+    cardColor: androidx.compose.ui.graphics.Color = CardBackground
 ) {
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onClick() },
+        modifier = modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
+                    Text(text = request.serviceType, style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = request.serviceType,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = request.description.take(80) +
-                                if (request.description.length > 80) "..." else "",
+                        text = request.description.take(80) + if (request.description.length > 80) "..." else "",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary
+                        color = secondaryText
                     )
                 }
                 if (request.isUrgent) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = Error.copy(alpha = 0.15f)
-                    ) {
-                        Text(
-                            text = "⚡ Urgente",
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Error,
-                            fontWeight = FontWeight.Medium
-                        )
+                    Surface(shape = RoundedCornerShape(8.dp), color = Error.copy(alpha = 0.15f)) {
+                        Text("⚡ Urgente", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Error, fontWeight = FontWeight.Medium)
                     }
                 }
             }
-
             Spacer(modifier = Modifier.height(8.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Distrito
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = TextSecondary,
-                        modifier = Modifier.size(14.dp)
-                    )
+                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = secondaryText, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = if (request.district.isNotEmpty())
-                            request.district
-                        else
-                            request.address.ifEmpty { "Ubicación no especificada" },
+                        text = if (request.district.isNotEmpty()) request.district else request.address.ifEmpty { "Ubicación no especificada" },
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextSecondary
+                        color = secondaryText
                     )
                 }
-
-                // Distancia
                 if (distance != null) {
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = Primary.copy(alpha = 0.08f)
-                    ) {
-                        Text(
-                            text = distance,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Primary,
-                            fontWeight = FontWeight.Medium
-                        )
+                    Surface(shape = RoundedCornerShape(6.dp), color = Primary.copy(alpha = 0.08f)) {
+                        Text(text = distance, modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp), style = MaterialTheme.typography.labelSmall, color = Primary, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -701,7 +434,8 @@ fun NearbyRequestCard(
 
 @Composable
 fun TechnicianBottomBar(navController: NavController, current: String) {
-    NavigationBar(containerColor = Surface) {
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    NavigationBar(containerColor = surfaceColor) {
         NavigationBarItem(
             selected = current == "home",
             onClick = { navController.navigate(Routes.HOME_TECHNICIAN) },

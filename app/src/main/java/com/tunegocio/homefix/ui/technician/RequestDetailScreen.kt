@@ -41,13 +41,20 @@ fun RequestDetailScreen(
     val db = FirebaseFirestore.getInstance()
     val technicianId = auth.currentUser?.uid ?: ""
 
+    // ── Colores dinámicos (igual que EarningsScreen) ──────────
+    val bgColor = MaterialTheme.colorScheme.background
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val outlineColor = MaterialTheme.colorScheme.outline
+    val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    val primaryColor = MaterialTheme.colorScheme.primary
+
     var request by remember { mutableStateOf<RequestModel?>(null) }
     var client by remember { mutableStateOf<UserModel?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var actionLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
-    // ── Diálogos ──────────────────────────────────────────────
     var showConfirmInterestDialog by remember { mutableStateOf(false) }
     var showCancelReasonDialog by remember { mutableStateOf(false) }
     var cancelReason by remember { mutableStateOf("") }
@@ -57,7 +64,6 @@ fun RequestDetailScreen(
 
     val notificationsRepo = remember { NotificationsRepository() }
 
-    // Escucha en tiempo real
     LaunchedEffect(requestId) {
         db.collection("requests").document(requestId)
             .addSnapshotListener { snapshot, _ ->
@@ -73,8 +79,6 @@ fun RequestDetailScreen(
                 }
             }
     }
-
-    // ── Acciones
 
     fun acceptRequest() {
         actionLoading = true
@@ -140,7 +144,6 @@ fun RequestDetailScreen(
             .addOnFailureListener { actionLoading = false; errorMessage = "Error al cancelar" }
     }
 
-    // Notifica al cliente que el técnico marcó trabajo completado
     fun solicitarCompletado() {
         actionLoading = true
         val req = request ?: return
@@ -160,7 +163,6 @@ fun RequestDetailScreen(
             .addOnFailureListener { actionLoading = false; errorMessage = "Error al actualizar" }
     }
 
-    // Notifica al cliente que el técnico no puede continuar
     fun solicitarSinContinuar() {
         actionLoading = true
         val req = request ?: return
@@ -197,48 +199,56 @@ fun RequestDetailScreen(
         catch (e: Exception) { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://maps.google.com/?q=$query"))) }
     }
 
-    // ── Diálogo: confirmar interés
+    // ── Diálogo: confirmar interés ────────────────────────────
     if (showConfirmInterestDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmInterestDialog = false },
-            title = { Text("¿Confirmar interés?", fontWeight = FontWeight.Bold) },
-            text = { Text("Al confirmar, el cliente verá que estás interesado en atender esta solicitud y podrá elegirte.") },
+            title = { Text("¿Confirmar interés?", fontWeight = FontWeight.Bold, color = textColor) },
+            text = { Text("Al confirmar, el cliente verá que estás interesado en atender esta solicitud y podrá elegirte.", color = secondaryText) },
             confirmButton = {
-                Button(onClick = { showConfirmInterestDialog = false; acceptRequest() }, colors = ButtonDefaults.buttonColors(containerColor = Primary)) {
+                Button(onClick = { showConfirmInterestDialog = false; acceptRequest() }, colors = ButtonDefaults.buttonColors(containerColor = primaryColor)) {
                     Text("Sí, me interesa", color = Color.White)
                 }
             },
-            dismissButton = { TextButton(onClick = { showConfirmInterestDialog = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { showConfirmInterestDialog = false }) { Text("Cancelar", color = secondaryText) } },
+            containerColor = surfaceColor
         )
     }
 
-    // ── Diálogo: motivo cancelación
+    // ── Diálogo: motivo cancelación ───────────────────────────
     if (showCancelReasonDialog) {
         AlertDialog(
             onDismissRequest = { showCancelReasonDialog = false; cancelReason = ""; cancelReasonError = "" },
-            title = { Text("¿Por qué cancelas?", fontWeight = FontWeight.Bold) },
+            title = { Text("¿Por qué cancelas?", fontWeight = FontWeight.Bold, color = textColor) },
             text = {
                 Column {
-                    Text("El cliente recibirá una notificación con el motivo.", color = TextSecondary, style = MaterialTheme.typography.bodySmall)
+                    Text("El cliente recibirá una notificación con el motivo.", color = secondaryText, style = MaterialTheme.typography.bodySmall)
                     Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
                         value = cancelReason,
                         onValueChange = { cancelReason = it; cancelReasonError = "" },
-                        placeholder = { Text("Ej: Surgió un inconveniente, estoy lejos...") },
+                        placeholder = { Text("Ej: Surgió un inconveniente, estoy lejos...", color = secondaryText) },
                         shape = RoundedCornerShape(10.dp),
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, unfocusedBorderColor = CardBorder),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = outlineColor,
+                            focusedTextColor = textColor,
+                            unfocusedTextColor = textColor,
+                            cursorColor = primaryColor
+                        ),
                         modifier = Modifier.fillMaxWidth().height(100.dp)
                     )
-                    if (cancelReasonError.isNotEmpty()) Text(cancelReasonError, color = Error, style = MaterialTheme.typography.labelSmall)
+                    if (cancelReasonError.isNotEmpty()) Text(cancelReasonError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
                 }
             },
             confirmButton = {
-                Button(onClick = { cancelInterest() }, enabled = !actionLoading, colors = ButtonDefaults.buttonColors(containerColor = Error)) {
+                Button(onClick = { cancelInterest() }, enabled = !actionLoading, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
                     if (actionLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                     else Text("Confirmar cancelación", color = Color.White)
                 }
             },
-            dismissButton = { TextButton(onClick = { showCancelReasonDialog = false; cancelReason = ""; cancelReasonError = "" }) { Text("Volver") } }
+            dismissButton = { TextButton(onClick = { showCancelReasonDialog = false; cancelReason = ""; cancelReasonError = "" }) { Text("Volver", color = secondaryText) } },
+            containerColor = surfaceColor
         )
     }
 
@@ -246,15 +256,16 @@ fun RequestDetailScreen(
     if (showCompletadoDialog) {
         AlertDialog(
             onDismissRequest = { showCompletadoDialog = false },
-            title = { Text("¿Marcar como completado?", fontWeight = FontWeight.Bold) },
-            text = { Text("Se notificará al cliente para que confirme que el trabajo fue terminado.") },
+            title = { Text("¿Marcar como completado?", fontWeight = FontWeight.Bold, color = textColor) },
+            text = { Text("Se notificará al cliente para que confirme que el trabajo fue terminado.", color = secondaryText) },
             confirmButton = {
                 Button(onClick = { solicitarCompletado() }, enabled = !actionLoading, colors = ButtonDefaults.buttonColors(containerColor = Success)) {
                     if (actionLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                     else Text("Confirmar", color = Color.White)
                 }
             },
-            dismissButton = { TextButton(onClick = { showCompletadoDialog = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { showCompletadoDialog = false }) { Text("Cancelar", color = secondaryText) } },
+            containerColor = surfaceColor
         )
     }
 
@@ -262,22 +273,23 @@ fun RequestDetailScreen(
     if (showSinContinuarDialog) {
         AlertDialog(
             onDismissRequest = { showSinContinuarDialog = false },
-            title = { Text("¿No puedes continuar?", fontWeight = FontWeight.Bold) },
-            text = { Text("Se notificará al cliente que no puedes continuar con este servicio. El cliente deberá confirmarlo.") },
+            title = { Text("¿No puedes continuar?", fontWeight = FontWeight.Bold, color = textColor) },
+            text = { Text("Se notificará al cliente que no puedes continuar con este servicio. El cliente deberá confirmarlo.", color = secondaryText) },
             confirmButton = {
-                Button(onClick = { solicitarSinContinuar() }, enabled = !actionLoading, colors = ButtonDefaults.buttonColors(containerColor = Error)) {
+                Button(onClick = { solicitarSinContinuar() }, enabled = !actionLoading, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
                     if (actionLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                     else Text("Confirmar", color = Color.White)
                 }
             },
-            dismissButton = { TextButton(onClick = { showSinContinuarDialog = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { showSinContinuarDialog = false }) { Text("Cancelar", color = secondaryText) } },
+            containerColor = surfaceColor
         )
     }
 
     // ── Loading ───────────────────────────────────────────────
     if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize().background(Background), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = Primary)
+        Box(modifier = Modifier.fillMaxSize().background(bgColor), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = primaryColor)
         }
         return
     }
@@ -285,29 +297,29 @@ fun RequestDetailScreen(
     val req = request ?: return
     val yaMarcoInteres = technicianId in req.interestedTechnicians
 
-    Box(modifier = Modifier.fillMaxSize().background(Background)) {
+    Box(modifier = Modifier.fillMaxSize().background(bgColor)) {
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Header
+            // ── Header ────────────────────────────────────────
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = TextPrimary)
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = textColor)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Detalle de solicitud", style = MaterialTheme.typography.headlineMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                Text("Detalle de solicitud", style = MaterialTheme.typography.headlineMedium, color = textColor, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Chips: tipo, urgencia, en proceso
+            // ── Chips ─────────────────────────────────────────
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Surface(shape = RoundedCornerShape(8.dp), color = Primary.copy(alpha = 0.1f)) {
-                    Text(req.serviceType, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge, color = Primary, fontWeight = FontWeight.SemiBold)
+                Surface(shape = RoundedCornerShape(8.dp), color = primaryColor.copy(alpha = 0.1f)) {
+                    Text(req.serviceType, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge, color = primaryColor, fontWeight = FontWeight.SemiBold)
                 }
                 if (req.isUrgent) {
-                    Surface(shape = RoundedCornerShape(8.dp), color = Error.copy(alpha = 0.1f)) {
-                        Text("⚡ Urgente", modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge, color = Error, fontWeight = FontWeight.SemiBold)
+                    Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f)) {
+                        Text("⚡ Urgente", modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
                     }
                 }
                 if (req.status == "aceptada" && req.technicianId == technicianId) {
@@ -319,39 +331,44 @@ fun RequestDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Foto
+            // ── Foto ──────────────────────────────────────────
             if (req.imageUrls.isNotEmpty()) {
-                Text("Foto del problema", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
+                Text("Foto del problema", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))
-                AsyncImage(model = req.imageUrls.first(), contentDescription = null, modifier = Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(16.dp)), contentScale = ContentScale.Crop)
+                AsyncImage(
+                    model = req.imageUrls.first(),
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(16.dp)),
+                    contentScale = ContentScale.Crop
+                )
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Descripción
-            Text("Descripción", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
+            // ── Descripción ───────────────────────────────────
+            Text("Descripción", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(8.dp))
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = SurfaceVariant)) {
-                Text(req.description, modifier = Modifier.padding(14.dp), style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = surfaceColor)) {
+                Text(req.description, modifier = Modifier.padding(14.dp), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Ubicación
-            Text("Ubicación", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
+            // ── Ubicación ─────────────────────────────────────
+            Text("Ubicación", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(8.dp))
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = SurfaceVariant)) {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = surfaceColor)) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = Primary)
+                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = primaryColor)
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(req.address.ifEmpty { "Ubicación no especificada" }, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, modifier = Modifier.weight(1f))
+                        Text(req.address.ifEmpty { "Ubicación no especificada" }, style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.weight(1f))
                     }
                     if (req.reference.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(6.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Info, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.Info, contentDescription = null, tint = secondaryText, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text(req.reference, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                            Text(req.reference, style = MaterialTheme.typography.bodySmall, color = secondaryText)
                         }
                     }
                     if (req.lat != 0.0 || req.address.isNotEmpty()) {
@@ -372,11 +389,16 @@ fun RequestDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Cliente
+            // ── Cliente ───────────────────────────────────────
             client?.let { c ->
-                Text("Cliente", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
+                Text("Cliente", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = CardBackground), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = surfaceColor),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
                     Row(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Surface(modifier = Modifier.size(44.dp), shape = RoundedCornerShape(22.dp), color = ClientColor.copy(alpha = 0.15f)) {
@@ -386,8 +408,8 @@ fun RequestDetailScreen(
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text(c.name, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
-                                if (c.rating > 0) Text("⭐ ${"%.1f".format(c.rating)}", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                                Text(c.name, style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
+                                if (c.rating > 0) Text("⭐ ${"%.1f".format(c.rating)}", style = MaterialTheme.typography.bodySmall, color = secondaryText)
                             }
                         }
                         if (c.phone.isNotEmpty()) {
@@ -403,12 +425,12 @@ fun RequestDetailScreen(
 
             if (errorMessage.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(errorMessage, color = Error, style = MaterialTheme.typography.bodySmall)
+                Text(errorMessage, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ── Botones según estado
+            // ── Botones según estado ──────────────────────────
             when (req.status) {
 
                 "pendiente", "en_revision" -> {
@@ -416,20 +438,15 @@ fun RequestDetailScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = Primary.copy(alpha = 0.08f)),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.3f))
+                            colors = CardDefaults.cardColors(containerColor = primaryColor.copy(alpha = 0.08f)),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, primaryColor.copy(alpha = 0.3f))
                         ) {
                             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Filled.HourglassBottom,
-                                    contentDescription = null,
-                                    tint = Color(0xFFE8D53E), // cambia el color aquí
-                                    modifier = Modifier.size(48.dp)
-                                )
+                                Icon(imageVector = Icons.Filled.HourglassBottom, contentDescription = null, tint = Color(0xFFE8D53E), modifier = Modifier.size(48.dp))
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text("Solicitud enviada", style = MaterialTheme.typography.titleMedium, color = Primary, fontWeight = FontWeight.SemiBold)
-                                    Text("Estás a la espera de que el cliente te elija.", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                                    Text("Solicitud enviada", style = MaterialTheme.typography.titleMedium, color = primaryColor, fontWeight = FontWeight.SemiBold)
+                                    Text("Estás a la espera de que el cliente te elija.", style = MaterialTheme.typography.bodySmall, color = secondaryText)
                                 }
                             }
                         }
@@ -438,21 +455,21 @@ fun RequestDetailScreen(
                             onClick = { showCancelReasonDialog = true },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Error),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Error.copy(alpha = 0.5f))
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
                         ) {
                             Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text("Cancelar solicitud", style = MaterialTheme.typography.labelLarge)
                         }
                     } else {
-                        HomefixButton(text = " Me interesa", onClick = { showConfirmInterestDialog = true }, isLoading = actionLoading, color = Primary)
+                        HomefixButton(text = " Me interesa", onClick = { showConfirmInterestDialog = true }, isLoading = actionLoading, color = primaryColor)
                         Spacer(modifier = Modifier.height(12.dp))
                         OutlinedButton(
                             onClick = { navController.popBackStack() },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Error)
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                         ) {
                             Text(" No me interesa", style = MaterialTheme.typography.labelLarge)
                         }
@@ -467,8 +484,8 @@ fun RequestDetailScreen(
                             onClick = { showSinContinuarDialog = true },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Error),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Error.copy(alpha = 0.5f))
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
                         ) {
                             Text("Proceso sin continuar", style = MaterialTheme.typography.labelLarge)
                         }
@@ -483,16 +500,11 @@ fun RequestDetailScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, Warning.copy(alpha = 0.4f))
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.HourglassBottom,
-                                contentDescription = null,
-                                tint = Color(0xFFE8D53E), // cambia el color aquí
-                                modifier = Modifier.size(48.dp)
-                            )
+                            Icon(imageVector = Icons.Default.HourglassBottom, contentDescription = null, tint = Color(0xFFE8D53E), modifier = Modifier.size(48.dp))
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text("Esperando confirmación", style = MaterialTheme.typography.titleMedium, color = Warning, fontWeight = FontWeight.SemiBold)
-                                Text("El cliente debe confirmar que el trabajo fue completado.", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                                Text("El cliente debe confirmar que el trabajo fue completado.", style = MaterialTheme.typography.bodySmall, color = secondaryText)
                             }
                         }
                     }
@@ -502,20 +514,15 @@ fun RequestDetailScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = Error.copy(alpha = 0.08f)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Error.copy(alpha = 0.4f))
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.08f)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f))
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.HourglassBottom,
-                                contentDescription = null,
-                                tint = Color(0xFFE8D53E), // cambia el color aquí
-                                modifier = Modifier.size(48.dp)
-                            )
+                            Icon(imageVector = Icons.Default.HourglassBottom, contentDescription = null, tint = Color(0xFFE8D53E), modifier = Modifier.size(48.dp))
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text("Esperando confirmación", style = MaterialTheme.typography.titleMedium, color = Error, fontWeight = FontWeight.SemiBold)
-                                Text("El cliente debe confirmar que el proceso no continuó.", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                                Text("Esperando confirmación", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                                Text("El cliente debe confirmar que el proceso no continuó.", style = MaterialTheme.typography.bodySmall, color = secondaryText)
                             }
                         }
                     }
@@ -530,9 +537,9 @@ fun RequestDetailScreen(
                 }
 
                 "sin_continuar" -> {
-                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Error.copy(alpha = 0.08f))) {
+                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.08f))) {
                         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                            Text(" Proceso no continuado", style = MaterialTheme.typography.titleMedium, color = Error, fontWeight = FontWeight.SemiBold)
+                            Text(" Proceso no continuado", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }

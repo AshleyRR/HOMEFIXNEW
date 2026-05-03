@@ -38,17 +38,24 @@ fun SettingsScreen(navController: NavController) {
 
     var showLanguageDialog by remember { mutableStateOf(false) }
 
+    // Colores dinámicos
+    val bgColor = MaterialTheme.colorScheme.background
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val outlineColor = MaterialTheme.colorScheme.outline
+    val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+
     val languageLabel = when (language) {
         "en" -> "English"
         "pt" -> "Português"
         else -> "Español (Perú)"
     }
 
-    // ── Diálogo de idioma ────────────────────────────────────────────────────
     if (showLanguageDialog) {
         AlertDialog(
             onDismissRequest = { showLanguageDialog = false },
-            title = { Text("Seleccionar idioma", fontWeight = FontWeight.Bold) },
+            containerColor = surfaceColor,
+            title = { Text("Seleccionar idioma", fontWeight = FontWeight.Bold, color = textColor) },
             text = {
                 Column {
                     listOf(
@@ -58,16 +65,14 @@ fun SettingsScreen(navController: NavController) {
                     ).forEach { (code, label) ->
                         val isSelected = language == code
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
                                 text = label,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (isSelected) Primary else TextPrimary,
+                                color = if (isSelected) Primary else textColor,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                             )
                             RadioButton(
@@ -84,17 +89,13 @@ fun SettingsScreen(navController: NavController) {
             },
             confirmButton = {
                 TextButton(onClick = { showLanguageDialog = false }) {
-                    Text("Cerrar", color = TextSecondary)
+                    Text("Cerrar", color = secondaryText)
                 }
             }
         )
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
+    Box(modifier = Modifier.fillMaxSize().background(bgColor)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -103,27 +104,19 @@ fun SettingsScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── Header ───────────────────────────────────────────────────────
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            // Header
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = TextPrimary)
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = textColor)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Configuraciones",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold
-                )
+                Text("Configuraciones", style = MaterialTheme.typography.headlineMedium, color = textColor, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // ── Apariencia ───────────────────────────────────────────────────
-            SettingsSectionTitle(title = "Apariencia")
+            // Apariencia
+            SettingsSectionTitle(title = "Apariencia", color = secondaryText)
             Spacer(modifier = Modifier.height(8.dp))
 
             SettingsToggleItem(
@@ -132,24 +125,31 @@ fun SettingsScreen(navController: NavController) {
                 title = if (darkMode) "Modo oscuro" else "Modo claro",
                 subtitle = if (darkMode) "Activado" else "Desactivado",
                 checked = darkMode,
-                onCheckedChange = { scope.launch { prefs.setDarkMode(it) } }
+                onCheckedChange = { scope.launch { prefs.setDarkMode(it) } },
+                titleColor = textColor,
+                subtitleColor = secondaryText,
+                cardColor = surfaceColor,
+                borderColor = outlineColor
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ── Idioma ───────────────────────────────────────────────────────
             SettingsClickItem(
                 icon = Icons.Default.Language,
                 iconColor = Info,
                 title = "Idioma",
                 subtitle = languageLabel,
-                onClick = { showLanguageDialog = true }
+                onClick = { showLanguageDialog = true },
+                titleColor = textColor,
+                subtitleColor = secondaryText,
+                cardColor = surfaceColor,
+                borderColor = outlineColor
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ── Notificaciones ───────────────────────────────────────────────
-            SettingsSectionTitle(title = "Notificaciones")
+            // Notificaciones
+            SettingsSectionTitle(title = "Notificaciones", color = secondaryText)
             Spacer(modifier = Modifier.height(8.dp))
 
             SettingsToggleItem(
@@ -158,7 +158,11 @@ fun SettingsScreen(navController: NavController) {
                 title = "Sonido",
                 subtitle = if (notifSound) "Las notificaciones emiten sonido" else "Sin sonido",
                 checked = notifSound,
-                onCheckedChange = { scope.launch { prefs.setNotifSound(it) } }
+                onCheckedChange = { scope.launch { prefs.setNotifSound(it) } },
+                titleColor = textColor,
+                subtitleColor = secondaryText,
+                cardColor = surfaceColor,
+                borderColor = outlineColor
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -169,13 +173,17 @@ fun SettingsScreen(navController: NavController) {
                 title = "Vibración",
                 subtitle = if (notifVibration) "El dispositivo vibra" else "Sin vibración",
                 checked = notifVibration,
-                onCheckedChange = { scope.launch { prefs.setNotifVibration(it) } }
+                onCheckedChange = { scope.launch { prefs.setNotifVibration(it) } },
+                titleColor = textColor,
+                subtitleColor = secondaryText,
+                cardColor = surfaceColor,
+                borderColor = outlineColor
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ── Cuenta ───────────────────────────────────────────────────────
-            SettingsSectionTitle(title = "Cuenta")
+            // Cuenta
+            SettingsSectionTitle(title = "Cuenta", color = secondaryText)
             Spacer(modifier = Modifier.height(8.dp))
 
             SettingsClickItem(
@@ -183,32 +191,27 @@ fun SettingsScreen(navController: NavController) {
                 iconColor = Primary,
                 title = "Privacidad",
                 subtitle = "Términos y condiciones",
-                onClick = { /* Por implementar */ }
+                onClick = { },
+                titleColor = textColor,
+                subtitleColor = secondaryText,
+                cardColor = surfaceColor,
+                borderColor = outlineColor
             )
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // ── Cerrar sesión ────────────────────────────────────────────────
             Button(
                 onClick = {
                     auth.signOut()
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(0) { inclusive = true }
-                    }
+                    navController.navigate(Routes.LOGIN) { popUpTo(0) { inclusive = true } }
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Error)
             ) {
                 Icon(Icons.Default.Logout, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Cerrar sesión",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text("Cerrar sesión", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -216,14 +219,12 @@ fun SettingsScreen(navController: NavController) {
     }
 }
 
-// ── Componentes privados ─────────────────────────────────────────────────────
-
 @Composable
-private fun SettingsSectionTitle(title: String) {
+private fun SettingsSectionTitle(title: String, color: androidx.compose.ui.graphics.Color) {
     Text(
         text = title.uppercase(),
         style = MaterialTheme.typography.labelMedium,
-        color = TextSecondary,
+        color = color,
         fontWeight = FontWeight.SemiBold,
         modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
     )
@@ -236,41 +237,36 @@ private fun SettingsToggleItem(
     title: String,
     subtitle: String,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    titleColor: Color,
+    subtitleColor: Color,
+    cardColor: Color,
+    borderColor: Color
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder)
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = iconColor.copy(alpha = 0.12f),
-                modifier = Modifier.size(40.dp)
-            ) {
+            Surface(shape = RoundedCornerShape(10.dp), color = iconColor.copy(alpha = 0.12f), modifier = Modifier.size(40.dp)) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(20.dp))
                 }
             }
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
-                Text(text = subtitle, style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                Text(text = title, style = MaterialTheme.typography.bodyMedium, color = titleColor, fontWeight = FontWeight.Medium)
+                Text(text = subtitle, style = MaterialTheme.typography.labelSmall, color = subtitleColor)
             }
             Switch(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Primary,
-                    checkedTrackColor = Primary.copy(alpha = 0.4f)
-                )
+                colors = SwitchDefaults.colors(checkedThumbColor = Primary, checkedTrackColor = Primary.copy(alpha = 0.4f))
             )
         }
     }
@@ -282,36 +278,34 @@ private fun SettingsClickItem(
     iconColor: Color,
     title: String,
     subtitle: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    titleColor: Color,
+    subtitleColor: Color,
+    cardColor: Color,
+    borderColor: Color
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
-        border = androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
         onClick = onClick
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 14.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = iconColor.copy(alpha = 0.12f),
-                modifier = Modifier.size(40.dp)
-            ) {
+            Surface(shape = RoundedCornerShape(10.dp), color = iconColor.copy(alpha = 0.12f), modifier = Modifier.size(40.dp)) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(20.dp))
                 }
             }
             Spacer(modifier = Modifier.width(14.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = title, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
-                Text(text = subtitle, style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                Text(text = title, style = MaterialTheme.typography.bodyMedium, color = titleColor, fontWeight = FontWeight.Medium)
+                Text(text = subtitle, style = MaterialTheme.typography.labelSmall, color = subtitleColor)
             }
-            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = TextHint, modifier = Modifier.size(20.dp))
+            Icon(Icons.Default.ChevronRight, contentDescription = null, tint = subtitleColor, modifier = Modifier.size(20.dp))
         }
     }
 }

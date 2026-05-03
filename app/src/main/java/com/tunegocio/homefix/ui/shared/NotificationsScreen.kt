@@ -30,6 +30,12 @@ fun NotificationsScreen(navController: NavController) {
     val notificaciones by viewModel.notificaciones.collectAsState()
     val noLeidas by viewModel.noLeidas.collectAsState()
 
+    // ── Colores dinámicos ─────────────────────────────────────
+    val bgColor = MaterialTheme.colorScheme.background
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    val primaryColor = MaterialTheme.colorScheme.primary
+
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(2000)
         viewModel.marcarTodasComoLeidas()
@@ -38,7 +44,7 @@ fun NotificationsScreen(navController: NavController) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background)
+            .background(bgColor)
     ) {
         // Header
         Row(
@@ -49,26 +55,26 @@ fun NotificationsScreen(navController: NavController) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { navController.popBackStack() }) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = TextPrimary)
+                Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = textColor)
             }
             Spacer(modifier = Modifier.width(24.dp))
             Text(
                 text = "Notificaciones",
                 style = MaterialTheme.typography.headlineMedium,
-                color = TextPrimary,
+                color = textColor,
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.weight(1f))
             if (noLeidas > 0) {
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = Primary.copy(alpha = 0.15f)
+                    color = primaryColor.copy(alpha = 0.15f)
                 ) {
                     Text(
                         text = "$noLeidas nuevas",
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
-                        color = Primary,
+                        color = primaryColor,
                         fontWeight = FontWeight.Medium
                     )
                 }
@@ -83,13 +89,13 @@ fun NotificationsScreen(navController: NavController) {
                     Text(
                         text = "Sin notificaciones",
                         style = MaterialTheme.typography.titleMedium,
-                        color = TextPrimary,
+                        color = textColor,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
                         text = "Aquí aparecerán tus alertas",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary
+                        color = secondaryText
                     )
                 }
             }
@@ -105,17 +111,15 @@ fun NotificationsScreen(navController: NavController) {
                         onClick = {
                             if (notificacion.requestId.isNotEmpty()) {
                                 when (notificacion.type) {
-                                    // Notificaciones que llevan al CLIENTE al tracking de su solicitud
                                     "tecnico_aceptado",
                                     "en_camino",
                                     "completado",
                                     "tecnico_cancelo",
                                     "confirmar_completado",
-                                     "confirmar_sin_continuar"->
+                                    "confirmar_sin_continuar" ->
                                         navController.navigate(
                                             Routes.requestTracking(notificacion.requestId)
                                         )
-                                    // El resto lleva al detalle (vista técnico)
                                     else ->
                                         navController.navigate(
                                             Routes.requestDetail(notificacion.requestId)
@@ -136,23 +140,30 @@ fun NotificacionCard(
     notificacion: NotificationModel,
     onClick: () -> Unit = {}
 ) {
+    // ── Colores dinámicos ─────────────────────────────────────
+    val textColor = MaterialTheme.colorScheme.onBackground
+    val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    val hintText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.4f)
+    val surfaceColor = MaterialTheme.colorScheme.surface
+    val outlineColor = MaterialTheme.colorScheme.outline
+    val primaryColor = MaterialTheme.colorScheme.primary
+
     val fechaFormato = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
     val fecha = fechaFormato.format(Date(notificacion.createdAt))
 
     val (emoji, color) = when (notificacion.type) {
-        "nueva_solicitud"   -> "🔧" to Primary
-        "tecnico_aceptado"  -> "👋" to Info
-        "tecnico_elegido"   -> "🎉" to Success
-        "tecnico_rechazado" -> "❌" to Error
-        "tecnico_cancelo"   -> "🚫" to Error
-        "en_camino"         -> "🚗" to Warning
-        "completado"        -> "✅" to Success
-
-        "confirmar_completado"    -> "✅" to Warning
-        "confirmar_sin_continuar" -> "⚠️" to Error
-        "completado_rechazado"    -> "❌" to Error
-        "sin_continuar_confirmado"-> "🚫" to TextSecondary
-        else                -> "🔔" to TextSecondary
+        "nueva_solicitud"          -> "🔧" to primaryColor
+        "tecnico_aceptado"         -> "👋" to Info
+        "tecnico_elegido"          -> "🎉" to Success
+        "tecnico_rechazado"        -> "❌" to MaterialTheme.colorScheme.error
+        "tecnico_cancelo"          -> "🚫" to MaterialTheme.colorScheme.error
+        "en_camino"                -> "🚗" to Warning
+        "completado"               -> "✅" to Success
+        "confirmar_completado"     -> "✅" to Warning
+        "confirmar_sin_continuar"  -> "⚠️" to MaterialTheme.colorScheme.error
+        "completado_rechazado"     -> "❌" to MaterialTheme.colorScheme.error
+        "sin_continuar_confirmado" -> "🚫" to secondaryText
+        else                       -> "🔔" to secondaryText
     }
 
     Card(
@@ -162,14 +173,14 @@ fun NotificacionCard(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (!notificacion.isRead)
-                Primary.copy(alpha = 0.08f)
+                primaryColor.copy(alpha = 0.08f)
             else
-                CardBackground
+                surfaceColor
         ),
         border = if (!notificacion.isRead)
-            androidx.compose.foundation.BorderStroke(1.dp, Primary.copy(alpha = 0.25f))
+            androidx.compose.foundation.BorderStroke(1.dp, primaryColor.copy(alpha = 0.25f))
         else
-            androidx.compose.foundation.BorderStroke(1.dp, CardBorder),
+            androidx.compose.foundation.BorderStroke(1.dp, outlineColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Row(
@@ -197,7 +208,7 @@ fun NotificacionCard(
                     Text(
                         text = notificacion.title,
                         style = MaterialTheme.typography.titleSmall,
-                        color = TextPrimary,
+                        color = textColor,
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.weight(1f)
                     )
@@ -206,7 +217,7 @@ fun NotificacionCard(
                         Surface(
                             modifier = Modifier.size(8.dp),
                             shape = RoundedCornerShape(4.dp),
-                            color = Primary
+                            color = primaryColor
                         ) {}
                     }
                 }
@@ -214,7 +225,7 @@ fun NotificacionCard(
                 Text(
                     text = notificacion.body,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
+                    color = secondaryText,
                     maxLines = 2
                 )
                 Spacer(modifier = Modifier.height(6.dp))
@@ -228,21 +239,18 @@ fun NotificacionCard(
                     ) {
                         Text(
                             text = when (notificacion.type) {
-                                "nueva_solicitud"   -> "Nueva solicitud"
-                                "tecnico_aceptado"  -> "Técnico interesado"
-                                "tecnico_elegido"   -> "¡Te eligieron!"
-                                "tecnico_rechazado" -> "No seleccionado"
-                                "tecnico_cancelo"   -> "Técnico canceló"
-                                "en_camino"         -> "En camino"
-                                "completado"        -> "Completado"
-
+                                "nueva_solicitud"          -> "Nueva solicitud"
+                                "tecnico_aceptado"         -> "Técnico interesado"
+                                "tecnico_elegido"          -> "¡Te eligieron!"
+                                "tecnico_rechazado"        -> "No seleccionado"
+                                "tecnico_cancelo"          -> "Técnico canceló"
+                                "en_camino"                -> "En camino"
+                                "completado"               -> "Completado"
                                 "confirmar_completado"     -> "Confirmar trabajo"
                                 "confirmar_sin_continuar"  -> "Confirmar cierre"
                                 "completado_rechazado"     -> "Trabajo rechazado"
                                 "sin_continuar_confirmado" -> "Proceso cerrado"
-
-                                else                -> "Notificación"
-
+                                else                       -> "Notificación"
                             },
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
                             style = MaterialTheme.typography.labelSmall,
@@ -253,7 +261,7 @@ fun NotificacionCard(
                     Text(
                         text = fecha,
                         style = MaterialTheme.typography.labelSmall,
-                        color = TextHint
+                        color = hintText
                     )
                 }
             }
