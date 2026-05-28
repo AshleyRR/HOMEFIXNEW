@@ -44,7 +44,7 @@ fun MapaUbicacion(
         }
     }
 
-    // Box para superponer el pin fijo encima del mapa
+    // Cuadro para superponer el pin fijo encima del mapa
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -108,10 +108,10 @@ fun MapaUbicacion(
                     mapaRef = this
                 }
             }
-            // Sin bloque update — evita recomposiciones infinitas que causaban el lag
+
         )
 
-        // Pin fijo en el centro estilo InDrive — aguja con punto rojo
+        // Pin fijo en el centro  — aguja con punto rojo
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.offset(y = (-20).dp)

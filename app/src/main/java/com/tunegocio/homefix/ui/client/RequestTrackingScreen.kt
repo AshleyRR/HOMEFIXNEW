@@ -54,14 +54,14 @@ fun RequestTrackingScreen(
     var isLoading by remember { mutableStateOf(true) }
     var showCancelDialog by remember { mutableStateOf(false) }
 
-    // ── Confirmación completado ───────────────────────────────
+    // Confirmación completado
     var showConfirmarCompletadoDialog by remember { mutableStateOf(false) }
     var showRechazarCompletadoDialog by remember { mutableStateOf(false) }
 
-    // ── Confirmación sin continuar ────────────────────────────
+    //  Confirmación sin continuar
     var showConfirmarSinContinuarDialog by remember { mutableStateOf(false) }
 
-    // ── Modal de calificación inline ──────────────────────────
+    // Modal de calificación inline
     var showRatingModal by remember { mutableStateOf(false) }
     var selectedStars by remember { mutableStateOf(0) }
     var ratingComment by remember { mutableStateOf("") }
@@ -147,7 +147,7 @@ fun RequestTrackingScreen(
             .addOnFailureListener { eligiendoTecnicoId = "" }
     }
 
-    // Cliente confirma que el trabajo fue completado → abre modal calificación
+    // Cliente confirma que el trabajo fue completado → abre ventana flotante para  calificación
     fun confirmarCompletado() {
         db.collection("requests").document(requestId)
             .update(mapOf("status" to "completada", "updatedAt" to System.currentTimeMillis()))
@@ -300,7 +300,7 @@ fun RequestTrackingScreen(
         )
     }
 
-    // ── Modal calificación inline ─────────────────────────────
+    // Modal calificación
     if (showRatingModal) {
         Dialog(onDismissRequest = { /* no cerrar sin calificar */ }) {
             Card(

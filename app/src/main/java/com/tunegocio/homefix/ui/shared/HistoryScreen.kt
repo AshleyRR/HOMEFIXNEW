@@ -197,9 +197,6 @@ fun HistoryCard(
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val date = dateFormat.format(Date(request.createdAt))
 
-    /*val statusColor = if (request.status == "completada") Success else Error
-    val statusLabel = if (request.status == "completada") "Completada" else "Cancelada"
-    val statusEmoji = if (request.status == "completada") "" else ""*/
 
 
     val statusColor = when (request.status) {

@@ -58,7 +58,7 @@ import java.net.URL
 import java.net.URLEncoder
 import java.util.*
 
-// Ícono emoji por especialidad
+// Ícono por especialidad
 private fun iconoPorEspecialidad(especialidad: String): String {
     return when (especialidad) {
         "Electricidad"        -> "⚡"

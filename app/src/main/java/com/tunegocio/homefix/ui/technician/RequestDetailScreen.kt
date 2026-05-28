@@ -41,7 +41,7 @@ fun RequestDetailScreen(
     val db = FirebaseFirestore.getInstance()
     val technicianId = auth.currentUser?.uid ?: ""
 
-    // ── Colores dinámicos (igual que EarningsScreen) ──────────
+    // ── Colores dinámicos (igual que EarningsScreen)
     val bgColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -199,7 +199,7 @@ fun RequestDetailScreen(
         catch (e: Exception) { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://maps.google.com/?q=$query"))) }
     }
 
-    // ── Diálogo: confirmar interés ────────────────────────────
+    // ── Diálogo: confirmar interés
     if (showConfirmInterestDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmInterestDialog = false },
@@ -215,7 +215,7 @@ fun RequestDetailScreen(
         )
     }
 
-    // ── Diálogo: motivo cancelación ───────────────────────────
+    // ── Diálogo: motivo cancelación
     if (showCancelReasonDialog) {
         AlertDialog(
             onDismissRequest = { showCancelReasonDialog = false; cancelReason = ""; cancelReasonError = "" },
@@ -252,7 +252,7 @@ fun RequestDetailScreen(
         )
     }
 
-    // ── Diálogo: trabajo completado ───────────────────────────
+    // Diálogo: trabajo completado
     if (showCompletadoDialog) {
         AlertDialog(
             onDismissRequest = { showCompletadoDialog = false },
@@ -301,7 +301,7 @@ fun RequestDetailScreen(
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── Header ────────────────────────────────────────
+            // ── ENCABEZADO
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = textColor)
@@ -312,7 +312,7 @@ fun RequestDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Chips ─────────────────────────────────────────
+            // ── CUADROS
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Surface(shape = RoundedCornerShape(8.dp), color = primaryColor.copy(alpha = 0.1f)) {
                     Text(req.serviceType, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge, color = primaryColor, fontWeight = FontWeight.SemiBold)
@@ -331,7 +331,7 @@ fun RequestDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Foto ──────────────────────────────────────────
+            // Foto
             if (req.imageUrls.isNotEmpty()) {
                 Text("Foto del problema", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -344,7 +344,7 @@ fun RequestDetailScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // ── Descripción ───────────────────────────────────
+            // ── Descripción
             Text("Descripción", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(8.dp))
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = surfaceColor)) {
@@ -353,7 +353,7 @@ fun RequestDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Ubicación ─────────────────────────────────────
+            // ── Ubicación
             Text("Ubicación", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(8.dp))
             Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = surfaceColor)) {
@@ -389,7 +389,7 @@ fun RequestDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Cliente ───────────────────────────────────────
+            // Cliente
             client?.let { c ->
                 Text("Cliente", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -430,7 +430,7 @@ fun RequestDetailScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // ── Botones según estado ──────────────────────────
+            //  Botones según estado
             when (req.status) {
 
                 "pendiente", "en_revision" -> {

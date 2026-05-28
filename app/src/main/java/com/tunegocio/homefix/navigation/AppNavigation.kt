@@ -36,7 +36,7 @@ fun AppNavigation(
         startDestination = Routes.SPLASH
     ) {
 
-        // ── Auth ──────────────────────────────────────────────────────────────
+        //  Autenticacion
         composable(Routes.SPLASH) {
             SplashScreen(navController = navController)
         }
@@ -53,7 +53,7 @@ fun AppNavigation(
             OlvideContrasenaScreen(navController = navController)
         }
 
-        // ── Cliente ───────────────────────────────────────────────────────────
+        //  Cliente
         composable(Routes.HOME_CLIENT) {
             HomeClientScreen(navController = navController)
         }
@@ -71,7 +71,7 @@ fun AppNavigation(
             )
         }
 
-        // ── Técnico ───────────────────────────────────────────────────────────
+        // ── Técnico
         composable(Routes.HOME_TECHNICIAN) {
             HomeTechnicianScreen(navController = navController)
         }
@@ -86,7 +86,7 @@ fun AppNavigation(
             EarningsScreen(navController = navController)
         }
 
-        // ── Compartidas (ambos roles) ──────────────────────────────────────────
+        // Compartidas (ambos roles)
         composable(Routes.PROFILE) {
             ProfileScreen(navController = navController)
         }

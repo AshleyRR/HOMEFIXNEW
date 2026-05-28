@@ -6,7 +6,7 @@ data class NotificationModel(
     val userId: String = "",
     val title: String = "",
     val body: String = "",
-    val type: String = "",       // "nueva_solicitud", "tecnico_aceptado", "cliente_acepto", "completado"
+    val type: String = "",       // "nueva solicitud", "tecnico aceptado", "cliente acepto", "completado"
     val requestId: String = "",
     val isRead: Boolean = false,
     val createdAt: Long = System.currentTimeMillis()

@@ -77,7 +77,7 @@ fun HomefixButton(
     }
 }
 
-// Botón secundario (outline)
+// Botón secundario
 @Composable
 fun HomefixOutlinedButton(
     text: String,

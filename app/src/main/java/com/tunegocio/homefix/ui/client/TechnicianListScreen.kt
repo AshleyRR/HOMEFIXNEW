@@ -254,7 +254,7 @@ fun TechnicianListScreen(navController: NavController) {
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(text = "😔", style = MaterialTheme.typography.headlineLarge)
+                        Text(text = "", style = MaterialTheme.typography.headlineLarge)
 
                         Text(
                             text = if (selectedFilter == "Todos")
@@ -434,16 +434,6 @@ fun TechnicianCard(
                 }
             }
 
-            /*if (technician.bio.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = technician.bio,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
-                    maxLines = 2
-                )
-            }*/
 
             if (technician.specialties.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(10.dp))

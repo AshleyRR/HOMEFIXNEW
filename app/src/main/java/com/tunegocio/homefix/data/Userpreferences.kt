@@ -14,7 +14,7 @@ val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "ho
 
 object PreferencesKeys {
     val DARK_MODE = booleanPreferencesKey("dark_mode")
-    val LANGUAGE = stringPreferencesKey("language")         // "es", "en", "pt"
+    val LANGUAGE = stringPreferencesKey("language")         // "espanol", "ingles", "portgues"
     val NOTIF_SOUND = booleanPreferencesKey("notif_sound")
     val NOTIF_VIBRATION = booleanPreferencesKey("notif_vibration")
 }

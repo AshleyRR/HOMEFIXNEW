@@ -38,7 +38,7 @@ android {
 }
 
 dependencies {
-    // Ya venían — no tocar
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -79,10 +79,10 @@ dependencies {
     implementation(libs.compose.icons.extended)
     implementation(libs.okhttp)
 
-    // DataStore — de tu compañero
+    // DataStore
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
-    // OSMDroid — tuyo
+    // OSMDroid
     implementation(libs.osmdroid)
 
     // Testing

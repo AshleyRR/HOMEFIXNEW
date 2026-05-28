@@ -398,7 +398,7 @@ fun RegisterScreen(navController: NavController) {
                 RoleCard(
                     title = "Cliente",
                     description = "Necesito un técnico",
-                    emoji = "🙋",
+                    emoji = "",
                     isSelected = selectedRole == "client",
                     color = ClientColor,
                     modifier = Modifier.weight(1f),
@@ -407,7 +407,7 @@ fun RegisterScreen(navController: NavController) {
                 RoleCard(
                     title = "Técnico",
                     description = "Ofrezco servicios",
-                    emoji = "🔧",
+                    emoji = "",
                     isSelected = selectedRole == "technician",
                     color = TechnicianColor,
                     modifier = Modifier.weight(1f),
@@ -764,7 +764,7 @@ fun RegisterScreen(navController: NavController) {
                     )
                 }
 
-                // Chips de especialidades seleccionadas
+                // Cards de especialidades seleccionadas
                 if (selectedSpecialties.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     FlowRow(

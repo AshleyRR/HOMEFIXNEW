@@ -4,7 +4,7 @@ import kotlin.math.*
 
 object LocationUtils {
 
-    // Calcula distancia en km entre 2 puntos GPS
+    // Calcula distancia en km entre 2 puntos pal GPS
     fun haversineDistance(
         lat1: Double, lng1: Double,
         lat2: Double, lng2: Double

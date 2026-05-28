@@ -198,7 +198,7 @@ fun LoginScreen(navController: NavController) {
                 }
             }
 
-            // Botón "¿Olvidaste tu contraseña?"
+            // Botón ¿Olvidaste tu contraseña?
             Spacer(modifier = Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),

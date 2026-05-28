@@ -53,7 +53,7 @@ fun SplashScreen(navController: NavController) {
         }
     }
 
-    // UI: SOLO IMAGEN
+    // SOLO IMAGEN DE FONDO
     Box(
         modifier = Modifier
             .fillMaxSize()

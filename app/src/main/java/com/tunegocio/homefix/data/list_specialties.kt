@@ -1,7 +1,6 @@
 package com.tunegocio.homefix.data
 
-// Lista única de especialidades — usada en registro y nueva solicitud
-// Para agregar más, solo añade aquí y se actualiza en toda la app
+// Lista única de especialidades
 val ALL_SPECIALTIES = listOf(
     "Electricidad",
     "Gasfitería",

@@ -131,7 +131,7 @@ fun RatingScreen(
             if (isAlreadyRated) {
                 // Ya calificó
                 Spacer(modifier = Modifier.height(60.dp))
-                Text(text = "✅", fontSize = 64.sp)
+                Text(text = "", fontSize = 64.sp)
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     text = "Ya calificaste este servicio",

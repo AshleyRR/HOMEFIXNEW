@@ -11,9 +11,9 @@ data class RequestModel(
     val lng: Double = 0.0,
     val address: String = "",
 
-    val district: String = "",        // ← nuevo
+    val district: String = "",
     val reference: String = "",
-    val interestedTechnicians: List<String> = emptyList(), // UIDs de técnicos interesados// ← nuevo — para la referencia manual
+    val interestedTechnicians: List<String> = emptyList(),
 
     val status: String = "pendiente",
     val isUrgent: Boolean = false,

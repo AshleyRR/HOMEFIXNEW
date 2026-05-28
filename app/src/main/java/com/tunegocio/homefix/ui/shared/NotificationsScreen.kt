@@ -30,7 +30,7 @@ fun NotificationsScreen(navController: NavController) {
     val notificaciones by viewModel.notificaciones.collectAsState()
     val noLeidas by viewModel.noLeidas.collectAsState()
 
-    // ── Colores dinámicos ─────────────────────────────────────
+    // ── Colores dinámicos
     val bgColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
     val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)

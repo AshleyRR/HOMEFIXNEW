@@ -5,7 +5,7 @@ import androidx.compose.ui.graphics.Color
 // Colores primarios
 val Primary = Color(0xFF1A1A2E)        // azul oscuro casi negro
 val PrimaryVariant = Color(0xFF16213E)
-val Secondary = Color(0xFF0F6E56)      // verde teal
+val Secondary = Color(0xFF0F6E56)      // verde
 val SecondaryVariant = Color(0xFF1D9E75)
 
 // Fondo y superficies
