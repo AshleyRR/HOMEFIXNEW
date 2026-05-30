@@ -26,6 +26,9 @@ import java.util.*
 import com.tunegocio.homefix.ui.client.ClientBottomBar
 import com.tunegocio.homefix.ui.technician.TechnicianBottomBar
 
+import androidx.compose.ui.platform.LocalContext
+import com.tunegocio.homefix.data.local.database.LocalDatabase
+
 @Composable
 fun HistoryScreen(navController: NavController) {
 
@@ -37,6 +40,9 @@ fun HistoryScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(true) }
     var selectedFilter by remember { mutableStateOf("Todos") }
     var userRole by remember { mutableStateOf("client") }
+
+    val context = LocalContext.current
+    val localDb = LocalDatabase(context)
 
     val filters = listOf("Todos", "Completadas", "Canceladas")
 
@@ -59,6 +65,25 @@ fun HistoryScreen(navController: NavController) {
                 }?.filter {
                     it.status == "completada" || it.status == "cancelada" || it.status == "sin_continuar"
                 }?.sortedByDescending { it.createdAt } ?: emptyList()
+
+
+                // Guardar historial en SQLite local
+                requests.forEach { request ->
+                    localDb.guardarHistorial(
+                        requestId = request.requestId,
+                        tipoServicio = request.serviceType,
+                        descripcion = request.description,
+                        distrito = request.district,
+                        estadoFinal = request.status,
+                        clienteNombre = "",
+                        tecnicoNombre = "",
+                        calificacionDada = 0,
+                        comentarioDado = "",
+                        creadoEn = request.createdAt,
+                        completadoEn = request.updatedAt
+                    )
+                }
+
             }
     }
 
@@ -80,7 +105,7 @@ fun HistoryScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Background)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(padding)
         ) {
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
@@ -88,7 +113,7 @@ fun HistoryScreen(navController: NavController) {
                 Text(
                     text = "Historial",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
@@ -143,7 +168,7 @@ fun HistoryScreen(navController: NavController) {
                         Text(
                             text = "Sin historial aún",
                             style = MaterialTheme.typography.titleMedium,
-                            color = TextPrimary
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = "Aquí aparecerán tus servicios completados",
@@ -221,7 +246,7 @@ fun HistoryCard(
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -234,7 +259,7 @@ fun HistoryCard(
                     Text(
                         text = request.serviceType,
                         style = MaterialTheme.typography.titleMedium,
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.SemiBold
                     )
                     Text(

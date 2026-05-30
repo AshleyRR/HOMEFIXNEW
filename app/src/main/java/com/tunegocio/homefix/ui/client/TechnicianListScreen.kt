@@ -107,7 +107,7 @@ fun TechnicianListScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Background)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(padding)
         ) {
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
@@ -121,7 +121,7 @@ fun TechnicianListScreen(navController: NavController) {
                     Text(
                         text = "Técnicos disponibles",
                         style = MaterialTheme.typography.headlineMedium,
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Bold
                     )
 
@@ -262,7 +262,7 @@ fun TechnicianListScreen(navController: NavController) {
                             else
                                 "No hay técnicos de $selectedFilter disponibles",
                             style = MaterialTheme.typography.titleMedium,
-                            color = TextPrimary
+                            color = MaterialTheme.colorScheme.onBackground
                         )
 
                         Text(
@@ -340,7 +340,7 @@ fun TechnicianCard(
             .fillMaxWidth()
             .clickable { onCardClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -381,7 +381,7 @@ fun TechnicianCard(
                     Text(
                         text = technician.name,
                         style = MaterialTheme.typography.titleMedium,
-                        color = TextPrimary,
+                        color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.SemiBold
                     )
 

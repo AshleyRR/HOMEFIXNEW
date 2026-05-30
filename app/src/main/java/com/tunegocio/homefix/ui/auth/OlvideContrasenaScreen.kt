@@ -65,7 +65,7 @@ fun OlvideContrasenaScreen(navController: NavController) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -89,7 +89,7 @@ fun OlvideContrasenaScreen(navController: NavController) {
                 Text(
                     text = "Recuperar contraseña",
                     style = MaterialTheme.typography.titleLarge,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -103,7 +103,7 @@ fun OlvideContrasenaScreen(navController: NavController) {
                 Text(
                     text = "¡Email enviado!",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )
@@ -159,7 +159,7 @@ fun OlvideContrasenaScreen(navController: NavController) {
                 Text(
                     text = "¿Olvidaste tu contraseña?",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center
                 )

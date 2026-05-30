@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -32,6 +33,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -58,21 +61,20 @@ import java.net.URL
 import java.net.URLEncoder
 import java.util.*
 
-// Ícono por especialidad
-private fun iconoPorEspecialidad(especialidad: String): String {
-    return when (especialidad) {
-        "Electricidad"        -> "⚡"
-        "Gasfitería"          -> "🔧"
-        "Pintura"             -> "🎨"
-        "Carpintería"         -> "🪚"
-        "Vidriería"           -> "🪟"
-        "Jardinería"          -> "🌿"
-        "Cerrajería"          -> "🔑"
-        "Albañilería"         -> "🧱"
-        "Muebles a medida"    -> "🛋️"
-        "Lavado de tapizados" -> "🧹"
-        "Mudanzas"            -> "📦"
-        else                  -> "🔨"
+private fun getServiceTypeIcon(serviceType: String): ImageVector {
+    return when (serviceType) {
+        "Electricidad" -> Icons.Default.ElectricalServices
+        "Gasfitería" -> Icons.Default.Plumbing
+        "Pintura" -> Icons.Default.Palette
+        "Carpintería" -> Icons.Default.Carpenter
+        "Vidriería" -> Icons.Default.Window
+        "Jardinería" -> Icons.Default.Grass
+        "Cerrajería" -> Icons.Default.Lock
+        "Albañilería" -> Icons.Default.DomainAdd
+        "Muebles a medida" -> Icons.Default.Weekend
+        "Lavado de tapizados" -> Icons.Default.CleaningServices
+        "Mudanzas" -> Icons.Default.LocalShipping
+        else -> Icons.Default.Build
     }
 }
 
@@ -87,10 +89,8 @@ fun NewRequestScreen(navController: NavController) {
     val uid = auth.currentUser?.uid ?: ""
     val scope = rememberCoroutineScope()
 
-    // Repositorio para crear notificaciones a técnicos
     val notificationsRepo = remember { com.tunegocio.homefix.data.NotificationsRepository() }
 
-    // Detecta si la pantalla es ancha — diseño responsive
     val configuracion = LocalConfiguration.current
     val pantallaAncha = configuracion.screenWidthDp >= 360
 
@@ -108,15 +108,14 @@ fun NewRequestScreen(navController: NavController) {
     var reference by remember { mutableStateOf("") }
     var clientDistrict by remember { mutableStateOf("") }
     var dropdownExpandido by remember { mutableStateOf(false) }
+    var mostrarMapaModal by remember { mutableStateOf(false) }
 
-    // Estado del buscador con sugerencias
     var sugerencias by remember { mutableStateOf<List<android.location.Address>>(emptyList()) }
     var mostrarSugerencias by remember { mutableStateOf(false) }
     var jobBusqueda by remember { mutableStateOf<Job?>(null) }
 
     val serviceTypes = ALL_SPECIALTIES
 
-    // Archivo temporal para la foto de cámara
     val photoFile = remember { File(context.cacheDir, "photo_${UUID.randomUUID()}.jpg") }
     val photoUriForCamera = remember {
         FileProvider.getUriForFile(context, "${context.packageName}.provider", photoFile)
@@ -134,7 +133,6 @@ fun NewRequestScreen(navController: NavController) {
         ActivityResultContracts.RequestPermission()
     ) { granted -> if (granted) cameraLauncher.launch(photoUriForCamera) }
 
-    // Convierte coordenadas a dirección legible con Geocoder
     fun actualizarDireccion(latitude: Double, longitude: Double) {
         try {
             val geocoder = Geocoder(context, Locale("es", "PE"))
@@ -151,7 +149,6 @@ fun NewRequestScreen(navController: NavController) {
         }
     }
 
-    // Busca sugerencias mientras el usuario escribe — espera 400ms (debounce)
     fun buscarSugerencias(query: String) {
         jobBusqueda?.cancel()
         if (query.length < 3) {
@@ -177,7 +174,6 @@ fun NewRequestScreen(navController: NavController) {
                     val item = json.getJSONObject(i)
                     val latItem = item.getDouble("lat")
                     val lngItem = item.getDouble("lon")
-                    // Solo resultados dentro de Lima
                     if (estaDentroDeLima(latItem, lngItem)) {
                         val direccion = android.location.Address(Locale("es", "PE")).apply {
                             latitude = latItem
@@ -191,7 +187,6 @@ fun NewRequestScreen(navController: NavController) {
                 sugerencias = resultadosNominatim
                 mostrarSugerencias = sugerencias.isNotEmpty()
             } catch (e: Exception) {
-                // Fallback: Geocoder si Nominatim falla
                 try {
                     val geocoder = Geocoder(context, Locale("es", "PE"))
                     @Suppress("DEPRECATION")
@@ -206,7 +201,6 @@ fun NewRequestScreen(navController: NavController) {
         }
     }
 
-    // Cuando el usuario selecciona una sugerencia del buscador
     fun seleccionarSugerencia(resultado: android.location.Address) {
         lat = resultado.latitude
         lng = resultado.longitude
@@ -224,7 +218,6 @@ fun NewRequestScreen(navController: NavController) {
     ) { permissions ->
         if (permissions.values.any { it }) {
             val fusedLocation = LocationServices.getFusedLocationProviderClient(context)
-            // LocationCallback — más confiable que lastLocation en todos los dispositivos
             val locationRequest = com.google.android.gms.location.LocationRequest.Builder(
                 com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY,
                 1000L
@@ -252,7 +245,6 @@ fun NewRequestScreen(navController: NavController) {
         }
     }
 
-    // Carga el distrito del cliente y solicita permisos de ubicación al abrir
     LaunchedEffect(Unit) {
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc -> clientDistrict = doc.getString("district") ?: "" }
@@ -292,7 +284,6 @@ fun NewRequestScreen(navController: NavController) {
             )
             db.collection("requests").document(requestId).set(request)
                 .addOnSuccessListener {
-                    // Notifica a técnicos con la especialidad solicitada
                     db.collection("users")
                         .whereEqualTo("role", "technician")
                         .whereArrayContains("specialties", serviceType)
@@ -335,10 +326,141 @@ fun NewRequestScreen(navController: NavController) {
         }
     }
 
+    if (mostrarMapaModal) {
+        Dialog(
+            onDismissRequest = { mostrarMapaModal = false },
+            properties = DialogProperties(
+                usePlatformDefaultWidth = false,
+                dismissOnBackPress = true,
+                dismissOnClickOutside = false
+            )
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth(0.95f)
+                    .fillMaxHeight(0.85f),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Selecciona tu ubicación",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        IconButton(
+                            onClick = { mostrarMapaModal = false }
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Cerrar mapa",
+                                tint = TextSecondary
+                            )
+                        }
+                    }
+
+                    Divider(color = CardBorder)
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        MapaUbicacion(
+                            lat = lat,
+                            lng = lng,
+                            onUbicacionSeleccionada = { nuevoLat, nuevoLng ->
+                                val cambioSignificativo =
+                                    Math.abs(lat - nuevoLat) > 0.0001 || Math.abs(lng - nuevoLng) > 0.0001
+                                if (cambioSignificativo) {
+                                    lat = nuevoLat
+                                    lng = nuevoLng
+                                    actualizarDireccion(lat, lng)
+                                    locationLoaded = true
+                                    errorMessage = ""
+                                }
+                            },
+                            onFueraDeCobertura = {
+                                errorMessage = "Solo atendemos en Lima por ahora"
+                            }
+                        )
+                    }
+
+                    Divider(color = CardBorder)
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (locationLoaded) Success.copy(alpha = 0.08f) else SurfaceVariant
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = if (locationLoaded) Success else TextSecondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = if (locationLoaded) address else "Mueve el pin para definir la ubicación",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (locationLoaded) TextPrimary else TextSecondary,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Button(
+                            onClick = { mostrarMapaModal = false },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = Primary
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp),
+                                tint = Color.White
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Confirmar ubicación")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -351,7 +473,6 @@ fun NewRequestScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Header con botón volver
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = TextPrimary)
@@ -360,7 +481,7 @@ fun NewRequestScreen(navController: NavController) {
                 Text(
                     text = "Nueva solicitud",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
                     fontSize = if (pantallaAncha) 24.sp else 20.sp
                 )
@@ -368,11 +489,10 @@ fun NewRequestScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── Tipo de servicio — dropdown con íconos emoji ──
             Text(
                 text = "Tipo de servicio",
                 style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -381,7 +501,7 @@ fun NewRequestScreen(navController: NavController) {
                 onExpandedChange = { dropdownExpandido = !dropdownExpandido }
             ) {
                 OutlinedTextField(
-                    value = if (serviceType.isEmpty()) "" else "${iconoPorEspecialidad(serviceType)}  $serviceType",
+                    value = serviceType,
                     onValueChange = {},
                     readOnly = true,
                     placeholder = {
@@ -390,6 +510,16 @@ fun NewRequestScreen(navController: NavController) {
                             color = TextHint,
                             fontSize = if (pantallaAncha) 14.sp else 13.sp
                         )
+                    },
+                    leadingIcon = {
+                        if (serviceType.isNotEmpty()) {
+                            Icon(
+                                imageVector = getServiceTypeIcon(serviceType) ?: Icons.Default.Build,
+                                contentDescription = null,
+                                tint = Primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
                     },
                     trailingIcon = {
                         ExposedDropdownMenuDefaults.TrailingIcon(expanded = dropdownExpandido)
@@ -418,11 +548,13 @@ fun NewRequestScreen(navController: NavController) {
                         DropdownMenuItem(
                             text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = iconoPorEspecialidad(tipo),
-                                        fontSize = 18.sp,
-                                        modifier = Modifier.width(32.dp)
+                                    Icon(
+                                        imageVector = getServiceTypeIcon(tipo) ?: Icons.Default.Build,
+                                        contentDescription = null,
+                                        tint = if (estaSeleccionado) Primary else TextPrimary,
+                                        modifier = Modifier.size(20.dp)
                                     )
+                                    Spacer(modifier = Modifier.width(10.dp))
                                     Text(
                                         text = tipo,
                                         color = if (estaSeleccionado) Primary else TextPrimary,
@@ -455,11 +587,10 @@ fun NewRequestScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Descripción del problema ──
             Text(
                 text = "Describe el problema",
                 style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -491,11 +622,10 @@ fun NewRequestScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Foto del problema (opcional) ──
             Text(
                 text = "Foto del problema (opcional)",
                 style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -546,16 +676,14 @@ fun NewRequestScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Ubicación del servicio ──
             Text(
                 text = "Ubicación del servicio",
                 style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Buscador con sugerencias en tiempo real
             Box(modifier = Modifier.fillMaxWidth()) {
                 OutlinedTextField(
                     value = busqueda,
@@ -598,7 +726,6 @@ fun NewRequestScreen(navController: NavController) {
                 )
             }
 
-            // Lista de sugerencias — aparece debajo del buscador con animación
             AnimatedVisibility(
                 visible = mostrarSugerencias,
                 enter = fadeIn(),
@@ -632,7 +759,7 @@ fun NewRequestScreen(navController: NavController) {
                                     Text(
                                         text = resultado.featureName ?: resultado.getAddressLine(0) ?: "",
                                         style = MaterialTheme.typography.bodyMedium,
-                                        color = TextPrimary,
+                                        color = MaterialTheme.colorScheme.onBackground,
                                         fontWeight = FontWeight.Medium,
                                         fontSize = if (pantallaAncha) 14.sp else 12.sp,
                                         maxLines = 1
@@ -657,37 +784,35 @@ fun NewRequestScreen(navController: NavController) {
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Mapa interactivo OSMDroid
-            Card(
-                modifier = Modifier.fillMaxWidth(),
+            Button(
+                onClick = { mostrarMapaModal = true },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
                 shape = RoundedCornerShape(14.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Primary.copy(alpha = 0.1f),
+                    contentColor = Primary
+                )
             ) {
-                MapaUbicacion(
-                    lat = lat,
-                    lng = lng,
-                    onUbicacionSeleccionada = { nuevoLat, nuevoLng ->
-                        val cambioSignificativo =
-                            Math.abs(lat - nuevoLat) > 0.0001 || Math.abs(lng - nuevoLng) > 0.0001
-                        if (cambioSignificativo) {
-                            lat = nuevoLat
-                            lng = nuevoLng
-                            actualizarDireccion(lat, lng)
-                            locationLoaded = true
-                            errorMessage = ""
-                        }
-                    },
-                    onFueraDeCobertura = {
-                        errorMessage = "Solo atendemos en Lima por ahora"
-                    }
+                Icon(
+                    Icons.Default.Map,
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp),
+                    tint = Primary
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    "Seleccionar ubicación en el mapa",
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 14.sp
                 )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Tarjeta con la dirección detectada
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
@@ -699,11 +824,12 @@ fun NewRequestScreen(navController: NavController) {
                     Icon(
                         Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = if (locationLoaded) Success else TextSecondary
+                        tint = if (locationLoaded) Success else TextSecondary,
+                        modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = if (locationLoaded) address else "Mueve el pin para definir la ubicación",
+                        text = if (locationLoaded) address else "Selecciona una ubicación",
                         style = MaterialTheme.typography.bodySmall,
                         color = if (locationLoaded) TextPrimary else TextSecondary,
                         fontSize = if (pantallaAncha) 13.sp else 11.sp
@@ -713,7 +839,6 @@ fun NewRequestScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Campo de referencia de dirección
             HomefixTextField(
                 value = reference,
                 onValueChange = { reference = it },
@@ -729,7 +854,6 @@ fun NewRequestScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── Toggle urgente ──
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(14.dp),
@@ -745,18 +869,28 @@ fun NewRequestScreen(navController: NavController) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "⚡ Urgente",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = if (isUrgent) Error else TextPrimary,
-                            fontWeight = FontWeight.Medium,
-                            fontSize = if (pantallaAncha) 16.sp else 14.sp
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = if (isUrgent) Error else TextSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Urgente",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = if (isUrgent) Error else TextPrimary,
+                                fontWeight = FontWeight.Medium,
+                                fontSize = if (pantallaAncha) 16.sp else 14.sp
+                            )
+                        }
                         Text(
                             text = "Prioridad alta para los técnicos",
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary,
-                            fontSize = if (pantallaAncha) 13.sp else 11.sp
+                            fontSize = if (pantallaAncha) 13.sp else 11.sp,
+                            modifier = Modifier.padding(start = 28.dp, top = 4.dp)
                         )
                     }
                     Switch(

@@ -54,7 +54,7 @@ fun SettingsScreen(navController: NavController) {
     if (showLanguageDialog) {
         AlertDialog(
             onDismissRequest = { showLanguageDialog = false },
-            containerColor = surfaceColor,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
             title = { Text("Seleccionar idioma", fontWeight = FontWeight.Bold, color = textColor) },
             text = {
                 Column {

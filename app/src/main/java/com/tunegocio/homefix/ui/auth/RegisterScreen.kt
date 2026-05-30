@@ -1,5 +1,17 @@
 package com.tunegocio.homefix.ui.auth
 
+import com.tunegocio.homefix.data.remote.RetrofitClient
+import com.tunegocio.homefix.data.remote.models.RegisterRequest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+
+
+
+
+
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -289,75 +301,103 @@ fun RegisterScreen(navController: NavController) {
         if (hasError) return
         isLoading = true
 
-        auth.createUserWithEmailAndPassword(email.trim(), password)
-            .addOnSuccessListener { authResult ->
-                val uid = authResult.user?.uid ?: return@addOnSuccessListener
-
-                fun saveUser(selfieUrl: String) {
-                    val user = UserModel(
-                        uid = uid,
-                        name = firstName.trim(),
-                        lastName = lastName.trim(),
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = RetrofitClient.apiService.register(
+                    url = RetrofitClient.REGISTER_URL,
+                    apiKey = RetrofitClient.API_KEY,
+                    request = RegisterRequest(
                         email = email.trim(),
-                        role = selectedRole,
-                        phone = phone.trim(),
-                        district = selectedDistrict,
-                        selfieUrl = selfieUrl,
-                        dni = if (selectedRole == "technician") dni.trim() else "",
-                        yearsExp = yearsExp.toIntOrNull() ?: 0,
-                        specialties = selectedSpecialties,
-                        whatsapp = phone.trim(),
-                        createdAt = System.currentTimeMillis()
+                        password = password
                     )
-                    db.collection("users").document(uid).set(user)
-                        .addOnSuccessListener {
-                            authResult.user?.sendEmailVerification()
-                            isLoading = false
-                            navController.navigate(Routes.VERIFICAR_EMAIL) {
-                                popUpTo(Routes.REGISTER) { inclusive = true }
-                            }
-                        }
-                        .addOnFailureListener {
-                            isLoading = false
-                            errorMessage = "Error al guardar datos, intenta de nuevo"
-                        }
-                }
+                )
 
-                if (selfieUri != null) {
-                    scope.launch {
-                        val uploadResult = CloudinaryUploader.uploadImage(
-                            context = context,
-                            uri = selfieUri!!,
-                            folder = "homefix/selfies"
-                        )
-                        uploadResult.fold(
-                            onSuccess = { url -> saveUser(url) },
-                            onFailure = {
-                                isLoading = false
-                                errorMessage = "Error al subir la foto, intenta de nuevo"
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        val registerData = response.body()
+                        val uid = registerData?.localId ?: ""
+
+                        // Autenticar en Firebase SDK
+                        auth.signInWithEmailAndPassword(email.trim(), password)
+                            .addOnSuccessListener { authResult ->
+
+                                fun saveUser(selfieUrl: String) {
+                                    val user = UserModel(
+                                        uid = uid,
+                                        name = firstName.trim(),
+                                        lastName = lastName.trim(),
+                                        email = email.trim(),
+                                        role = selectedRole,
+                                        phone = phone.trim(),
+                                        district = selectedDistrict,
+                                        selfieUrl = selfieUrl,
+                                        dni = if (selectedRole == "technician") dni.trim() else "",
+                                        yearsExp = yearsExp.toIntOrNull() ?: 0,
+                                        specialties = selectedSpecialties,
+                                        whatsapp = phone.trim(),
+                                        createdAt = System.currentTimeMillis()
+                                    )
+                                    db.collection("users").document(uid).set(user)
+                                        .addOnSuccessListener {
+                                            authResult.user?.sendEmailVerification()
+                                            isLoading = false
+                                            navController.navigate(Routes.VERIFICAR_EMAIL) {
+                                                popUpTo(Routes.REGISTER) { inclusive = true }
+                                            }
+                                        }
+                                        .addOnFailureListener {
+                                            isLoading = false
+                                            errorMessage = "Error al guardar datos"
+                                        }
+                                }
+
+                                if (selfieUri != null) {
+                                    scope.launch {
+                                        val uploadResult = CloudinaryUploader.uploadImage(
+                                            context = context,
+                                            uri = selfieUri!!,
+                                            folder = "homefix/selfies"
+                                        )
+                                        uploadResult.fold(
+                                            onSuccess = { url: String -> saveUser(url) },
+                                            onFailure = { _: Throwable ->
+                                                isLoading = false
+                                                errorMessage = "Error al subir la foto"
+                                            }
+                                        )
+                                    }
+                                } else {
+                                    saveUser("")
+                                }
                             }
-                        )
+                            .addOnFailureListener {
+                                isLoading = false
+                                errorMessage = "Error al autenticar tras registro"
+                            }
+
+                    } else {
+                        isLoading = false
+                        when {
+                            response.code() == 400 ->
+                                emailError = "Ese correo ya está registrado"
+                            else ->
+                                errorMessage = "Error al registrarse, intenta de nuevo"
+                        }
                     }
-                } else {
-                    saveUser("")
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    isLoading = false
+                    errorMessage = e.message ?: "Error al registrarse"
                 }
             }
-            .addOnFailureListener { e ->
-                isLoading = false
-                when {
-                    e.message?.contains("email") == true ->
-                        emailError = "Ese correo ya está registrado"
-                    e.message?.contains("password") == true ->
-                        passwordError = "La contraseña debe tener mínimo 6 caracteres"
-                    else -> errorMessage = "Error al registrarse, intenta de nuevo"
-                }
-            }
+        }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -371,7 +411,7 @@ fun RegisterScreen(navController: NavController) {
             Text(
                 text = "Crear cuenta",
                 style = MaterialTheme.typography.headlineMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Bold
             )
             Text(
@@ -387,7 +427,7 @@ fun RegisterScreen(navController: NavController) {
             Text(
                 text = "¿Cómo quieres usar HomeFix?",
                 style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(8.dp))
@@ -522,7 +562,7 @@ fun RegisterScreen(navController: NavController) {
             Text(
                 text = "Distrito",
                 style = MaterialTheme.typography.bodyMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Medium,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -577,7 +617,7 @@ fun RegisterScreen(navController: NavController) {
             Text(
                 text = "Foto de perfil",
                 style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -675,7 +715,7 @@ fun RegisterScreen(navController: NavController) {
                 Text(
                     text = "Datos del técnico",
                     style = MaterialTheme.typography.titleMedium,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.SemiBold,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -714,7 +754,7 @@ fun RegisterScreen(navController: NavController) {
                 Text(
                     text = "Especialidades (máximo $MAX_SPECIALTIES)",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Medium,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -842,7 +882,7 @@ fun RegisterScreen(navController: NavController) {
                         Text(
                             text = "He leído y acepto los ",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = TextPrimary
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
                             text = "Términos y Condiciones",
@@ -886,7 +926,7 @@ fun RegisterScreen(navController: NavController) {
                     Text(
                         text = "Confirmo que soy mayor de 18 años",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextPrimary
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     if (edadError.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(2.dp))

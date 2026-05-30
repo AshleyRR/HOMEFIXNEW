@@ -306,7 +306,7 @@ fun RequestTrackingScreen(
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = CardBackground)
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
             ) {
                 Column(
                     modifier = Modifier.padding(24.dp),
@@ -314,7 +314,7 @@ fun RequestTrackingScreen(
                 ) {
                     Text("⭐", fontSize = 40.sp)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Califica el servicio", style = MaterialTheme.typography.titleLarge, color = TextPrimary, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text("Califica el servicio", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                     technician?.let { tech ->
                         Text("¿Cómo fue tu experiencia con ${tech.name}?", style = MaterialTheme.typography.bodyMedium, color = TextSecondary, textAlign = TextAlign.Center)
                     }
@@ -382,7 +382,7 @@ fun RequestTrackingScreen(
 
     // ── Loading
     if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize().background(Background), contentAlignment = Alignment.Center) {
+        Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = Primary)
         }
         return
@@ -398,7 +398,7 @@ fun RequestTrackingScreen(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize().background(Background)) {
+    Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -413,7 +413,7 @@ fun RequestTrackingScreen(
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = TextPrimary)
                     }
-                    Text("Mi solicitud", style = MaterialTheme.typography.headlineMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
+                    Text("Mi solicitud", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)
                 }
                 if (req.status == "pendiente" || req.status == "en_revision") {
                     TextButton(onClick = { showCancelDialog = true }, colors = ButtonDefaults.textButtonColors(contentColor = Error)) {
@@ -430,7 +430,7 @@ fun RequestTrackingScreen(
             // Técnicos interesados — pendiente o en_revision
             if ((req.status == "pendiente" || req.status == "en_revision") && tecnicosInteresados.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(20.dp))
-                Text("Técnicos interesados (${tecnicosInteresados.size})", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                Text("Técnicos interesados (${tecnicosInteresados.size})", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(8.dp))
                 tecnicosInteresados.forEach { tecnico ->
                     TecnicoInteresadoCard(
@@ -444,9 +444,9 @@ fun RequestTrackingScreen(
 
             // Detalle
             Spacer(modifier = Modifier.height(20.dp))
-            Text("Detalle", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+            Text("Detalle", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = CardBackground), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Surface(shape = RoundedCornerShape(8.dp), color = Primary.copy(alpha = 0.1f)) {
@@ -459,7 +459,7 @@ fun RequestTrackingScreen(
                         }
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text(req.description, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+                    Text(req.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
                     if (req.address.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -478,7 +478,7 @@ fun RequestTrackingScreen(
             // Técnico asignado
             if (technician != null && req.status != "pendiente" && req.status != "en_revision") {
                 Spacer(modifier = Modifier.height(20.dp))
-                Text("Técnico asignado", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                Text("Técnico asignado", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(8.dp))
                 TecnicoAsignadoCard(technician = technician!!, onWhatsApp = { openWhatsApp(technician!!.whatsapp) })
             }
@@ -538,7 +538,7 @@ fun TecnicoInteresadoCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -551,7 +551,7 @@ fun TecnicoInteresadoCard(
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(tecnico.name, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                    Text(tecnico.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
 
                     // Rating con estrellas
                     if (tecnico.rating > 0) {
@@ -591,7 +591,7 @@ fun TecnicoInteresadoCard(
                         Text(
                             "${tecnico.yearsExp} año${if (tecnico.yearsExp != 1) "s" else ""} de experiencia",
                             style = MaterialTheme.typography.bodySmall,
-                            color = TextPrimary,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Medium
                         )
                     }
@@ -626,7 +626,7 @@ fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -639,7 +639,7 @@ fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
                     }
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
-                        Text(technician.name, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.Medium)
+                        Text(technician.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Medium)
                         if (technician.rating > 0) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 (1..5).forEach { star ->
@@ -665,7 +665,7 @@ fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.WorkHistory, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("${technician.yearsExp} año${if (technician.yearsExp != 1) "s" else ""} de experiencia", style = MaterialTheme.typography.bodySmall, color = TextPrimary, fontWeight = FontWeight.Medium)
+                    Text("${technician.yearsExp} año${if (technician.yearsExp != 1) "s" else ""} de experiencia", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Medium)
                 }
             }
             if (technician.whatsapp.isNotEmpty()) {
@@ -699,9 +699,9 @@ fun StatusProgressBar(status: String) {
 
     val currentIndex = steps.indexOfFirst { it.first == statusVisual }.let { if (it == -1) 0 else it }
 
-    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = CardBackground), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Estado del servicio", style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+            Text("Estado del servicio", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(16.dp))
 
             steps.forEachIndexed { index, (_, label) ->

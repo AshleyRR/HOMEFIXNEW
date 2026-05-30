@@ -1,5 +1,19 @@
 package com.tunegocio.homefix.ui.auth
 
+//imports para el retrofit con link firebase
+import com.tunegocio.homefix.data.remote.RetrofitClient
+import com.tunegocio.homefix.data.remote.models.LoginRequest
+import com.tunegocio.homefix.data.remote.models.FirebaseErrorResponse
+import com.google.gson.Gson
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+
+
+
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -29,6 +43,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.tunegocio.homefix.R
 
+import android.content.Context
+import androidx.compose.ui.platform.LocalContext
+import com.tunegocio.homefix.data.local.database.LocalDatabase
+
 import androidx.compose.ui.graphics.Color
 @Composable
 fun LoginScreen(navController: NavController) {
@@ -44,6 +62,13 @@ fun LoginScreen(navController: NavController) {
     var passwordError by remember { mutableStateOf("") }
     var generalError by remember { mutableStateOf("") }
 
+    val context = LocalContext.current
+    val localDb = LocalDatabase(context)
+
+    // FUNCION LOGIN ACTUALIZADA CON RETROFIT LINK FIREBASE
+
+    //------------------------------------------------------
+
     fun login() {
         emailError = ""
         passwordError = ""
@@ -55,7 +80,7 @@ fun LoginScreen(navController: NavController) {
             emailError = "El correo es obligatorio"
             hasError = true
         } else if (!isValidEmail(email)) {
-            emailError = "Ingresa un correo válido (ej: correo@gmail.com)"
+            emailError = "Ingresa un correo válido"
             hasError = true
         }
 
@@ -68,57 +93,122 @@ fun LoginScreen(navController: NavController) {
         }
 
         if (hasError) return
-
         isLoading = true
 
-        auth.signInWithEmailAndPassword(email.trim(), password)
-            .addOnSuccessListener { result ->
-                val uid = result.user?.uid ?: return@addOnSuccessListener
+        // Llamada a Firebase REST API via Retrofit
+        CoroutineScope(Dispatchers.IO).launch {
+            try {
+                val response = RetrofitClient.apiService.login(
+                    url = RetrofitClient.LOGIN_URL,
+                    apiKey = RetrofitClient.API_KEY,
+                    request = LoginRequest(
+                        email = email.trim(),
+                        password = password
+                    )
+                )
 
-                // Verificar email confirmado antes de dejar entrar
-                if (result.user?.isEmailVerified == false) {
-                    isLoading = false
-                    generalError = "Debes verificar tu email antes de ingresar"
-                    auth.signOut()
-                    return@addOnSuccessListener
-                }
+                withContext(Dispatchers.Main) {
+                    if (response.isSuccessful) {
+                        val loginData = response.body()
+                        val uid = loginData?.localId ?: ""
 
-                db.collection("users").document(uid).get()
-                    .addOnSuccessListener { doc ->
+                        // Autenticar en Firebase SDK para que currentUser no sea null
+                        auth.signInWithEmailAndPassword(email.trim(), password)
+                            .addOnSuccessListener { result ->
+
+                                // Verificar email confirmado
+                                if (result.user?.isEmailVerified == false) {
+                                    isLoading = false
+                                    generalError = "Debes verificar tu email antes de ingresar"
+                                    auth.signOut()
+                                    return@addOnSuccessListener
+                                }
+
+                                // Obtener perfil desde Firestore
+                                db.collection("users").document(uid).get()
+                                    .addOnSuccessListener { doc ->
+                                        isLoading = false
+                                        val role = doc.getString("role") ?: "client"
+
+                                        // Guardar perfil en SQLite
+                                        localDb.guardarUsuario(
+                                            uid = uid,
+                                            nombres = doc.getString("name") ?: "",
+                                            apellidos = doc.getString("lastName") ?: "",
+                                            email = doc.getString("email") ?: "",
+                                            telefono = doc.getString("phone") ?: "",
+                                            distrito = doc.getString("district") ?: "",
+                                            rol = role,
+                                            selfieUrl = doc.getString("selfieUrl") ?: "",
+                                            calificacion = (doc.getDouble("rating") ?: 0.0).toFloat(),
+                                            especialidades = (doc.get("specialties") as? List<*>)?.joinToString(",") ?: "",
+                                            anosExperiencia = (doc.getLong("yearsExp") ?: 0L).toInt(),
+                                            bio = doc.getString("bio") ?: "",
+                                            lat = doc.getDouble("lat") ?: 0.0,
+                                            lng = doc.getDouble("lng") ?: 0.0
+                                        )
+
+                                        if (role == "technician") {
+                                            navController.navigate(Routes.HOME_TECHNICIAN) {
+                                                popUpTo(Routes.LOGIN) { inclusive = true }
+                                            }
+                                        } else {
+                                            navController.navigate(Routes.HOME_CLIENT) {
+                                                popUpTo(Routes.LOGIN) { inclusive = true }
+                                            }
+                                        }
+                                    }
+                                    .addOnFailureListener {
+                                        isLoading = false
+                                        generalError = "Error al obtener perfil"
+                                    }
+                            }
+                            .addOnFailureListener {
+                                isLoading = false
+                                generalError = "Error al autenticar"
+                            }
+
+                    } else {
+                        // Parsear error de Firebase
+                        val errorBody = response.errorBody()?.string()
+                        val firebaseError = try {
+                            Gson().fromJson(errorBody, FirebaseErrorResponse::class.java)
+                        } catch (e: Exception) {
+                            null
+                        }
+
                         isLoading = false
-                        val role = doc.getString("role") ?: "client"
-                        if (role == "technician") {
-                            navController.navigate(Routes.HOME_TECHNICIAN) {
-                                popUpTo(Routes.LOGIN) { inclusive = true }
-                            }
-                        } else {
-                            navController.navigate(Routes.HOME_CLIENT) {
-                                popUpTo(Routes.LOGIN) { inclusive = true }
-                            }
+                        when (firebaseError?.error?.message) {
+                            "EMAIL_NOT_FOUND" ->
+                                emailError = "No existe una cuenta con ese correo"
+                            "INVALID_PASSWORD" ->
+                                passwordError = "Contraseña incorrecta"
+                            "USER_DISABLED" ->
+                                generalError = "Esta cuenta ha sido deshabilitada"
+                            "INVALID_LOGIN_CREDENTIALS" ->
+                                generalError = "Credenciales inválidas"
+                            "TOO_MANY_ATTEMPTS_TRY_LATER" ->
+                                generalError = "Demasiados intentos, intenta más tarde"
+                            else ->
+                                generalError = "Error al iniciar sesión"
                         }
                     }
-            }
-            .addOnFailureListener { e ->
-                isLoading = false
-                when {
-                    e.message?.contains("password") == true ->
-                        passwordError = "Contraseña incorrecta"
-                    e.message?.contains("no user") == true ->
-                        emailError = "No existe una cuenta con ese correo"
-                    e.message?.contains("email") == true ->
-                        emailError = "Correo inválido"
-                    e.message?.contains("blocked") == true ->
-                        generalError = "Demasiados intentos, intenta más tarde"
-                    else ->
-                        generalError = "Error al iniciar sesión, intenta de nuevo"
                 }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    isLoading = false
+                    //generalError = "Sin conexión a internet"
+                    generalError = e.message ?: "Error desconocido"  // ← cambia esto temporalmente
+                }
+
             }
+        }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Background)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -142,7 +232,7 @@ fun LoginScreen(navController: NavController) {
             Text(
                 text = "Bienvenido a HomeFix",
                 style = MaterialTheme.typography.headlineMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )

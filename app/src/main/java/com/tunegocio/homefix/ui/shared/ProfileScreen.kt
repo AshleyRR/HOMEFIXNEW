@@ -147,7 +147,7 @@ fun ProfileScreen(navController: NavController) {
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
-            containerColor = surfaceColor,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
             title = { Text("Cerrar sesión", fontWeight = FontWeight.Bold, color = textColor) },
             text = { Text("¿Estás seguro que deseas cerrar sesión?", color = textColor) },
             confirmButton = {
@@ -238,6 +238,7 @@ fun ProfileScreen(navController: NavController) {
                         }
                     }
                 }
+
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -354,7 +355,7 @@ fun ProfileScreen(navController: NavController) {
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = surfaceColor)
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                 ) {
                     Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Star, contentDescription = null, tint = Warning, modifier = Modifier.size(20.dp))

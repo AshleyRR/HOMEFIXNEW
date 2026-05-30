@@ -35,6 +35,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 
+import com.tunegocio.homefix.data.local.database.LocalDatabase
+
+
+
 @SuppressLint("MissingPermission")
 @Composable
 fun HomeTechnicianScreen(navController: NavController) {
@@ -43,6 +47,7 @@ fun HomeTechnicianScreen(navController: NavController) {
     val db = FirebaseFirestore.getInstance()
     val context = LocalContext.current
     val uid = auth.currentUser?.uid ?: ""
+    val localDb = LocalDatabase(context)
 
     // Colores dinámicos
     val bgColor = MaterialTheme.colorScheme.background
@@ -116,6 +121,28 @@ fun HomeTechnicianScreen(navController: NavController) {
             .addSnapshotListener { snapshot, _ ->
                 isLoading = false
                 allRequests = snapshot?.documents?.mapNotNull { it.toObject(RequestModel::class.java) } ?: emptyList()
+
+
+                // Guardar solicitudes pendientes en SQLite local
+                allRequests.forEach { request ->
+                    localDb.guardarSolicitud(
+                        requestId = request.requestId,
+                        clientId = request.clientId,
+                        technicianId = request.technicianId,
+                        tipoServicio = request.serviceType,
+                        descripcion = request.description,
+                        direccion = request.address,
+                        referencia = request.reference,
+                        distrito = request.district,
+                        estado = request.status,
+                        esUrgente = request.isUrgent,
+                        imagenUrl = request.imageUrls.firstOrNull() ?: "",
+                        lat = request.lat,
+                        lng = request.lng,
+                        creadoEn = request.createdAt,
+                        actualizadoEn = request.updatedAt
+                    )
+                }
             }
     }
 
@@ -276,7 +303,7 @@ fun HomeTechnicianScreen(navController: NavController) {
                     Card(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                         shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = surfaceColor)
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                     ) {
                         Column(modifier = Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(imageVector = Icons.Default.BedtimeOff, contentDescription = null, tint = secondaryText, modifier = Modifier.size(48.dp))
@@ -360,7 +387,7 @@ fun HomeTechnicianScreen(navController: NavController) {
                             Card(
                                 modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
                                 shape = RoundedCornerShape(16.dp),
-                                colors = CardDefaults.cardColors(containerColor = surfaceColor)
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                             ) {
                                 Column(modifier = Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                     Icon(imageVector = Icons.Default.HourglassBottom, contentDescription = null, tint = secondaryText, modifier = Modifier.size(48.dp))
@@ -385,7 +412,7 @@ fun NearbyRequestCard(
     distance: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    textColor: androidx.compose.ui.graphics.Color = TextPrimary,
+    textColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onBackground,
     secondaryText: androidx.compose.ui.graphics.Color = TextSecondary,
     cardColor: androidx.compose.ui.graphics.Color = CardBackground
 ) {
@@ -435,7 +462,7 @@ fun NearbyRequestCard(
 @Composable
 fun TechnicianBottomBar(navController: NavController, current: String) {
     val surfaceColor = MaterialTheme.colorScheme.surface
-    NavigationBar(containerColor = surfaceColor) {
+    NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceVariant) {
         NavigationBarItem(
             selected = current == "home",
             onClick = { navController.navigate(Routes.HOME_TECHNICIAN) },

@@ -6,7 +6,8 @@ junitVersion = "1.3.0"
 espressoCore = "3.7.0"
 lifecycleRuntimeKtx = "2.10.0"
 activityCompose = "1.13.0"
-kotlin = "2.2.10"
+kotlin = "2.0.21"
+ksp = "2.0.21-1.0.28"
 composeBom = "2024.09.00"
 
 okhttp = "4.12.0"
@@ -26,11 +27,22 @@ foundation = "1.10.6"
 
 osmdroid = "6.1.18"
 
+room = "2.6.1"
+retrofit = "2.9.0"
+
 
 [libraries]
 
 
 osmdroid = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
+
+
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+
+retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 
 
 
@@ -81,6 +93,10 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 
 google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }
+
+
+
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 
 
 

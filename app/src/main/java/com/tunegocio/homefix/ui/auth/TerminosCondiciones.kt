@@ -67,7 +67,7 @@ fun DialogoTerminos(
             Text(
                 text = "Términos y Condiciones",
                 fontWeight = FontWeight.Bold,
-                color = TextPrimary
+                color = MaterialTheme.colorScheme.onBackground
             )
         },
         text = {
@@ -79,7 +79,7 @@ fun DialogoTerminos(
                 Text(
                     text = TEXTO_TERMINOS_CONDICIONES,
                     style = MaterialTheme.typography.bodySmall,
-                    color = TextPrimary
+                    color = MaterialTheme.colorScheme.onBackground
                 )
             }
         },

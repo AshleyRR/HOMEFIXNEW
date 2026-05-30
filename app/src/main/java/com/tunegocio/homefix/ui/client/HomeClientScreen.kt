@@ -27,6 +27,9 @@ import com.tunegocio.homefix.viewmodel.NotificationsViewModel
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
+
+import androidx.compose.ui.platform.LocalContext
+import com.tunegocio.homefix.data.local.database.LocalDatabase
 @Composable
 fun HomeClientScreen(navController: NavController) {
 
@@ -37,12 +40,14 @@ fun HomeClientScreen(navController: NavController) {
     var userName by remember { mutableStateOf("") }
     var requests by remember { mutableStateOf(listOf<RequestModel>()) }
     var isLoading by remember { mutableStateOf(true) }
-
     var userPhotoUrl by remember { mutableStateOf("") }
 
     // ViewModel para mostrar badge de notificaciones no leídas
     val notificationsViewModel: NotificationsViewModel = viewModel()
     val noLeidas by notificationsViewModel.noLeidas.collectAsState()
+
+    val context = LocalContext.current
+    val localDb = LocalDatabase(context)
 
     // Cargar datos del usuario
     LaunchedEffect(uid) {
@@ -60,6 +65,27 @@ fun HomeClientScreen(navController: NavController) {
                 requests = snapshot?.documents?.mapNotNull {
                     it.toObject(RequestModel::class.java)
                 } ?: emptyList()
+
+                // Guardar solicitudes en SQLite local
+                requests.forEach { request ->
+                    localDb.guardarSolicitud(
+                        requestId = request.requestId,
+                        clientId = request.clientId,
+                        technicianId = request.technicianId,
+                        tipoServicio = request.serviceType,
+                        descripcion = request.description,
+                        direccion = request.address,
+                        referencia = request.reference,
+                        distrito = request.district,
+                        estado = request.status,
+                        esUrgente = request.isUrgent,
+                        imagenUrl = request.imageUrls.firstOrNull() ?: "",
+                        lat = request.lat,
+                        lng = request.lng,
+                        creadoEn = request.createdAt,
+                        actualizadoEn = request.updatedAt
+                    )
+                }
             }
     }
 
@@ -69,7 +95,7 @@ fun HomeClientScreen(navController: NavController) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Background)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(padding)
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -86,7 +112,7 @@ fun HomeClientScreen(navController: NavController) {
                         Text(
                             text = "Hola, ${userName.split(" ").firstOrNull() ?: ""}",
                             style = MaterialTheme.typography.headlineMedium,
-                            color = TextPrimary,
+                            color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
@@ -185,7 +211,7 @@ fun HomeClientScreen(navController: NavController) {
                 Text(
                     text = "Mis solicitudes activas",
                     style = MaterialTheme.typography.titleLarge,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.SemiBold
                 )
             }
@@ -226,7 +252,7 @@ fun EmptyRequestsCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SurfaceVariant)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
     ) {
         Column(
             modifier = Modifier
@@ -239,7 +265,7 @@ fun EmptyRequestsCard() {
             Text(
                 text = "Sin solicitudes activas",
                 style = MaterialTheme.typography.titleMedium,
-                color = TextPrimary,
+                color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Medium
             )
             Text(
@@ -273,7 +299,7 @@ fun RequestStatusCard(request: RequestModel, onClick: () -> Unit) {
             .fillMaxWidth()
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardBackground),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -284,7 +310,7 @@ fun RequestStatusCard(request: RequestModel, onClick: () -> Unit) {
                 Text(
                     text = request.serviceType,
                     style = MaterialTheme.typography.titleMedium,
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.SemiBold
                 )
                 Text(
@@ -320,7 +346,7 @@ fun RequestStatusCard(request: RequestModel, onClick: () -> Unit) {
 
 @Composable
 fun ClientBottomBar(navController: NavController, current: String) {
-    NavigationBar(containerColor = Surface) {
+    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
         NavigationBarItem(
             selected = current == "home",
             onClick = { navController.navigate(Routes.HOME_CLIENT) },

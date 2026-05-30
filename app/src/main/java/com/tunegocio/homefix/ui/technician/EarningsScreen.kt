@@ -199,7 +199,7 @@ fun MetricCard(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     color: androidx.compose.ui.graphics.Color,
     modifier: Modifier = Modifier,
-    textColor: androidx.compose.ui.graphics.Color = TextPrimary,
+    textColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onBackground,
     subtitleColor: androidx.compose.ui.graphics.Color = TextSecondary,
     cardColor: androidx.compose.ui.graphics.Color = CardBackground
 ) {
@@ -225,7 +225,7 @@ fun MetricCard(
 @Composable
 fun ReviewCard(
     review: ReviewModel,
-    textColor: androidx.compose.ui.graphics.Color = TextPrimary,
+    textColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onBackground,
     secondaryText: androidx.compose.ui.graphics.Color = TextSecondary,
     cardColor: androidx.compose.ui.graphics.Color = CardBackground
 ) {
@@ -264,7 +264,7 @@ fun ReviewCard(
 @Composable
 fun CompletedServiceCard(
     request: RequestModel,
-    textColor: androidx.compose.ui.graphics.Color = TextPrimary,
+    textColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onBackground,
     secondaryText: androidx.compose.ui.graphics.Color = TextSecondary,
     cardColor: androidx.compose.ui.graphics.Color = CardBackground,
     outlineColor: androidx.compose.ui.graphics.Color = CardBorder
@@ -321,7 +321,7 @@ private fun FilaDetalle(
     icono: androidx.compose.ui.graphics.vector.ImageVector,
     etiqueta: String,
     valor: String,
-    textColor: androidx.compose.ui.graphics.Color = TextPrimary,
+    textColor: androidx.compose.ui.graphics.Color = MaterialTheme.colorScheme.onBackground,
     secondaryText: androidx.compose.ui.graphics.Color = TextSecondary
 ) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp), verticalAlignment = Alignment.Top) {

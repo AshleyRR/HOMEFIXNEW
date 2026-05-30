@@ -211,7 +211,7 @@ fun RequestDetailScreen(
                 }
             },
             dismissButton = { TextButton(onClick = { showConfirmInterestDialog = false }) { Text("Cancelar", color = secondaryText) } },
-            containerColor = surfaceColor
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
 
@@ -248,7 +248,7 @@ fun RequestDetailScreen(
                 }
             },
             dismissButton = { TextButton(onClick = { showCancelReasonDialog = false; cancelReason = ""; cancelReasonError = "" }) { Text("Volver", color = secondaryText) } },
-            containerColor = surfaceColor
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
 
@@ -265,7 +265,7 @@ fun RequestDetailScreen(
                 }
             },
             dismissButton = { TextButton(onClick = { showCompletadoDialog = false }) { Text("Cancelar", color = secondaryText) } },
-            containerColor = surfaceColor
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
 
@@ -282,7 +282,7 @@ fun RequestDetailScreen(
                 }
             },
             dismissButton = { TextButton(onClick = { showSinContinuarDialog = false }) { Text("Cancelar", color = secondaryText) } },
-            containerColor = surfaceColor
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
 
@@ -347,7 +347,7 @@ fun RequestDetailScreen(
             // ── Descripción
             Text("Descripción", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(8.dp))
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = surfaceColor)) {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Text(req.description, modifier = Modifier.padding(14.dp), style = MaterialTheme.typography.bodyMedium, color = textColor)
             }
 
@@ -356,7 +356,7 @@ fun RequestDetailScreen(
             // ── Ubicación
             Text("Ubicación", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
             Spacer(modifier = Modifier.height(8.dp))
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = surfaceColor)) {
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
                 Column(modifier = Modifier.padding(14.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.LocationOn, contentDescription = null, tint = primaryColor)
@@ -396,7 +396,7 @@ fun RequestDetailScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = surfaceColor),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Row(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
