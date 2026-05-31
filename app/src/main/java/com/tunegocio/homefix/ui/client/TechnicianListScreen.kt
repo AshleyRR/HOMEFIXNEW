@@ -23,6 +23,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.tunegocio.homefix.data.model.UserModel
 import com.tunegocio.homefix.navigation.Routes
@@ -45,6 +46,9 @@ fun TechnicianListScreen(navController: NavController) {
     var expanded by remember { mutableStateOf(false) }
     var selectedTechnicianUid by remember { mutableStateOf<String?>(null) }
 
+    var completedCountMap by remember { mutableStateOf(mapOf<String, Int>()) } //PARA EL CONTEO DE TRABAJOS
+    var clientDistrict by remember { mutableStateOf("") } //PARA UBICACION
+
     val filters = listOf(
         "Todos",
         "Electricidad",
@@ -61,6 +65,15 @@ fun TechnicianListScreen(navController: NavController) {
     )
 
     LaunchedEffect(Unit) {
+        // ── NUEVO: obtener distrito del cliente ──
+        val auth = FirebaseAuth.getInstance()
+        val clientUid = auth.currentUser?.uid ?: ""
+
+        db.collection("users").document(clientUid).get()
+            .addOnSuccessListener { doc ->
+                clientDistrict = doc.getString("district") ?: ""
+            }
+        // ────────────────────────────────────────
         db.collection("users")
             .whereEqualTo("role", "technician")
             .whereEqualTo("isActive", true)
@@ -70,6 +83,17 @@ fun TechnicianListScreen(navController: NavController) {
                     it.toObject(UserModel::class.java)
                 } ?: emptyList()
                 filteredTechnicians = technicians
+
+                val uids = technicians.map { it.uid }
+                uids.forEach { uid ->
+                    db.collection("requests")
+                        .whereEqualTo("technicianId", uid)
+                        .whereEqualTo("status", "completada")
+                        .get()
+                        .addOnSuccessListener { reqSnapshot ->
+                            completedCountMap = completedCountMap + (uid to reqSnapshot.size())
+                        }
+                }
             }
     }
 
@@ -165,44 +189,80 @@ fun TechnicianListScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-            ) {
-                OutlinedTextField(
-                    value = selectedFilter,
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("Filtrar por especialidad") },
-                    trailingIcon = {
-                        IconButton(onClick = { expanded = !expanded }) {
+            // Filtro por especialidad
+            Column(modifier = Modifier.padding(horizontal = 20.dp)) {
+                Text(
+                    text = "Especialidad",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(bottom = 6.dp)
+                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        0.5.dp,
+                        if (selectedFilter != "Todos") Primary else CardBorder
+                    ),
+                    onClick = { expanded = !expanded }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = if (expanded)
-                                    Icons.Default.KeyboardArrowUp
-                                else
-                                    Icons.Default.KeyboardArrowDown,
+                                Icons.Default.FilterList,
                                 contentDescription = null,
-                                tint = Primary
+                                tint = if (selectedFilter != "Todos") Primary else TextSecondary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = selectedFilter,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (selectedFilter != "Todos") Primary else MaterialTheme.colorScheme.onBackground,
+                                fontWeight = if (selectedFilter != "Todos") FontWeight.SemiBold else FontWeight.Normal
                             )
                         }
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { expanded = !expanded },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Primary,
-                        unfocusedBorderColor = CardBorder
-                    )
-                )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Botón limpiar filtro
+                            if (selectedFilter != "Todos") {
+                                IconButton(
+                                    onClick = { selectedFilter = "Todos" },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Close,
+                                        contentDescription = "Limpiar filtro",
+                                        tint = Primary,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
+                            Icon(
+                                if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = TextSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
 
                 DropdownMenu(
                     expanded = expanded,
                     onDismissRequest = { expanded = false },
                     modifier = Modifier
                         .fillMaxWidth(0.9f)
-                        .background(CardBackground)
+                        .background(MaterialTheme.colorScheme.surface)
                 ) {
                     filters.forEach { filter ->
                         DropdownMenuItem(
@@ -210,11 +270,10 @@ fun TechnicianListScreen(navController: NavController) {
                                 Text(
                                     text = filter,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = if (selectedFilter == filter) Primary else TextPrimary,
+                                    color = if (selectedFilter == filter) Primary
+                                    else MaterialTheme.colorScheme.onBackground,
                                     fontWeight = if (selectedFilter == filter)
-                                        FontWeight.Bold
-                                    else
-                                        FontWeight.Normal
+                                        FontWeight.SemiBold else FontWeight.Normal
                                 )
                             },
                             onClick = {
@@ -229,12 +288,25 @@ fun TechnicianListScreen(navController: NavController) {
                                         tint = Primary,
                                         modifier = Modifier.size(16.dp)
                                     )
+                                } else {
+                                    Spacer(modifier = Modifier.size(16.dp))
+                                }
+                            },
+                            trailingIcon = {
+                                if (filter == "Todos" && selectedFilter != "Todos") {
+                                    Text(
+                                        text = "Ver todos",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = TextSecondary
+                                    )
                                 }
                             }
                         )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -287,21 +359,75 @@ fun TechnicianListScreen(navController: NavController) {
                             color = TextSecondary
                         )
                     }
-
-                    items(filteredTechnicians) { tech ->
-                        TechnicianCard(
-                            technician = tech,
-                            isSelected = selectedTechnicianUid == tech.uid,
-                            onCardClick = {
-                                selectedTechnicianUid =
-                                    if (selectedTechnicianUid == tech.uid) null else tech.uid
-                            },
-                            onWhatsAppClick = {
-                                openWhatsApp(tech.whatsapp, tech.name)
+                    // Técnicos del mismo distrito
+                    if (filteredTechnicians.any { it.district == clientDistrict }) {
+                        item {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = Primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "En tu distrito",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = Primary,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
-                        )
+                        }
+                        items(filteredTechnicians.filter { it.district == clientDistrict }) { tech ->
+                            TechnicianCard(
+                                technician = tech,
+                                isSelected = selectedTechnicianUid == tech.uid,
+                                completedJobs = completedCountMap[tech.uid] ?: 0,
+                                onCardClick = {
+                                    selectedTechnicianUid =
+                                        if (selectedTechnicianUid == tech.uid) null else tech.uid
+                                },
+                                onWhatsAppClick = { openWhatsApp(tech.whatsapp, tech.name) }
+                            )
+                        }
                     }
 
+                    // Técnicos de otros distritos
+                    if (filteredTechnicians.any { it.district != clientDistrict }) {
+                        item {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    Icons.Default.Map,
+                                    contentDescription = null,
+                                    tint = TextSecondary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Otros distritos",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = TextSecondary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                        items(filteredTechnicians.filter { it.district != clientDistrict }) { tech ->
+                            TechnicianCard(
+                                technician = tech,
+                                isSelected = selectedTechnicianUid == tech.uid,
+                                completedJobs = completedCountMap[tech.uid]
+                                    ?: 0,
+                                onCardClick = {
+                                    selectedTechnicianUid =
+                                        if (selectedTechnicianUid == tech.uid) null else tech.uid
+                                },
+                                onWhatsAppClick = {
+                                    openWhatsApp(tech.whatsapp, tech.name)
+                                }
+                            )
+                        }
+                    }
                     item {
                         Spacer(modifier = Modifier.height(8.dp))
                     }
@@ -315,6 +441,7 @@ fun TechnicianListScreen(navController: NavController) {
 fun TechnicianCard(
     technician: UserModel,
     isSelected: Boolean,
+    completedJobs: Int,
     onCardClick: () -> Unit,
     onWhatsAppClick: () -> Unit
 ) {
@@ -488,14 +615,34 @@ fun TechnicianCard(
                 ) {
                     Column(
                         modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        verticalArrangement = Arrangement.spacedBy(8.dp) //ANTES ERA 6.DP
                     ) {
+                        // Trabajos completados NUEVO
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Success,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = if (completedJobs == 0) "Nuevo en la plataforma"
+                                else "$completedJobs servicio${if (completedJobs != 1) "s" else ""} realizado${if (completedJobs != 1) "s" else ""}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (completedJobs > 0) Success else TextSecondary,
+                                fontWeight = if (completedJobs > 0) FontWeight.Medium else FontWeight.Normal
+                            )
+                        }
 
-                        Text(
-                            text = "Descripción: ${technician.bio}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary
-                        )
+                        // Descripción profesional
+                        if (technician.bio.isNotBlank()) {
+                            Text(
+                                text = "Descripción: ${technician.bio}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
                     }
                 }
             }

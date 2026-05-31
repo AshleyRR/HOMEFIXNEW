@@ -38,6 +38,9 @@ import kotlinx.coroutines.launch
 import java.io.File
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import androidx.compose.foundation.BorderStroke
+
+import androidx.compose.foundation.isSystemInDarkTheme
 
 @Composable
 fun ProfileScreen(navController: NavController) {
@@ -46,6 +49,7 @@ fun ProfileScreen(navController: NavController) {
     val db = FirebaseFirestore.getInstance()
     val uid = auth.currentUser?.uid ?: ""
     val context = LocalContext.current
+
     val scope = rememberCoroutineScope()
 
     // Colores dinámicos que responden al modo oscuro
@@ -54,6 +58,8 @@ fun ProfileScreen(navController: NavController) {
     val surfaceColor = MaterialTheme.colorScheme.surface
     val outlineColor = MaterialTheme.colorScheme.outline
     val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    val iconTint = if (isSystemInDarkTheme()) Color.White else Primary
+
 
     var user by remember { mutableStateOf<UserModel?>(null) }
     var firstName by remember { mutableStateOf("") }
@@ -189,11 +195,11 @@ fun ProfileScreen(navController: NavController) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = textColor)
+                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = MaterialTheme.colorScheme.onBackground)
                 }
                 Text("Mi perfil", style = MaterialTheme.typography.headlineMedium, color = textColor, fontWeight = FontWeight.Bold)
                 IconButton(onClick = { navController.navigate(Routes.SETTINGS) }) {
-                    Icon(Icons.Default.Settings, contentDescription = "Configuraciones", tint = Primary)
+                    Icon(Icons.Default.Settings, contentDescription = "Configuraciones", tint = MaterialTheme.colorScheme.onBackground)
                 }
             }
 
@@ -235,6 +241,7 @@ fun ProfileScreen(navController: NavController) {
                             CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
                         } else {
                             Icon(Icons.Default.CameraAlt, contentDescription = "Cambiar foto", tint = Color.White, modifier = Modifier.size(16.dp))
+
                         }
                     }
                 }
@@ -292,26 +299,48 @@ fun ProfileScreen(navController: NavController) {
             HomefixTextField(value = phone, onValueChange = { phone = it }, label = "Número de WhatsApp")
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Distrito
-            Text("Distrito", style = MaterialTheme.typography.bodyMedium, color = textColor, fontWeight = FontWeight.Medium, modifier = Modifier.fillMaxWidth())
-            Spacer(modifier = Modifier.height(6.dp))
-            OutlinedButton(
-                onClick = { showDistrictDialog = true },
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary),
-                border = androidx.compose.foundation.BorderStroke(1.dp, outlineColor)
-            ) {
-                Icon(Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = if (selectedDistrict.isEmpty()) "Selecciona tu distrito" else selectedDistrict,
-                    fontWeight = if (selectedDistrict.isNotEmpty()) FontWeight.Medium else FontWeight.Normal,
-                    modifier = Modifier.weight(1f)
+// Distrito
+            Box(modifier = Modifier.fillMaxWidth()) {
+                OutlinedTextField(
+                    value = selectedDistrict,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("Distrito") },
+                    placeholder = { Text("Selecciona tu distrito", color = secondaryText) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.LocationOn,
+                            contentDescription = null,
+                            tint = textColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
+                    trailingIcon = {
+                        Icon(Icons.Default.ArrowDropDown, contentDescription = null, tint = textColor)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = textColor,
+                        unfocusedBorderColor = textColor,
+                        focusedTextColor = textColor,
+                        unfocusedTextColor = textColor,
+                        focusedLabelColor = secondaryText,
+                        unfocusedLabelColor = secondaryText,
+                        cursorColor = Color.Transparent,
+                        focusedLeadingIconColor = textColor,
+                        unfocusedLeadingIconColor = textColor,
+                        focusedTrailingIconColor = textColor,
+                        unfocusedTrailingIconColor = textColor
+                    )
                 )
-                Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(18.dp))
+                // Capa invisible para capturar el click
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clickable { showDistrictDialog = true }
+                )
             }
-
             // Sección técnico
             if (u.role == "technician") {
                 Spacer(modifier = Modifier.height(20.dp))
@@ -322,19 +351,20 @@ fun ProfileScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
-                    value = bio,
-                    onValueChange = { bio = it },
-                    label = { Text("Descripción profesional") },
-                    modifier = Modifier.fillMaxWidth().height(100.dp),
-                    placeholder = { Text("Cuéntale a los clientes sobre tu experiencia...", color = secondaryText) },
+                    value = u.email,
+                    onValueChange = {},
+                    label = { Text("Correo electrónico") },
+                    modifier = Modifier.fillMaxWidth(),
+                    readOnly = true,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Primary,
-                        unfocusedBorderColor = outlineColor,
+                        unfocusedBorderColor = CardBorder,
                         focusedTextColor = textColor,
                         unfocusedTextColor = textColor,
                         focusedLabelColor = Primary,
-                        unfocusedLabelColor = secondaryText
+                        unfocusedLabelColor = secondaryText,
+                        cursorColor = Color.Transparent
                     )
                 )
 
@@ -382,7 +412,12 @@ fun ProfileScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            HomefixButton(text = "Guardar cambios", onClick = { saveProfile() }, isLoading = isSaving || isUploadingPhoto)
+            HomefixButton(
+                text = "Guardar cambios",
+                onClick = { saveProfile() },
+                isLoading = isSaving || isUploadingPhoto,
+                color = MaterialTheme.colorScheme.primary
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -390,10 +425,9 @@ fun ProfileScreen(navController: NavController) {
                 onClick = { showLogoutDialog = true },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Error)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Error),
+                border = BorderStroke(1.dp, CardBorder)
             ) {
-                Icon(Icons.Default.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
                 Text("Cerrar sesión", style = MaterialTheme.typography.labelLarge)
             }
 

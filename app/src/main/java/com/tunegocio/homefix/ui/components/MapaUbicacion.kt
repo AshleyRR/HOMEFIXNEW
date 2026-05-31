@@ -47,8 +47,8 @@ fun MapaUbicacion(
     // Cuadro para superponer el pin fijo encima del mapa
     Box(
         modifier = modifier
-            .fillMaxWidth()
-            .height(280.dp),
+            .fillMaxWidth(),
+
         contentAlignment = Alignment.Center
     ) {
         // Mapa OSMDroid sin conflicto de scroll

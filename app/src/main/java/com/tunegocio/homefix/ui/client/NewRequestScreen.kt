@@ -6,16 +6,10 @@ import android.location.Geocoder
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -30,11 +24,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -47,19 +38,14 @@ import com.tunegocio.homefix.data.model.RequestModel
 import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.components.HomefixButton
 import com.tunegocio.homefix.ui.components.HomefixTextField
-import com.tunegocio.homefix.ui.components.MapaUbicacion
 import com.tunegocio.homefix.ui.components.estaDentroDeLima
 import com.tunegocio.homefix.ui.theme.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.json.JSONArray
+
 import java.io.File
-import java.net.URL
-import java.net.URLEncoder
 import java.util.*
+
+import com.tunegocio.homefix.viewmodel.UbicacionViewModel
 
 private fun getServiceTypeIcon(serviceType: String): ImageVector {
     return when (serviceType) {
@@ -81,7 +67,10 @@ private fun getServiceTypeIcon(serviceType: String): ImageVector {
 @SuppressLint("MissingPermission")
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-fun NewRequestScreen(navController: NavController) {
+fun NewRequestScreen(
+    navController: NavController,
+    ubicacionViewModel: UbicacionViewModel
+) {
 
     val context = LocalContext.current
     val auth = FirebaseAuth.getInstance()
@@ -100,7 +89,7 @@ fun NewRequestScreen(navController: NavController) {
     var isUrgent by remember { mutableStateOf(false) }
     var lat by remember { mutableStateOf(-12.0464) }
     var lng by remember { mutableStateOf(-77.0428) }
-    var photoUri by remember { mutableStateOf<Uri?>(null) }
+    var photoUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var locationLoaded by remember { mutableStateOf(false) }
@@ -108,11 +97,8 @@ fun NewRequestScreen(navController: NavController) {
     var reference by remember { mutableStateOf("") }
     var clientDistrict by remember { mutableStateOf("") }
     var dropdownExpandido by remember { mutableStateOf(false) }
-    var mostrarMapaModal by remember { mutableStateOf(false) }
 
-    var sugerencias by remember { mutableStateOf<List<android.location.Address>>(emptyList()) }
-    var mostrarSugerencias by remember { mutableStateOf(false) }
-    var jobBusqueda by remember { mutableStateOf<Job?>(null) }
+
 
     val serviceTypes = ALL_SPECIALTIES
 
@@ -123,15 +109,41 @@ fun NewRequestScreen(navController: NavController) {
 
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
-    ) { success -> if (success) photoUri = photoUriForCamera }
+    ) { success ->
+        if (success && photoUris.size < 2) {
+            photoUris = photoUris + photoUriForCamera
+        }
+    }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
-    ) { uri -> uri?.let { photoUri = it } }
+    ) { uri ->
+        uri?.let {
+            if (photoUris.size < 2) {
+                photoUris = photoUris + it
+            }
+        }
+    }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted -> if (granted) cameraLauncher.launch(photoUriForCamera) }
+
+    val ubicacionConfirmada by ubicacionViewModel.confirmada.collectAsState()
+    val latViewModel by ubicacionViewModel.lat.collectAsState()
+    val lngViewModel by ubicacionViewModel.lng.collectAsState()
+    val addressViewModel by ubicacionViewModel.address.collectAsState()
+
+    // Cuando vuelve de la pantalla de ubicación actualiza los datos
+    LaunchedEffect(ubicacionConfirmada) {
+        if (ubicacionConfirmada) {
+            lat = latViewModel
+            lng = lngViewModel
+            address = addressViewModel
+            locationLoaded = true
+            ubicacionViewModel.resetConfirmacion()
+        }
+    }
 
     fun actualizarDireccion(latitude: Double, longitude: Double) {
         try {
@@ -149,69 +161,6 @@ fun NewRequestScreen(navController: NavController) {
         }
     }
 
-    fun buscarSugerencias(query: String) {
-        jobBusqueda?.cancel()
-        if (query.length < 3) {
-            sugerencias = emptyList()
-            mostrarSugerencias = false
-            return
-        }
-        jobBusqueda = scope.launch {
-            delay(400)
-            try {
-                val textoCodificado = URLEncoder.encode("$query, Lima, Peru", "UTF-8")
-                val url = "https://nominatim.openstreetmap.org/search?q=$textoCodificado&format=json&limit=8&countrycodes=pe&accept-language=es"
-                val respuesta = withContext(Dispatchers.IO) {
-                    URL(url).openConnection().apply {
-                        setRequestProperty("User-Agent", "HomeFix-App/1.0")
-                        connectTimeout = 5000
-                        readTimeout = 5000
-                    }.getInputStream().bufferedReader().readText()
-                }
-                val json = JSONArray(respuesta)
-                val resultadosNominatim = mutableListOf<android.location.Address>()
-                for (i in 0 until json.length()) {
-                    val item = json.getJSONObject(i)
-                    val latItem = item.getDouble("lat")
-                    val lngItem = item.getDouble("lon")
-                    if (estaDentroDeLima(latItem, lngItem)) {
-                        val direccion = android.location.Address(Locale("es", "PE")).apply {
-                            latitude = latItem
-                            longitude = lngItem
-                            featureName = item.optString("display_name").split(",").firstOrNull()?.trim() ?: ""
-                            setAddressLine(0, item.optString("display_name"))
-                        }
-                        resultadosNominatim.add(direccion)
-                    }
-                }
-                sugerencias = resultadosNominatim
-                mostrarSugerencias = sugerencias.isNotEmpty()
-            } catch (e: Exception) {
-                try {
-                    val geocoder = Geocoder(context, Locale("es", "PE"))
-                    @Suppress("DEPRECATION")
-                    val resultados = geocoder.getFromLocationName("$query, Lima, Peru", 5)
-                    sugerencias = resultados?.filter { estaDentroDeLima(it.latitude, it.longitude) } ?: emptyList()
-                    mostrarSugerencias = sugerencias.isNotEmpty()
-                } catch (e2: Exception) {
-                    sugerencias = emptyList()
-                    mostrarSugerencias = false
-                }
-            }
-        }
-    }
-
-    fun seleccionarSugerencia(resultado: android.location.Address) {
-        lat = resultado.latitude
-        lng = resultado.longitude
-        busqueda = resultado.getAddressLine(0) ?: busqueda
-        address = resultado.getAddressLine(0) ?: ""
-        clientDistrict = resultado.subLocality ?: resultado.locality ?: clientDistrict
-        locationLoaded = true
-        errorMessage = ""
-        mostrarSugerencias = false
-        sugerencias = emptyList()
-    }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -248,12 +197,16 @@ fun NewRequestScreen(navController: NavController) {
     LaunchedEffect(Unit) {
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc -> clientDistrict = doc.getString("district") ?: "" }
-        locationPermissionLauncher.launch(
-            arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION
+
+        // Solo pedir GPS si no hay ubicación ya confirmada del mapa
+        if (!locationLoaded) {
+            locationPermissionLauncher.launch(
+                arrayOf(
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                )
             )
-        )
+        }
     }
 
     fun publishRequest() {
@@ -311,151 +264,28 @@ fun NewRequestScreen(navController: NavController) {
                 }
         }
 
-        if (photoUri != null) {
+        if (photoUris.isNotEmpty()) {
             scope.launch {
-                val result = CloudinaryUploader.uploadImage(
-                    context = context, uri = photoUri!!, folder = "homefix/requests"
-                )
-                result.fold(
-                    onSuccess = { url -> saveRequest(url) },
-                    onFailure = { saveRequest("") }
-                )
+                val urls = mutableListOf<String>()
+                photoUris.forEach { uri ->
+                    val result = CloudinaryUploader.uploadImage(
+                        context = context,
+                        uri = uri,
+                        folder = "homefix/requests"
+                    )
+                    result.fold(
+                        onSuccess = { url -> urls.add(url) },
+                        onFailure = { }
+                    )
+                }
+                saveRequest(urls.joinToString(","))
             }
         } else {
             saveRequest("")
         }
     }
 
-    if (mostrarMapaModal) {
-        Dialog(
-            onDismissRequest = { mostrarMapaModal = false },
-            properties = DialogProperties(
-                usePlatformDefaultWidth = false,
-                dismissOnBackPress = true,
-                dismissOnClickOutside = false
-            )
-        ) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth(0.95f)
-                    .fillMaxHeight(0.85f),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Selecciona tu ubicación",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        IconButton(
-                            onClick = { mostrarMapaModal = false }
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = "Cerrar mapa",
-                                tint = TextSecondary
-                            )
-                        }
-                    }
 
-                    Divider(color = CardBorder)
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    ) {
-                        MapaUbicacion(
-                            lat = lat,
-                            lng = lng,
-                            onUbicacionSeleccionada = { nuevoLat, nuevoLng ->
-                                val cambioSignificativo =
-                                    Math.abs(lat - nuevoLat) > 0.0001 || Math.abs(lng - nuevoLng) > 0.0001
-                                if (cambioSignificativo) {
-                                    lat = nuevoLat
-                                    lng = nuevoLng
-                                    actualizarDireccion(lat, lng)
-                                    locationLoaded = true
-                                    errorMessage = ""
-                                }
-                            },
-                            onFueraDeCobertura = {
-                                errorMessage = "Solo atendemos en Lima por ahora"
-                            }
-                        )
-                    }
-
-                    Divider(color = CardBorder)
-
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp)
-                    ) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (locationLoaded) Success.copy(alpha = 0.08f) else SurfaceVariant
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.LocationOn,
-                                    contentDescription = null,
-                                    tint = if (locationLoaded) Success else TextSecondary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    text = if (locationLoaded) address else "Mueve el pin para definir la ubicación",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (locationLoaded) TextPrimary else TextSecondary,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Button(
-                            onClick = { mostrarMapaModal = false },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Primary
-                            )
-                        ) {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = Color.White
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Confirmar ubicación")
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     Box(
         modifier = Modifier
@@ -549,15 +379,15 @@ fun NewRequestScreen(navController: NavController) {
                             text = {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = getServiceTypeIcon(tipo) ?: Icons.Default.Build,
+                                        imageVector = getServiceTypeIcon(tipo),
                                         contentDescription = null,
-                                        tint = if (estaSeleccionado) Primary else TextPrimary,
+                                        tint = if (estaSeleccionado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.size(20.dp)
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
                                         text = tipo,
-                                        color = if (estaSeleccionado) Primary else TextPrimary,
+                                        color = if (estaSeleccionado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                         fontWeight = if (estaSeleccionado) FontWeight.SemiBold else FontWeight.Normal,
                                         fontSize = if (pantallaAncha) 14.sp else 13.sp
                                     )
@@ -568,14 +398,14 @@ fun NewRequestScreen(navController: NavController) {
                                 dropdownExpandido = false
                             },
                             modifier = Modifier.background(
-                                if (estaSeleccionado) Primary.copy(alpha = 0.07f) else Color.Transparent
+                                if (estaSeleccionado) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent
                             ),
                             trailingIcon = {
                                 if (estaSeleccionado) {
                                     Icon(
                                         Icons.Default.Check,
                                         contentDescription = null,
-                                        tint = Primary,
+                                        tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(16.dp)
                                     )
                                 }
@@ -630,25 +460,79 @@ fun NewRequestScreen(navController: NavController) {
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            if (photoUri != null) {
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    AsyncImage(
-                        model = photoUri,
-                        contentDescription = "Foto del problema",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(if (pantallaAncha) 200.dp else 160.dp)
-                            .clip(RoundedCornerShape(14.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                    IconButton(
-                        onClick = { photoUri = null },
-                        modifier = Modifier.align(Alignment.TopEnd)
-                    ) {
-                        Icon(Icons.Default.Close, contentDescription = "Quitar foto", tint = Color.White)
+            // Fotos seleccionadas
+            if (photoUris.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    photoUris.forEachIndexed { index, uri ->
+                        Box(modifier = Modifier.weight(1f)) {
+                            AsyncImage(
+                                model = uri,
+                                contentDescription = "Foto ${index + 1}",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(if (pantallaAncha) 160.dp else 130.dp)
+                                    .clip(RoundedCornerShape(14.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                            IconButton(
+                                onClick = {
+                                    photoUris = photoUris.filterIndexed { i, _ -> i != index }
+                                },
+                                modifier = Modifier.align(Alignment.TopEnd)
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = "Quitar foto",
+                                    tint = Color.White
+                                )
+                            }
+                        }
+                    }
+                    // Espacio vacío si solo hay 1 foto
+                    if (photoUris.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
-            } else {
+            }
+
+            // Botones agregar foto — solo si hay menos de 2
+            if (photoUris.size < 2) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Cámara", fontSize = if (pantallaAncha) 14.sp else 12.sp)
+                    }
+                    OutlinedButton(
+                        onClick = { galleryLauncher.launch("image/*") },
+                        modifier = Modifier.weight(1f).height(52.dp),
+                        shape = RoundedCornerShape(14.dp)
+                    ) {
+                        Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Galería", fontSize = if (pantallaAncha) 14.sp else 12.sp)
+                    }
+                }
+                // Indicador de cuántas fotos puede agregar
+                Text(
+                    text = "${photoUris.size}/2 fotos agregadas",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = TextSecondary,
+                    modifier = Modifier.padding(start = 4.dp, top = 2.dp)
+                )
+            }
+
+            else {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -684,131 +568,24 @@ fun NewRequestScreen(navController: NavController) {
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            Box(modifier = Modifier.fillMaxWidth()) {
-                OutlinedTextField(
-                    value = busqueda,
-                    onValueChange = { texto ->
-                        busqueda = texto
-                        buscarSugerencias(texto)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = {
-                        Text(
-                            "Buscar dirección en Lima...",
-                            color = TextHint,
-                            fontSize = if (pantallaAncha) 14.sp else 12.sp
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondary)
-                    },
-                    trailingIcon = {
-                        if (busqueda.isNotEmpty()) {
-                            IconButton(onClick = {
-                                busqueda = ""
-                                sugerencias = emptyList()
-                                mostrarSugerencias = false
-                            }) {
-                                Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = TextSecondary)
-                            }
-                        }
-                    },
-                    singleLine = true,
-                    shape = RoundedCornerShape(14.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Primary,
-                        unfocusedBorderColor = CardBorder
-                    ),
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                    keyboardActions = KeyboardActions(onSearch = {
-                        if (sugerencias.isNotEmpty()) seleccionarSugerencia(sugerencias[0])
-                    })
-                )
-            }
-
-            AnimatedVisibility(
-                visible = mostrarSugerencias,
-                enter = fadeIn(),
-                exit = fadeOut()
-            ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 2.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-                ) {
-                    Column {
-                        sugerencias.forEachIndexed { index, resultado ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { seleccionarSugerencia(resultado) }
-                                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    Icons.Default.LocationOn,
-                                    contentDescription = null,
-                                    tint = Primary,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = resultado.featureName ?: resultado.getAddressLine(0) ?: "",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onBackground,
-                                        fontWeight = FontWeight.Medium,
-                                        fontSize = if (pantallaAncha) 14.sp else 12.sp,
-                                        maxLines = 1
-                                    )
-                                    Text(
-                                        text = resultado.getAddressLine(0) ?: "",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = TextSecondary,
-                                        fontSize = if (pantallaAncha) 12.sp else 11.sp,
-                                        maxLines = 1
-                                    )
-                                }
-                            }
-                            if (index < sugerencias.lastIndex) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                    color = CardBorder
-                                )
-                            }
-                        }
-                    }
-                }
-            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             Button(
-                onClick = { mostrarMapaModal = true },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
+                onClick = {
+                    ubicacionViewModel.actualizarUbicacion(lat, lng, address)
+                    navController.navigate(Routes.SELECCIONAR_UBICACION)
+                },
+                modifier = Modifier.fillMaxWidth().height(56.dp),
                 shape = RoundedCornerShape(14.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Primary.copy(alpha = 0.1f),
                     contentColor = Primary
                 )
             ) {
-                Icon(
-                    Icons.Default.Map,
-                    contentDescription = null,
-                    modifier = Modifier.size(22.dp),
-                    tint = Primary
-                )
+                Icon(Icons.Default.Map, contentDescription = null, tint = Primary, modifier = Modifier.size(22.dp))
                 Spacer(modifier = Modifier.width(10.dp))
-                Text(
-                    "Seleccionar ubicación en el mapa",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 14.sp
-                )
+                Text("Seleccionar ubicación en el mapa", fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -817,22 +594,25 @@ fun NewRequestScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (locationLoaded) Success.copy(alpha = 0.08f) else SurfaceVariant
+                    containerColor = if (locationLoaded) Success.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant
                 )
             ) {
-                Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     Icon(
                         Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = if (locationLoaded) Success else TextSecondary,
+                        tint = if (locationLoaded) Success else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = if (locationLoaded) address else "Selecciona una ubicación",
+                        text = if (locationLoaded) address else "Mueve el pin para definir la ubicación",
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (locationLoaded) TextPrimary else TextSecondary,
-                        fontSize = if (pantallaAncha) 13.sp else 11.sp
+                        color = if (locationLoaded) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        fontSize = 12.sp
                     )
                 }
             }

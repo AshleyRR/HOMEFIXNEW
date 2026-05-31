@@ -27,13 +27,22 @@ import com.tunegocio.homefix.ui.shared.NotificationsScreen
 import com.tunegocio.homefix.ui.shared.RatingScreen
 import com.tunegocio.homefix.ui.shared.HistoryScreen
 
+import com.tunegocio.homefix.viewmodel.UbicacionViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.tunegocio.homefix.ui.client.SeleccionarUbicacionScreen
+
+
 @Composable
 fun AppNavigation(
     navController: NavHostController = rememberNavController()
 ) {
+
+    val ubicacionViewModel: UbicacionViewModel = viewModel()
     NavHost(
         navController = navController,
         startDestination = Routes.SPLASH
+
+
     ) {
 
         //  Autenticacion
@@ -58,7 +67,16 @@ fun AppNavigation(
             HomeClientScreen(navController = navController)
         }
         composable(Routes.NEW_REQUEST) {
-            NewRequestScreen(navController = navController)
+            NewRequestScreen(
+                navController = navController,
+                ubicacionViewModel = ubicacionViewModel
+            )
+        }
+        composable(Routes.SELECCIONAR_UBICACION) {
+            SeleccionarUbicacionScreen(
+                navController = navController,
+                ubicacionViewModel = ubicacionViewModel
+            )
         }
         composable(Routes.TECHNICIAN_LIST) {
             TechnicianListScreen(navController = navController)
@@ -70,6 +88,7 @@ fun AppNavigation(
                 requestId = requestId
             )
         }
+
 
         // ── Técnico
         composable(Routes.HOME_TECHNICIAN) {

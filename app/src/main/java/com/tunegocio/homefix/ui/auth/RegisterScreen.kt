@@ -980,19 +980,24 @@ fun DistrictPickerDialog(
     var searchQuery by remember { mutableStateOf("") }
     val filtered = districts.filter { it.contains(searchQuery, ignoreCase = true) }
 
+    // ← Colores dinámicos
+    val onSurface = MaterialTheme.colorScheme.onSurface
+    val outline = MaterialTheme.colorScheme.outline
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
             Column {
                 Text(
                     text = "Selecciona tu distrito",
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = onSurface // ← antes sin color (heredaba negro)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("Buscar distrito...") },
+                    placeholder = { Text("Buscar distrito...", color = onSurface.copy(alpha = 0.5f)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(10.dp),
@@ -1000,12 +1005,17 @@ fun DistrictPickerDialog(
                         Icon(
                             Icons.Default.Search,
                             contentDescription = null,
-                            modifier = Modifier.size(18.dp)
+                            modifier = Modifier.size(18.dp),
+                            tint = onSurface // ← ícono blanco en dark mode
                         )
                     },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = Primary,
-                        unfocusedBorderColor = CardBorder
+                        unfocusedBorderColor = outline,
+                        focusedTextColor = onSurface,
+                        unfocusedTextColor = onSurface,
+                        focusedLeadingIconColor = onSurface,
+                        unfocusedLeadingIconColor = onSurface
                     )
                 )
             }
@@ -1016,7 +1026,7 @@ fun DistrictPickerDialog(
                     Text(
                         text = "No se encontró ese distrito",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = TextSecondary,
+                        color = onSurface.copy(alpha = 0.5f),
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
                 } else {
@@ -1037,7 +1047,7 @@ fun DistrictPickerDialog(
                             Text(
                                 text = district,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (isSelected) Primary else TextPrimary,
+                                color = if (isSelected) Primary else onSurface, // ← era TextPrimary (hardcodeado)
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                             )
                             if (isSelected) {
@@ -1055,12 +1065,11 @@ fun DistrictPickerDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar", color = TextSecondary)
+                Text("Cancelar", color = onSurface.copy(alpha = 0.5f))
             }
         }
     )
 }
-
 @Composable
 fun SpecialtyPickerDialog(
     allSpecialties: List<String>,
@@ -1193,6 +1202,3 @@ fun RoleCard(
         }
     }
 }
-
-
-

@@ -14,6 +14,8 @@ object Routes {
     const val TECHNICIAN_LIST = "technician_list"
     const val REQUEST_TRACKING = "request_tracking/{requestId}"
 
+    const val SELECCIONAR_UBICACION = "seleccionar_ubicacion"
+
     // Técnico
     const val HOME_TECHNICIAN = "home_technician"
     const val REQUEST_DETAIL = "request_detail/{requestId}"

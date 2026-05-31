@@ -135,7 +135,7 @@ fun HomeClientScreen(navController: NavController) {
                                 Icon(
                                     Icons.Default.Notifications,
                                     contentDescription = "Notificaciones",
-                                    tint = Primary,
+                                    tint = MaterialTheme.colorScheme.onBackground,
                                     modifier = Modifier.size(28.dp)
                                 )
                             }
