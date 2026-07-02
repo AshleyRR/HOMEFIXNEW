@@ -33,7 +33,9 @@ import org.json.JSONArray
 import java.net.URL
 import java.net.URLEncoder
 import java.util.*
+import android.annotation.SuppressLint
 
+@SuppressLint("MissingPermission")
 @Composable
 fun SeleccionarUbicacionScreen(
     navController: NavController,
@@ -287,6 +289,36 @@ fun SeleccionarUbicacionScreen(
                 onFueraDeCobertura = { errorMessage = "Solo atendemos en Lima por ahora" },
                 modifier = Modifier.fillMaxSize()
             )
+
+            FloatingActionButton(
+                onClick = {
+                    try {
+                        val fusedLocation = com.google.android.gms.location.LocationServices
+                            .getFusedLocationProviderClient(context)
+                        fusedLocation.lastLocation.addOnSuccessListener { location ->
+                            location?.let {
+                                lat = it.latitude
+                                lng = it.longitude
+                                actualizarDireccion(lat, lng)
+                            }
+                        }
+                    } catch (e: SecurityException) {
+                        errorMessage = "Activa el permiso de ubicación"
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 16.dp, end = 16.dp),
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = Primary
+            ) {
+                Icon(
+                    Icons.Default.MyLocation,
+                    contentDescription = "Mi ubicación"
+                )
+
+            }
+
         }
     }
 }

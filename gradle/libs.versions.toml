@@ -23,6 +23,8 @@ coroutines = "1.9.0"
 googleServices = "4.4.2"
 foundation = "1.10.6"
 
+mapsCompose = "4.3.3"
+
 
 
 osmdroid = "6.1.18"
@@ -44,7 +46,7 @@ room-compiler = { group = "androidx.room", name = "room-compiler", version.ref =
 retrofit = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
 retrofit-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
 
-
+maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
 
 
 

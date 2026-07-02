@@ -10,10 +10,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-
-
-
-
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -64,6 +60,14 @@ fun LoginScreen(navController: NavController) {
 
     val context = LocalContext.current
     val localDb = LocalDatabase(context)
+
+
+    // Forzar apertura de la BD para que aparezca en Database Inspector
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            localDb.obtenerConfiguracion()
+        }
+    }
 
     // FUNCION LOGIN ACTUALIZADA CON RETROFIT LINK FIREBASE
 

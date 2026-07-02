@@ -6,13 +6,9 @@ import android.database.Cursor
 
 // Clase principal para operaciones CRUD en SQLite
 class LocalDatabase(context: Context) {
-
     private val dbHelper = HomefixSQLiteHelper(context)
 
-    // ══════════════════════════════════════════
     // TABLA: usuario
-    // ══════════════════════════════════════════
-
     fun guardarUsuario(
         uid: String,
         nombres: String,

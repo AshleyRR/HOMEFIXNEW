@@ -21,8 +21,6 @@ interface ApiService {
         @Body request: LoginRequest
     ): Response<LoginResponse>
 
-
-
     // Registro con email y contraseña
     @POST
     suspend fun register(

@@ -27,7 +27,9 @@
 
         android:usesCleartextTraffic="true">
 
-
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyAS-VI-h1f_EySNutDNL0TPWcNP4pF8Zh4"/>
 
         <activity
             android:name=".MainActivity"
@@ -50,14 +52,14 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Servicio que recibe notificaciones push de Firebase Cloud Messaging -->
+        <!-- Servicio que recibe notificaciones push de Firebase Cloud Messaging
         <service
             android:name=".data.MyFirebaseMessagingService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
-        </service>
+        </service>-->
 
     </application>
 

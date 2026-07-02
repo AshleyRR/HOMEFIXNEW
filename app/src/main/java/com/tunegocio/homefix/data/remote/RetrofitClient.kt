@@ -3,12 +3,11 @@ package com.tunegocio.homefix.data.remote
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-// Configuración única de Retrofit — patrón Singleton
+// Configuración de Retrofit
 object RetrofitClient {
     private const val BASE_URL = "https://identitytoolkit.googleapis.com/v1/"
     const val API_KEY = "AIzaSyCwaMDT52c9jF5pjb2mzKioX4I_E-Yix9M"
     const val LOGIN_URL = "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword"
-
     const val REGISTER_URL = "https://identitytoolkit.googleapis.com/v1/accounts:signUp"
 
     private val retrofit by lazy {
