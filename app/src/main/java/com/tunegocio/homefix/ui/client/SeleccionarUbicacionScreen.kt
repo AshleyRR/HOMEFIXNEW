@@ -35,6 +35,14 @@ import java.net.URLEncoder
 import java.util.*
 import android.annotation.SuppressLint
 
+import android.content.Intent
+import android.location.LocationManager
+import android.provider.Settings
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import com.google.android.gms.location.LocationServices
+
+
 @SuppressLint("MissingPermission")
 @Composable
 fun SeleccionarUbicacionScreen(
@@ -57,6 +65,7 @@ fun SeleccionarUbicacionScreen(
     var mostrarSugerencias by remember { mutableStateOf(false) }
     var jobBusqueda by remember { mutableStateOf<Job?>(null) }
     var errorMessage by remember { mutableStateOf("") }
+    var mostrarDialogoGps by remember { mutableStateOf(false) }
 
     val bgColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
@@ -129,6 +138,52 @@ fun SeleccionarUbicacionScreen(
         mostrarSugerencias = false
         sugerencias = emptyList()
         busqueda = resultado.featureName ?: address
+    }
+
+    // Diálogo para activar GPS
+    if (mostrarDialogoGps) {
+        AlertDialog(
+            onDismissRequest = { mostrarDialogoGps = false },
+            icon = {
+                Icon(
+                    Icons.Default.LocationOff,
+                    contentDescription = null,
+                    tint = Primary,
+                    modifier = Modifier.size(32.dp)
+                )
+            },
+            title = {
+                Text(
+                    text = "Ubicación desactivada",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = "Para usar tu ubicación actual necesitas activar el GPS de tu dispositivo.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        mostrarDialogoGps = false
+                        // Abre configuración de ubicación del celular
+                        context.startActivity(
+                            Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                ) {
+                    Text("Activar GPS", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { mostrarDialogoGps = false }) {
+                    Text("Cancelar", color = TextSecondary)
+                }
+            }
+        )
     }
 
     Scaffold(
@@ -292,18 +347,44 @@ fun SeleccionarUbicacionScreen(
 
             FloatingActionButton(
                 onClick = {
-                    try {
-                        val fusedLocation = com.google.android.gms.location.LocationServices
-                            .getFusedLocationProviderClient(context)
-                        fusedLocation.lastLocation.addOnSuccessListener { location ->
-                            location?.let {
-                                lat = it.latitude
-                                lng = it.longitude
-                                actualizarDireccion(lat, lng)
-                            }
+                    // Verificar si el GPS está activo antes de obtener ubicación
+                    val locationManager = context.getSystemService(
+                        android.content.Context.LOCATION_SERVICE
+                    ) as LocationManager
+
+                    val gpsActivo = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+                    val redActiva = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+
+                    if (!gpsActivo && !redActiva) {
+                        // GPS desactivado — mostrar diálogo
+                        mostrarDialogoGps = true
+                    } else {
+                        // GPS activo — obtener ubicación
+                        try {
+                            val fusedLocation = LocationServices
+                                .getFusedLocationProviderClient(context)
+
+                            val locationRequest = com.google.android.gms.location.CurrentLocationRequest.Builder()
+                                .setPriority(com.google.android.gms.location.Priority.PRIORITY_HIGH_ACCURACY)
+                                .setDurationMillis(5000)
+                                .build()
+
+                            fusedLocation.getCurrentLocation(locationRequest, null)
+                                .addOnSuccessListener { location ->
+                                    if (location != null) {
+                                        lat = location.latitude
+                                        lng = location.longitude
+                                        actualizarDireccion(lat, lng)
+                                    } else {
+                                        errorMessage = "No se pudo obtener la ubicación, intenta de nuevo"
+                                    }
+                                }
+                                .addOnFailureListener {
+                                    errorMessage = "Error al obtener ubicación"
+                                }
+                        } catch (e: SecurityException) {
+                            errorMessage = "Activa el permiso de ubicación"
                         }
-                    } catch (e: SecurityException) {
-                        errorMessage = "Activa el permiso de ubicación"
                     }
                 },
                 modifier = Modifier

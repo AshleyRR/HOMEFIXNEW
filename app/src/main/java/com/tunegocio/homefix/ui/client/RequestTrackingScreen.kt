@@ -53,6 +53,7 @@ fun RequestTrackingScreen(
     var technician by remember { mutableStateOf<UserModel?>(null) }
     var isLoading by remember { mutableStateOf(true) }
     var showCancelDialog by remember { mutableStateOf(false) }
+    var trabajosRealizadosMap by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
 
     // Confirmación completado
     var showConfirmarCompletadoDialog by remember { mutableStateOf(false) }
@@ -89,6 +90,15 @@ fun RequestTrackingScreen(
                             .addOnFailureListener {
                                 pendientes--
                                 if (pendientes == 0) tecnicosInteresados = listaTemp.toList()
+                            }
+                    }
+                    interesados.forEach { techId ->
+                        db.collection("requests")
+                            .whereEqualTo("technicianId", techId)
+                            .whereEqualTo("status", "completada")
+                            .get()
+                            .addOnSuccessListener { snap ->
+                                trabajosRealizadosMap = trabajosRealizadosMap + (techId to snap.size())
                             }
                     }
                 } else {
@@ -436,6 +446,7 @@ fun RequestTrackingScreen(
                     TecnicoInteresadoCard(
                         tecnico = tecnico,
                         eligiendoId = eligiendoTecnicoId,
+                        trabajosRealizados = trabajosRealizadosMap[tecnico.uid] ?: 0,
                         onElegir = { elegirTecnico(tecnico.uid) }
                     )
                     Spacer(modifier = Modifier.height(10.dp))
@@ -446,31 +457,155 @@ fun RequestTrackingScreen(
             Spacer(modifier = Modifier.height(20.dp))
             Text("Detalle", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
+
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Surface(shape = RoundedCornerShape(8.dp), color = Primary.copy(alpha = 0.1f)) {
-                            Text(req.serviceType, modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), style = MaterialTheme.typography.labelLarge, color = Primary, fontWeight = FontWeight.SemiBold)
+
+                    // Badges — tipo de servicio y urgente
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = Primary.copy(alpha = 0.1f)
+                        ) {
+                            Text(
+                                req.serviceType,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
                         }
+
                         if (req.isUrgent) {
-                            Surface(shape = RoundedCornerShape(8.dp), color = Error.copy(alpha = 0.1f)) {
-                                Text("⚡ Urgente", modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), style = MaterialTheme.typography.labelLarge, color = Error)
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Error.copy(alpha = 0.12f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.ElectricBolt,
+                                        contentDescription = null,
+                                        tint = Error,
+                                        modifier = Modifier.size(12.dp)
+                                    )
+                                    Text(
+                                        "Urgente",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Error,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(req.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onBackground)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(color = CardBorder)
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Descripción
+                    Text(
+                        "Descripción",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = TextSecondary,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        req.description,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+
+                    // Dirección
                     if (req.address.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            "Dirección",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = TextSecondary,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = Primary, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(req.address, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                            Text(req.address, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onBackground)
                         }
                     }
+
+                    // Referencia
+                    if (req.reference.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Info, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Ref: ${req.reference}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
+                        }
+                    }
+
+                    // Fecha
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CalendarToday, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
+                                .format(java.util.Date(req.createdAt)),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = TextSecondary
+                        )
+                    }
+
+                    // Imágenes — mostrar hasta 2
                     if (req.imageUrls.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(12.dp))
-                        AsyncImage(model = req.imageUrls.first(), contentDescription = null, modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(12.dp)), contentScale = ContentScale.Crop)
+                        Text(
+                            "Fotos",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = TextSecondary,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+                        val urls = req.imageUrls.first().split(",").filter { it.isNotEmpty() }
+                        if (urls.size == 1) {
+                            AsyncImage(
+                                model = urls[0],
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(12.dp)),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else if (urls.size >= 2) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                urls.take(2).forEach { url ->
+                                    AsyncImage(
+                                        model = url,
+                                        contentDescription = null,
+                                        modifier = Modifier.weight(1f).height(140.dp).clip(RoundedCornerShape(12.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -533,8 +668,11 @@ fun RequestTrackingScreen(
 fun TecnicoInteresadoCard(
     tecnico: UserModel,
     eligiendoId: String,
+    trabajosRealizados: Int,
     onElegir: () -> Unit
 ) {
+    var bioExpandida by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -542,18 +680,48 @@ fun TecnicoInteresadoCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
+
+            // Header — foto + nombre + rating
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                // Avatar
-                Surface(modifier = Modifier.size(48.dp), shape = RoundedCornerShape(24.dp), color = TechnicianColor.copy(alpha = 0.15f)) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text(tecnico.name.firstOrNull()?.toString()?.uppercase() ?: "T", style = MaterialTheme.typography.titleMedium, color = TechnicianColor, fontWeight = FontWeight.Bold)
+
+                // Foto de perfil real o inicial
+                if (tecnico.selfieUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = tecnico.selfieUrl,
+                        contentDescription = "Foto de ${tecnico.name}",
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(26.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Surface(
+                        modifier = Modifier.size(52.dp),
+                        shape = RoundedCornerShape(26.dp),
+                        color = TechnicianColor.copy(alpha = 0.15f)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(
+                                tecnico.name.firstOrNull()?.toString()?.uppercase() ?: "T",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = TechnicianColor,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(tecnico.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
 
-                    // Rating con estrellas
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        tecnico.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    // Rating
                     if (tecnico.rating > 0) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             (1..5).forEach { star ->
@@ -565,45 +733,112 @@ fun TecnicoInteresadoCard(
                                 )
                             }
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("${"%.1f".format(tecnico.rating)}", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                            Text(
+                                "${"%.1f".format(tecnico.rating)}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary
+                            )
                         }
                     } else {
-                        Text("Sin calificaciones aún", style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                        Text(
+                            "Sin calificaciones aún",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary
+                        )
                     }
 
-                    // Especialidades
-                    if (tecnico.specialties.isNotEmpty()) {
-                        Text(tecnico.specialties.take(2).joinToString(", "), style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                    // Distrito
+                    if (tecnico.district.isNotEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = TextSecondary,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(
+                                tecnico.district,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary
+                            )
+                        }
                     }
                 }
             }
 
-            // Años de experiencia y descripción
-            if (tecnico.yearsExp > 0 || tecnico.bio.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(10.dp))
-                HorizontalDivider(color = CardBorder)
-                Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+            HorizontalDivider(color = CardBorder)
+            Spacer(modifier = Modifier.height(10.dp))
 
-                if (tecnico.yearsExp > 0) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.WorkHistory, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            "${tecnico.yearsExp} año${if (tecnico.yearsExp != 1) "s" else ""} de experiencia",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(4.dp))
+            // Todas las especialidades
+            if (tecnico.specialties.isNotEmpty()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Build, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        tecnico.specialties.joinToString(", "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
+                Spacer(modifier = Modifier.height(6.dp))
+            }
 
-                if (tecnico.bio.isNotEmpty()) {
-                    Text(tecnico.bio, style = MaterialTheme.typography.bodySmall, color = TextSecondary, maxLines = 2)
+            // Años de experiencia
+            if (tecnico.yearsExp > 0) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.WorkHistory, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        "${tecnico.yearsExp} año${if (tecnico.yearsExp != 1) "s" else ""} de experiencia",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+            }
+
+            // Trabajos realizados
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Success, modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    if (trabajosRealizados == 0) "Nuevo en la plataforma"
+                    else "$trabajosRealizados servicio${if (trabajosRealizados != 1) "s" else ""} realizado${if (trabajosRealizados != 1) "s" else ""}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (trabajosRealizados > 0) Success else TextSecondary,
+                    fontWeight = if (trabajosRealizados > 0) FontWeight.Medium else FontWeight.Normal
+                )
+            }
+
+            // Bio con "Ver más"
+            if (tecnico.bio.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    tecnico.bio,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary,
+                    maxLines = if (bioExpandida) Int.MAX_VALUE else 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
+                if (tecnico.bio.length > 80) {
+                    Text(
+                        text = if (bioExpandida) "Ver menos" else "Ver más",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Primary,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .clickable { bioExpandida = !bioExpandida }
+                            .padding(top = 2.dp)
+                    )
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
+
             Button(
                 onClick = onElegir,
                 enabled = eligiendoId.isEmpty(),
@@ -614,7 +849,7 @@ fun TecnicoInteresadoCard(
                 if (eligiendoId == tecnico.uid) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
-                    Text(" Elegir este técnico", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                    Text("Elegir este técnico", color = Color.White, style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -630,47 +865,113 @@ fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(modifier = Modifier.size(48.dp), shape = RoundedCornerShape(24.dp), color = TechnicianColor.copy(alpha = 0.15f)) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+
+                // Foto de perfil real o inicial
+                if (technician.selfieUrl.isNotEmpty()) {
+                    AsyncImage(
+                        model = technician.selfieUrl,
+                        contentDescription = "Foto de ${technician.name}",
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(26.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Surface(
+                        modifier = Modifier.size(52.dp),
+                        shape = RoundedCornerShape(26.dp),
+                        color = TechnicianColor.copy(alpha = 0.15f)
+                    ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Text(technician.name.firstOrNull()?.toString()?.uppercase() ?: "T", style = MaterialTheme.typography.titleMedium, color = TechnicianColor, fontWeight = FontWeight.Bold)
+                            Text(
+                                technician.name.firstOrNull()?.toString()?.uppercase() ?: "T",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = TechnicianColor,
+                                fontWeight = FontWeight.Bold
+                            )
                         }
                     }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(technician.name, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Medium)
-                        if (technician.rating > 0) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                (1..5).forEach { star ->
-                                    Icon(
-                                        imageVector = if (star <= technician.rating) Icons.Default.Star else Icons.Default.StarBorder,
-                                        contentDescription = null,
-                                        tint = if (star <= technician.rating) Warning else TextHint,
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text("${"%.1f".format(technician.rating)}", style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        technician.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    if (technician.rating > 0) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            (1..5).forEach { star ->
+                                Icon(
+                                    imageVector = if (star <= technician.rating) Icons.Default.Star else Icons.Default.StarBorder,
+                                    contentDescription = null,
+                                    tint = if (star <= technician.rating) Warning else TextHint,
+                                    modifier = Modifier.size(14.dp)
+                                )
                             }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "${"%.1f".format(technician.rating)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary
+                            )
                         }
-                        if (technician.specialties.isNotEmpty()) {
-                            Text(technician.specialties.take(2).joinToString(", "), style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+                    }
+                    if (technician.district.isNotEmpty()) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(2.dp))
+                            Text(technician.district, style = MaterialTheme.typography.labelSmall, color = TextSecondary)
                         }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(10.dp))
+            HorizontalDivider(color = CardBorder)
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Todas las especialidades
+            if (technician.specialties.isNotEmpty()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Build, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        technician.specialties.joinToString(", "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                Spacer(modifier = Modifier.height(6.dp))
+            }
+
+            // Años de experiencia
             if (technician.yearsExp > 0) {
-                Spacer(modifier = Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.WorkHistory, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("${technician.yearsExp} año${if (technician.yearsExp != 1) "s" else ""} de experiencia", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Medium)
+                    Text(
+                        "${technician.yearsExp} año${if (technician.yearsExp != 1) "s" else ""} de experiencia",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
+
             if (technician.whatsapp.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
-                Button(onClick = onWhatsApp, modifier = Modifier.fillMaxWidth().height(44.dp), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen)) {
+                Button(
+                    onClick = onWhatsApp,
+                    modifier = Modifier.fillMaxWidth().height(44.dp),
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen)
+                ) {
                     Icon(Icons.Default.Phone, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Contactar por WhatsApp", color = Color.White, style = MaterialTheme.typography.labelLarge)

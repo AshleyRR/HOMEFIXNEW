@@ -30,6 +30,7 @@ import com.tunegocio.homefix.ui.shared.HistoryScreen
 import com.tunegocio.homefix.viewmodel.UbicacionViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tunegocio.homefix.ui.client.SeleccionarUbicacionScreen
+import com.tunegocio.homefix.viewmodel.SolicitudViewModel
 
 
 @Composable
@@ -38,9 +39,14 @@ fun AppNavigation(
 ) {
 
     val ubicacionViewModel: UbicacionViewModel = viewModel()
+    val solicitudViewModel: SolicitudViewModel = viewModel()
+
     NavHost(
         navController = navController,
         startDestination = Routes.SPLASH
+
+
+
 
 
     ) {
@@ -66,12 +72,20 @@ fun AppNavigation(
         composable(Routes.HOME_CLIENT) {
             HomeClientScreen(navController = navController)
         }
-        composable(Routes.NEW_REQUEST) {
+        /*composable(Routes.NEW_REQUEST) {
             NewRequestScreen(
                 navController = navController,
                 ubicacionViewModel = ubicacionViewModel
             )
+        }*/
+        composable(Routes.NEW_REQUEST) {
+            NewRequestScreen(
+                navController = navController,
+                ubicacionViewModel = ubicacionViewModel,
+                solicitudViewModel = solicitudViewModel
+            )
         }
+
         composable(Routes.SELECCIONAR_UBICACION) {
             SeleccionarUbicacionScreen(
                 navController = navController,

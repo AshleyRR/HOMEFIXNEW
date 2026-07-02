@@ -46,6 +46,7 @@ import java.io.File
 import java.util.*
 
 import com.tunegocio.homefix.viewmodel.UbicacionViewModel
+import com.tunegocio.homefix.viewmodel.SolicitudViewModel
 
 private fun getServiceTypeIcon(serviceType: String): ImageVector {
     return when (serviceType) {
@@ -69,7 +70,8 @@ private fun getServiceTypeIcon(serviceType: String): ImageVector {
 @OptIn(ExperimentalMaterial3Api::class)
 fun NewRequestScreen(
     navController: NavController,
-    ubicacionViewModel: UbicacionViewModel
+    ubicacionViewModel: UbicacionViewModel,
+    solicitudViewModel: SolicitudViewModel
 ) {
 
     val context = LocalContext.current
@@ -83,18 +85,26 @@ fun NewRequestScreen(
     val configuracion = LocalConfiguration.current
     val pantallaAncha = configuracion.screenWidthDp >= 360
 
-    var serviceType by remember { mutableStateOf("") }
+    /*var serviceType by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
+    var reference by remember { mutableStateOf("") }
     var isUrgent by remember { mutableStateOf(false) }
+    var photoUris by remember { mutableStateOf<List<Uri>>(emptyList()) }*/
+
+    val serviceType by solicitudViewModel.serviceType.collectAsState()
+    val description by solicitudViewModel.description.collectAsState()
+    val reference by solicitudViewModel.reference.collectAsState()
+    val isUrgent by solicitudViewModel.isUrgent.collectAsState()
+    val photoUrisStrings by solicitudViewModel.photoUris.collectAsState()
+    val photoUris = photoUrisStrings.map { Uri.parse(it) }
+
+    var address by remember { mutableStateOf("") }
     var lat by remember { mutableStateOf(-12.0464) }
     var lng by remember { mutableStateOf(-77.0428) }
-    var photoUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var locationLoaded by remember { mutableStateOf(false) }
     var busqueda by remember { mutableStateOf("") }
-    var reference by remember { mutableStateOf("") }
     var clientDistrict by remember { mutableStateOf("") }
     var dropdownExpandido by remember { mutableStateOf(false) }
 
@@ -111,7 +121,7 @@ fun NewRequestScreen(
         ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && photoUris.size < 2) {
-            photoUris = photoUris + photoUriForCamera
+            solicitudViewModel.addPhoto(photoUriForCamera)
         }
     }
 
@@ -120,7 +130,7 @@ fun NewRequestScreen(
     ) { uri ->
         uri?.let {
             if (photoUris.size < 2) {
-                photoUris = photoUris + it
+                solicitudViewModel.addPhoto(it)
             }
         }
     }
@@ -253,6 +263,8 @@ fun NewRequestScreen(
                                 )
                             }
                         }
+                    // limpiar el formulario
+                    solicitudViewModel.limpiar()
                     isLoading = false
                     navController.navigate(Routes.HOME_CLIENT) {
                         popUpTo(Routes.NEW_REQUEST) { inclusive = true }
@@ -394,7 +406,7 @@ fun NewRequestScreen(
                                 }
                             },
                             onClick = {
-                                serviceType = tipo
+                                solicitudViewModel.setServiceType(tipo)
                                 dropdownExpandido = false
                             },
                             modifier = Modifier.background(
@@ -426,7 +438,7 @@ fun NewRequestScreen(
             Spacer(modifier = Modifier.height(8.dp))
             OutlinedTextField(
                 value = description,
-                onValueChange = { if (it.length <= 500) description = it },
+                onValueChange = { if (it.length <= 500) solicitudViewModel.setDescription(it) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(if (pantallaAncha) 120.dp else 100.dp),
@@ -479,7 +491,7 @@ fun NewRequestScreen(
                             )
                             IconButton(
                                 onClick = {
-                                    photoUris = photoUris.filterIndexed { i, _ -> i != index }
+                                    solicitudViewModel.removePhoto(index)
                                 },
                                 modifier = Modifier.align(Alignment.TopEnd)
                             ) {
@@ -497,6 +509,7 @@ fun NewRequestScreen(
                     }
                 }
             }
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Botones agregar foto — solo si hay menos de 2
             if (photoUris.size < 2) {
@@ -532,31 +545,6 @@ fun NewRequestScreen(
                 )
             }
 
-            else {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
-                        modifier = Modifier.weight(1f).height(52.dp),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Cámara", fontSize = if (pantallaAncha) 14.sp else 12.sp)
-                    }
-                    OutlinedButton(
-                        onClick = { galleryLauncher.launch("image/*") },
-                        modifier = Modifier.weight(1f).height(52.dp),
-                        shape = RoundedCornerShape(14.dp)
-                    ) {
-                        Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Galería", fontSize = if (pantallaAncha) 14.sp else 12.sp)
-                    }
-                }
-            }
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -621,7 +609,7 @@ fun NewRequestScreen(
 
             HomefixTextField(
                 value = reference,
-                onValueChange = { reference = it },
+                onValueChange = { solicitudViewModel.setReference(it) },
                 label = "Referencia (opcional)",
                 singleLine = false
             )
@@ -675,7 +663,7 @@ fun NewRequestScreen(
                     }
                     Switch(
                         checked = isUrgent,
-                        onCheckedChange = { isUrgent = it },
+                        onCheckedChange = { solicitudViewModel.setIsUrgent(it) },
                         colors = SwitchDefaults.colors(checkedTrackColor = Error)
                     )
                 }

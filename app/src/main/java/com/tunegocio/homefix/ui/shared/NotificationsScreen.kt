@@ -56,6 +56,7 @@ fun NotificationsScreen(navController: NavController) {
                 tipo = notif.type,
                 requestId = notif.requestId
             )
+
         }
     }
 
