@@ -30,6 +30,11 @@ import com.tunegocio.homefix.data.model.UserModel
 import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.components.HomefixButton
 import com.tunegocio.homefix.ui.theme.*
+import com.tunegocio.homefix.data.model.ReviewModel
+
+import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.clickable
+
 
 @Composable
 fun RequestDetailScreen(
@@ -64,11 +69,25 @@ fun RequestDetailScreen(
 
     val notificationsRepo = remember { NotificationsRepository() }
 
+    //VER CALIFICACIONES Y RESEÑAS
+    var review by remember { mutableStateOf<ReviewModel?>(null) }
+
     LaunchedEffect(requestId) {
         db.collection("requests").document(requestId)
             .addSnapshotListener { snapshot, _ ->
                 isLoading = false
                 request = snapshot?.toObject(RequestModel::class.java)
+                //ADICIONAL
+                if (request?.status == "completada") {
+                    db.collection("reviews")
+                        .whereEqualTo("requestId", requestId)
+                        .limit(1)
+                        .get()
+                        .addOnSuccessListener { result ->
+                            review = result.documents.firstOrNull()?.toObject(ReviewModel::class.java)
+                        }
+                }
+
                 request?.clientId?.let { clientId ->
                     if (clientId.isNotEmpty()) {
                         db.collection("users").document(clientId).get()
@@ -298,14 +317,44 @@ fun RequestDetailScreen(
         return
     }
 
+
     val req = request ?: return
     val yaMarcoInteres = technicianId in req.interestedTechnicians
+    var fotoExpandidaUrl by remember { mutableStateOf<String?>(null) }
+
+    // Dialog foto expandida
+    fotoExpandidaUrl?.let { url ->
+        Dialog(onDismissRequest = { fotoExpandidaUrl = null }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { fotoExpandidaUrl = null }
+            ) {
+                AsyncImage(
+                    model = url,
+                    contentDescription = "Foto ampliada",
+                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
+                    contentScale = ContentScale.FillWidth
+                )
+                IconButton(
+                    onClick = { fotoExpandidaUrl = null },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+                ) {
+                    Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White)
+                }
+            }
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize().background(bgColor)) {
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp)) {
+        Column(modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(20.dp)
+        ) {
             Spacer(modifier = Modifier.height(20.dp))
 
-            // ── ENCABEZADO
+            // Header
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = textColor)
@@ -316,76 +365,152 @@ fun RequestDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── CUADROS
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Badges — tipo servicio, urgente, en proceso
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 Surface(shape = RoundedCornerShape(8.dp), color = primaryColor.copy(alpha = 0.1f)) {
-                    Text(req.serviceType, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge, color = primaryColor, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        req.serviceType,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = primaryColor,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
                 if (req.isUrgent) {
-                    Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f)) {
-                        Text("⚡ Urgente", modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.12f)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.ElectricBolt, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(12.dp))
+                            Text("Urgente", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
                 if (req.status == "aceptada" && req.technicianId == technicianId) {
                     Surface(shape = RoundedCornerShape(8.dp), color = Info.copy(alpha = 0.1f)) {
-                        Text("🔧 En proceso", modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelLarge, color = Info, fontWeight = FontWeight.SemiBold)
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Icon(Icons.Default.Build, contentDescription = null, tint = Info, modifier = Modifier.size(12.dp))
+                            Text("En proceso", style = MaterialTheme.typography.labelSmall, color = Info, fontWeight = FontWeight.Bold)
+                        }
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Foto
-            if (req.imageUrls.isNotEmpty()) {
-                Text("Foto del problema", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
-                Spacer(modifier = Modifier.height(8.dp))
-                AsyncImage(
-                    model = req.imageUrls.first(),
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxWidth().height(220.dp).clip(RoundedCornerShape(16.dp)),
-                    contentScale = ContentScale.Crop
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+            // Card descripción + dirección + fecha + fotos
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = surfaceColor),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
 
-            // ── Descripción
-            Text("Descripción", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(8.dp))
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Text(req.description, modifier = Modifier.padding(14.dp), style = MaterialTheme.typography.bodyMedium, color = textColor)
-            }
+                    // Descripción
+                    Text("Descripción", style = MaterialTheme.typography.labelMedium, color = secondaryText, fontWeight = FontWeight.Medium)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(req.description, style = MaterialTheme.typography.bodyMedium, color = textColor)
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // ── Ubicación
-            Text("Ubicación", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
-            Spacer(modifier = Modifier.height(8.dp))
-            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)) {
-                Column(modifier = Modifier.padding(14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = primaryColor)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(req.address.ifEmpty { "Ubicación no especificada" }, style = MaterialTheme.typography.bodyMedium, color = textColor, modifier = Modifier.weight(1f))
-                    }
-                    if (req.reference.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(6.dp))
+                    // Dirección
+                    if (req.address.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Dirección", style = MaterialTheme.typography.labelMedium, color = secondaryText, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Info, contentDescription = null, tint = secondaryText, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(req.reference, style = MaterialTheme.typography.bodySmall, color = secondaryText)
+                            Icon(Icons.Default.LocationOn, contentDescription = null, tint = primaryColor, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(req.address, style = MaterialTheme.typography.bodySmall, color = textColor)
+                        }
+                        if (req.reference.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Info, contentDescription = null, tint = secondaryText, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Ref: ${req.reference}", style = MaterialTheme.typography.bodySmall, color = secondaryText)
+                            }
+                        }
+                        if (req.lat != 0.0 || req.address.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = { openGoogleMaps(req.lat, req.lng, req.address) },
+                                modifier = Modifier.fillMaxWidth().height(44.dp),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4C7EDE))
+                            ) {
+                                Icon(Icons.Default.Map, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Ver en Google Maps", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                            }
                         }
                     }
-                    if (req.lat != 0.0 || req.address.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(20.dp))
-                        Button(
-                            onClick = { openGoogleMaps(req.lat, req.lng, req.address) },
-                            modifier = Modifier.fillMaxWidth().height(44.dp),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4C7EDE))
-                        ) {
-                            Icon(Icons.Default.Map, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(16.dp))
-                            Text("Ver en Google Maps", color = Color.White, style = MaterialTheme.typography.labelLarge)
+
+                    // Fecha de creación
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.CalendarToday, contentDescription = null, tint = secondaryText, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault())
+                                .format(java.util.Date(req.createdAt)),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = secondaryText
+                        )
+                    }
+
+                    // Fotos — hasta 2 con zoom
+                    if (req.imageUrls.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text("Fotos", style = MaterialTheme.typography.labelMedium, color = secondaryText, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        val urls = req.imageUrls.first().split(",").filter { it.isNotEmpty() }
+                        if (urls.size == 1) {
+                            AsyncImage(
+                                model = urls[0],
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { fotoExpandidaUrl = urls[0] },
+                                contentScale = ContentScale.Crop
+                            )
+                        } else if (urls.size >= 2) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                urls.take(2).forEach { url ->
+                                    AsyncImage(
+                                        model = url,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(160.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable { fotoExpandidaUrl = url },
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -400,42 +525,52 @@ fun RequestDetailScreen(
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    colors = CardDefaults.cardColors(containerColor = surfaceColor),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
-                    Row(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(modifier = Modifier.padding(14.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-
-                            // ── Foto de perfil del cliente ──
-                            // Si el cliente tiene selfieUrl guardada en Firestore, se muestra la imagen real (AsyncImage con Coil).
-                            // Si no tiene foto (selfieUrl vacío), se muestra el círculo con la inicial del nombre como antes (fallback).
-                            Surface(modifier = Modifier.size(44.dp), shape = RoundedCornerShape(22.dp), color = ClientColor.copy(alpha = 0.15f)) {
+                            Surface(
+                                modifier = Modifier.size(48.dp),
+                                shape = RoundedCornerShape(24.dp),
+                                color = ClientColor.copy(alpha = 0.15f)
+                            ) {
                                 if (c.selfieUrl.isNotBlank()) {
                                     AsyncImage(
                                         model = c.selfieUrl,
-                                        contentDescription = "Foto de perfil del cliente",
-                                        modifier = Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)),
+                                        contentDescription = null,
+                                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)),
                                         contentScale = ContentScale.Crop
                                     )
                                 } else {
-                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                         Text(c.name.firstOrNull()?.toString() ?: "C", style = MaterialTheme.typography.titleMedium, color = ClientColor, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
-
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                // Nombre completo del cliente: se concatena nombre + apellido guardados en Firestore
-                                Text("${c.name} ${c.lastName}", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
-                                if (c.rating > 0) Text("⭐ ${"%.1f".format(c.rating)}", style = MaterialTheme.typography.bodySmall, color = secondaryText)
+                                Text("${c.name} ${c.lastName}", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.SemiBold)
+                                if (c.district.isNotEmpty()) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.LocationOn, contentDescription = null, tint = secondaryText, modifier = Modifier.size(12.dp))
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Text(c.district, style = MaterialTheme.typography.labelSmall, color = secondaryText)
+                                    }
+                                }
                             }
                         }
                         if (c.phone.isNotEmpty()) {
-                            Button(onClick = { openWhatsApp(c.phone) }, colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen), shape = RoundedCornerShape(12.dp)) {
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = { openWhatsApp(c.phone) },
+                                modifier = Modifier.fillMaxWidth().height(44.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = WhatsAppGreen),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
                                 Icon(Icons.Default.Phone, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("WhatsApp", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Contactar por WhatsApp", color = Color.White, style = MaterialTheme.typography.labelLarge)
                             }
                         }
                     }
@@ -449,9 +584,8 @@ fun RequestDetailScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            //  Botones según estado
+            // Botones según estado
             when (req.status) {
-
                 "pendiente", "en_revision" -> {
                     if (yaMarcoInteres) {
                         Card(
@@ -482,7 +616,7 @@ fun RequestDetailScreen(
                             Text("Cancelar solicitud", style = MaterialTheme.typography.labelLarge)
                         }
                     } else {
-                        HomefixButton(text = " Me interesa", onClick = { showConfirmInterestDialog = true }, isLoading = actionLoading, color = primaryColor)
+                        HomefixButton(text = "Me interesa", onClick = { showConfirmInterestDialog = true }, isLoading = actionLoading, color = primaryColor)
                         Spacer(modifier = Modifier.height(12.dp))
                         OutlinedButton(
                             onClick = { navController.popBackStack() },
@@ -490,14 +624,14 @@ fun RequestDetailScreen(
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
                         ) {
-                            Text(" No me interesa", style = MaterialTheme.typography.labelLarge)
+                            Text("No me interesa", style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
 
                 "aceptada" -> {
                     if (req.technicianId == technicianId) {
-                        HomefixButton(text = " Trabajo completado", onClick = { showCompletadoDialog = true }, isLoading = actionLoading, color = Success)
+                        HomefixButton(text = "Marcar como finalizado", onClick = { showCompletadoDialog = true }, isLoading = actionLoading, color = Success)
                         Spacer(modifier = Modifier.height(12.dp))
                         OutlinedButton(
                             onClick = { showSinContinuarDialog = true },
@@ -519,7 +653,7 @@ fun RequestDetailScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, Warning.copy(alpha = 0.4f))
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.HourglassBottom, contentDescription = null, tint = Color(0xFFE8D53E), modifier = Modifier.size(48.dp))
+                            Icon(imageVector = Icons.Default.HourglassBottom, contentDescription = null, tint = Warning, modifier = Modifier.size(40.dp))
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text("Esperando confirmación", style = MaterialTheme.typography.titleMedium, color = Warning, fontWeight = FontWeight.SemiBold)
@@ -537,7 +671,7 @@ fun RequestDetailScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.4f))
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.HourglassBottom, contentDescription = null, tint = Color(0xFFE8D53E), modifier = Modifier.size(48.dp))
+                            Icon(imageVector = Icons.Default.HourglassBottom, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(40.dp))
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text("Esperando confirmación", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
@@ -548,17 +682,89 @@ fun RequestDetailScreen(
                 }
 
                 "completada" -> {
-                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Success.copy(alpha = 0.1f))) {
-                        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                            Text(" Servicio completado", style = MaterialTheme.typography.titleMedium, color = Success, fontWeight = FontWeight.SemiBold)
+                    // Badge completado con fecha
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        colors = CardDefaults.cardColors(containerColor = Success.copy(alpha = 0.08f))
+                    ) {
+                        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Success, modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("Servicio completado", style = MaterialTheme.typography.titleSmall, color = Success, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "Finalizado el ${java.text.SimpleDateFormat("dd/MM/yyyy 'a las' HH:mm", java.util.Locale.getDefault()).format(java.util.Date(req.updatedAt))}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = secondaryText
+                                )
+                            }
+                        }
+                    }
+
+                    // Calificación del cliente
+                    review?.let { r ->
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = surfaceColor),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text("Calificación del cliente", style = MaterialTheme.typography.titleSmall, color = textColor, fontWeight = FontWeight.SemiBold)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    (1..5).forEach { star ->
+                                        Icon(
+                                            imageVector = if (star <= r.stars) Icons.Default.Star else Icons.Default.StarBorder,
+                                            contentDescription = null,
+                                            tint = if (star <= r.stars) Warning else TextHint,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("${r.stars}/5", style = MaterialTheme.typography.bodyMedium, color = textColor, fontWeight = FontWeight.SemiBold)
+                                }
+                                if (r.comment.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text("\"${r.comment}\"", style = MaterialTheme.typography.bodySmall, color = secondaryText)
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(r.createdAt)),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = secondaryText
+                                )
+                            }
+                        }
+                    } ?: run {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = CardDefaults.cardColors(containerColor = surfaceColor),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.StarBorder, contentDescription = null, tint = secondaryText, modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("El cliente aún no ha calificado el servicio.", style = MaterialTheme.typography.bodySmall, color = secondaryText)
+                            }
                         }
                     }
                 }
 
                 "sin_continuar" -> {
-                    Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.08f))) {
-                        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                            Text(" Proceso no continuado", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.08f))
+                    ) {
+                        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(24.dp))
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text("Proceso no continuado", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -568,3 +774,4 @@ fun RequestDetailScreen(
         }
     }
 }
+

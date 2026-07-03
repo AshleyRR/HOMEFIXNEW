@@ -54,6 +54,10 @@ fun RequestTrackingScreen(
     var isLoading by remember { mutableStateOf(true) }
     var showCancelDialog by remember { mutableStateOf(false) }
     var trabajosRealizadosMap by remember { mutableStateOf<Map<String, Int>>(emptyMap()) }
+    var reviewExistente by remember { mutableStateOf<ReviewModel?>(null) }
+    var fotoExpandidaUrl by remember { mutableStateOf<String?>(null) }
+
+    var clienteName by remember { mutableStateOf("") }
 
     // Confirmación completado
     var showConfirmarCompletadoDialog by remember { mutableStateOf(false) }
@@ -111,12 +115,47 @@ fun RequestTrackingScreen(
                         .addOnSuccessListener { doc -> technician = doc.toObject(UserModel::class.java) }
                 }
             }
+
+        // Consultar si ya existe calificación del cliente para esta solicitud
+        db.collection("reviews")
+            .whereEqualTo("requestId", requestId)
+            .whereEqualTo("clientId", uid)
+            .get()
+            .addOnSuccessListener { snap ->
+                reviewExistente = snap.documents.firstOrNull()?.toObject(ReviewModel::class.java)
+            }
+
+        db.collection("users").document(uid).get()
+            .addOnSuccessListener { doc ->
+                clienteName = doc.getString("name") ?: ""
+            }
     }
 
     fun cancelRequest() {
         db.collection("requests").document(requestId)
             .update(mapOf("status" to "cancelada", "updatedAt" to System.currentTimeMillis()))
             .addOnSuccessListener {
+                // Notificar a todos los técnicos interesados
+                tecnicosInteresados.forEach { tecnico ->
+                    notificationsRepo.crearNotificacion(
+                        userId = tecnico.uid,
+                        titulo = "Solicitud cancelada",
+                        cuerpo = "El cliente canceló la solicitud de ${request?.serviceType}.",
+                        tipo = "cliente_cancelo",
+                        requestId = requestId
+                    )
+                }
+                // Notificar también al técnico asignado si ya había uno
+                val techId = request?.technicianId ?: ""
+                if (techId.isNotEmpty()) {
+                    notificationsRepo.crearNotificacion(
+                        userId = techId,
+                        titulo = "Solicitud cancelada",
+                        cuerpo = "${clienteName.ifEmpty { "El cliente" }} canceló la solicitud de ${request?.serviceType ?: ""}.",
+                        tipo = "tecnico_cancelo",
+                        requestId = requestId
+                    )
+                }
                 navController.navigate(Routes.HOME_CLIENT) {
                     popUpTo(Routes.HOME_CLIENT) { inclusive = true }
                 }
@@ -231,11 +270,18 @@ fun RequestTrackingScreen(
                             val average = reviews.map { it.stars }.average().toFloat()
                             db.collection("users").document(techId).update("rating", average)
                         }
+                    // Notificar al técnico que fue calificado
+                    notificationsRepo.crearNotificacion(
+                        userId = techId,
+                        titulo = "¡Te han calificado!",
+                        cuerpo = "Recibiste ${selectedStars} estrella${if (selectedStars != 1) "s" else ""} por el servicio de ${request?.serviceType ?: ""}.",
+                        tipo = "nueva_solicitud",
+                        requestId = requestId
+                    )
                 }
                 ratingLoading = false
-                navController.navigate(Routes.HISTORY) {
-                    popUpTo(Routes.HOME_CLIENT) { inclusive = false }
-                }
+                showRatingModal = false
+                reviewExistente = review
             }
             .addOnFailureListener { ratingLoading = false }
     }
@@ -390,7 +436,40 @@ fun RequestTrackingScreen(
         }
     }
 
-    // ── Loading
+    // Dialog foto expandida con zoom
+    fotoExpandidaUrl?.let { url ->
+        Dialog(onDismissRequest = { fotoExpandidaUrl = null }) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { fotoExpandidaUrl = null }
+            ) {
+                AsyncImage(
+                    model = url,
+                    contentDescription = "Foto ampliada",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(20.dp)), // Bordes curvos
+                    contentScale = ContentScale.FillWidth
+                )
+
+                IconButton(
+                    onClick = { fotoExpandidaUrl = null },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                ) {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = "Cerrar",
+                        tint = Color.White
+                    )
+                }
+            }
+        }
+    }
+
+    // Loading
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = Primary)
@@ -588,7 +667,11 @@ fun RequestTrackingScreen(
                             AsyncImage(
                                 model = urls[0],
                                 contentDescription = null,
-                                modifier = Modifier.fillMaxWidth().height(160.dp).clip(RoundedCornerShape(12.dp)),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(160.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .clickable { fotoExpandidaUrl = urls[0] },
                                 contentScale = ContentScale.Crop
                             )
                         } else if (urls.size >= 2) {
@@ -600,7 +683,11 @@ fun RequestTrackingScreen(
                                     AsyncImage(
                                         model = url,
                                         contentDescription = null,
-                                        modifier = Modifier.weight(1f).height(140.dp).clip(RoundedCornerShape(12.dp)),
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(140.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .clickable { fotoExpandidaUrl = url },
                                         contentScale = ContentScale.Crop
                                     )
                                 }
@@ -621,22 +708,123 @@ fun RequestTrackingScreen(
             // Completada
             if (req.status == "completada") {
                 Spacer(modifier = Modifier.height(20.dp))
-                Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Success.copy(alpha = 0.08f))) {
-                    Column(modifier = Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("✅", style = MaterialTheme.typography.headlineMedium)
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Servicio completado", style = MaterialTheme.typography.titleMedium, color = Success, fontWeight = FontWeight.SemiBold)
-                        Text("¿Cómo fue tu experiencia?", style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = { navController.navigate(Routes.rating(requestId)) },
-                            modifier = Modifier.fillMaxWidth().height(48.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Primary)
+
+                // Fecha de finalización
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Success.copy(alpha = 0.08f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Success, modifier = Modifier.size(24.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                "Servicio completado",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = Success,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                "Finalizado el ${java.text.SimpleDateFormat("dd/MM/yyyy 'a las' HH:mm", java.util.Locale.getDefault()).format(java.util.Date(req.updatedAt))}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary
+                            )
+                        }
+                    }
+                }
+
+                // Calificación dada o botón para calificar
+                Spacer(modifier = Modifier.height(12.dp))
+
+                if (reviewExistente != null) {
+                    // Ya calificó — mostrar la calificación dada
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                "Tu calificación",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                (1..5).forEach { star ->
+                                    Icon(
+                                        imageVector = if (star <= (reviewExistente?.stars ?: 0)) Icons.Default.Star else Icons.Default.StarBorder,
+                                        contentDescription = null,
+                                        tint = if (star <= (reviewExistente?.stars ?: 0)) Warning else TextHint,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    "${reviewExistente?.stars}/5",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onBackground,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            if (!reviewExistente?.comment.isNullOrEmpty()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    "\"${reviewExistente?.comment}\"",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextSecondary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "Calificado el ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(reviewExistente?.createdAt ?: 0L))}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary
+                            )
+                        }
+                    }
+                } else {
+                    // No ha calificado — mostrar botón
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Icon(Icons.Default.Star, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Calificar servicio", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                            Text(
+                                "¿Cómo fue tu experiencia?",
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                "Tu opinión ayuda a otros clientes a elegir mejor",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextSecondary,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Button(
+                                onClick = { showRatingModal = true },
+                                modifier = Modifier.fillMaxWidth().height(48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = Primary)
+                            ) {
+                                Icon(Icons.Default.Star, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Calificar servicio", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                            }
                         }
                     }
                 }

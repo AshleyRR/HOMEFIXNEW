@@ -163,6 +163,8 @@ fun NotificationsScreen(navController: NavController) {
                                         navController.navigate(
                                             Routes.requestTracking(notificacion.requestId)
                                         )
+                                    "cliente_cancelo" ->
+                                        navController.navigate(Routes.HOME_TECHNICIAN)
                                     else ->
                                         navController.navigate(
                                             Routes.requestDetail(notificacion.requestId)
