@@ -62,9 +62,14 @@ fun HomeClientScreen(navController: NavController) {
             .whereEqualTo("clientId", uid)
             .addSnapshotListener { snapshot, _ ->
                 isLoading = false
-                requests = snapshot?.documents?.mapNotNull {
-                    it.toObject(RequestModel::class.java)
-                } ?: emptyList()
+                requests = snapshot?.documents
+                    ?.mapNotNull { document ->
+                        document.toObject(RequestModel::class.java)
+                    }
+                    ?.sortedByDescending { request ->
+                        request.createdAt
+                    }
+                    ?: emptyList()
 
                 // Guardar solicitudes en SQLite local
                 requests.forEach { request ->

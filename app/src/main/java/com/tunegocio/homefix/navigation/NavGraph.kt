@@ -21,6 +21,8 @@ object Routes {
     const val REQUEST_DETAIL = "request_detail/{requestId}"
     const val EARNINGS = "earnings"
 
+    const val MY_APPLICATIONS = "my_applications"
+
     // Compartidas (ambos roles)
     const val PROFILE = "profile"
     const val HISTORY = "history"

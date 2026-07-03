@@ -66,9 +66,11 @@ fun EarningsScreen(navController: NavController) {
                 } ?: emptyList()
                 averageRating = if (reviews.isNotEmpty()) reviews.map { it.stars }.average().toFloat() else 0f
             }
+        // "En curso": incluye aceptada, esperando confirmación de completado, y esperando confirmación de sin continuar.
+        // Así la solicitud sigue apareciendo aquí hasta que el CLIENTE confirme (pasa a "completada" o "sin_continuar").
         db.collection("requests")
             .whereEqualTo("technicianId", uid)
-            .whereEqualTo("status", "aceptada")
+            .whereIn("status", listOf("aceptada", "pendiente_confirmacion", "pendiente_sin_continuar"))
             .addSnapshotListener { snapshot, _ ->
                 activeRequests = snapshot?.documents?.mapNotNull {
                     it.toObject(RequestModel::class.java)

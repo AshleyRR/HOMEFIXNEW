@@ -220,6 +220,10 @@ fun HomeTechnicianScreen(navController: NavController) {
                                     Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", tint = Primary, modifier = Modifier.size(28.dp))
                                 }
                             }
+                            // Nuevo: acceso a "Mis postulaciones" (solicitudes donde ya marcó "Me interesa" y espera respuesta del cliente)
+                            IconButton(onClick = { navController.navigate(Routes.MY_APPLICATIONS) }) {
+                                Icon(Icons.Default.PendingActions, contentDescription = "Mis postulaciones", tint = Primary, modifier = Modifier.size(28.dp))
+                            }
                             IconButton(onClick = { navController.navigate(Routes.PROFILE) }) {
                                 if (userPhotoUrl.isNotEmpty()) {
                                     AsyncImage(

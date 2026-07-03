@@ -18,7 +18,9 @@ data class RequestModel(
     val status: String = "pendiente",
     val isUrgent: Boolean = false,
     val createdAt: Long = 0L,
-    val updatedAt: Long = 0L
+    val updatedAt: Long = 0L,
 
+    // Momento exacto en que el técnico marcó "no puede continuar" (antes de que el cliente lo confirme)
+    val technicianCanceledAt: Long = 0L
 )
 

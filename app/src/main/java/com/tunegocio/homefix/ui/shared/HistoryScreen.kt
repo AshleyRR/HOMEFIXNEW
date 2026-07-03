@@ -44,7 +44,7 @@ fun HistoryScreen(navController: NavController) {
     val context = LocalContext.current
     val localDb = LocalDatabase(context)
 
-    val filters = listOf("Todos", "Completadas", "Canceladas")
+    val filters = listOf("Todos", "Completadas", "No continuadas")
 
     LaunchedEffect(uid) {
         // Obtener rol
@@ -89,7 +89,7 @@ fun HistoryScreen(navController: NavController) {
 
     val filteredRequests = when (selectedFilter) {
         "Completadas" -> requests.filter { it.status == "completada" }
-        "Canceladas" -> requests.filter { it.status == "cancelada" }
+        "No continuadas" -> requests.filter { it.status == "sin_continuar" }
         else -> requests
     }
 

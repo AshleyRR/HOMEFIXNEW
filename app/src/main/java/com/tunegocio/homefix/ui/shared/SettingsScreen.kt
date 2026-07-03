@@ -37,6 +37,7 @@ fun SettingsScreen(navController: NavController) {
     val notifVibration by prefs.notifVibration.collectAsState(initial = true)
 
     var showLanguageDialog by remember { mutableStateOf(false) }
+    var showTermsDialog by remember { mutableStateOf(false) }
 
     // Colores dinámicos
     val bgColor = MaterialTheme.colorScheme.background
@@ -90,6 +91,93 @@ fun SettingsScreen(navController: NavController) {
             confirmButton = {
                 TextButton(onClick = { showLanguageDialog = false }) {
                     Text("Cerrar", color = secondaryText)
+                }
+            }
+        )
+    }
+    if (showTermsDialog) {
+        AlertDialog(
+            onDismissRequest = { showTermsDialog = false },
+            containerColor = MaterialTheme.colorScheme.surface,
+            title = {
+                Text(
+                    text = "Términos y Condiciones",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 450.dp)
+                        .verticalScroll(rememberScrollState())
+                ) {
+
+                    Text(
+                        """
+TÉRMINOS Y CONDICIONES DE USO — HOMEFIX
+
+Última actualización: 2026
+
+1. ACEPTACIÓN DE TÉRMINOS
+
+Al registrarte en HomeFix aceptas estos términos. Si no estás de acuerdo, no uses la aplicación.
+
+2. DESCRIPCIÓN DEL SERVICIO
+
+HomeFix es una plataforma digital que conecta clientes con técnicos independientes de servicios del hogar como electricidad, gasfitería, carpintería, pintura y otros. HomeFix no es empleador de los técnicos ni garantiza la calidad del servicio prestado.
+
+3. REGISTRO DE USUARIOS
+
+Debes proporcionar información veraz, completa y actualizada al registrarte. Eres responsable de mantener la confidencialidad de tu cuenta y contraseña. Notifica inmediatamente cualquier uso no autorizado de tu cuenta.
+
+4. ROLES DE USUARIO
+
+• Cliente: persona que publica solicitudes de servicio del hogar.
+
+• Técnico: persona que ofrece y presta servicios del hogar de forma independiente.
+
+5. TÉCNICOS INDEPENDIENTES
+
+Los técnicos registrados en HomeFix son trabajadores independientes. HomeFix no garantiza sus servicios, certificaciones ni es responsable por daños, accidentes o perjuicios causados durante la prestación del servicio.
+
+6. PAGOS Y TARIFAS
+
+Los pagos y tarifas se acuerdan directamente entre cliente y técnico. HomeFix no interviene en transacciones económicas ni cobra comisión actualmente.
+
+7. PRIVACIDAD Y DATOS
+
+Tu información personal se usa únicamente para el funcionamiento de la plataforma. No vendemos ni compartimos datos con terceros sin tu consentimiento. Las fotos de perfil y selfies se almacenan de forma segura.
+
+8. CONDUCTA PROHIBIDA
+
+Está prohibido usar HomeFix para actividades ilegales, fraudulentas, discriminatorias o que perjudiquen a otros usuarios. El incumplimiento puede resultar en la suspensión permanente de la cuenta.
+
+9. CALIFICACIONES Y RESEÑAS
+
+Las calificaciones deben ser honestas y basadas en experiencias reales. Está prohibido manipular el sistema de calificaciones.
+
+10. MODIFICACIONES
+
+HomeFix puede modificar estos términos en cualquier momento. Se notificará por email ante cambios importantes.
+
+11. MAYORÍA DE EDAD
+
+El uso de HomeFix está restringido a personas mayores de 18 años.
+
+12. CONTACTO Y SOPORTE
+
+homefix.soporte@gmail.com
+                    """.trimIndent()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showTermsDialog = false
+                    }
+                ) {
+                    Text("Cerrar")
                 }
             }
         )
@@ -191,7 +279,9 @@ fun SettingsScreen(navController: NavController) {
                 iconColor = Primary,
                 title = "Privacidad",
                 subtitle = "Términos y condiciones",
-                onClick = { },
+                onClick = {
+                    showTermsDialog = true
+                },
                 titleColor = textColor,
                 subtitleColor = secondaryText,
                 cardColor = surfaceColor,

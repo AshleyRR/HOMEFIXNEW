@@ -167,7 +167,11 @@ fun RequestDetailScreen(
         actionLoading = true
         val req = request ?: return
         db.collection("requests").document(requestId)
-            .update(mapOf("status" to "pendiente_sin_continuar", "updatedAt" to System.currentTimeMillis()))
+            .update(mapOf(
+                "status" to "pendiente_sin_continuar",
+                "updatedAt" to System.currentTimeMillis(),
+                "technicianCanceledAt" to System.currentTimeMillis() // Fecha/hora exacta en que el técnico marcó "no puede continuar"
+            ))
             .addOnSuccessListener {
                 notificationsRepo.crearNotificacion(
                     userId = req.clientId,
@@ -401,14 +405,29 @@ fun RequestDetailScreen(
                 ) {
                     Row(modifier = Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
+
+                            // ── Foto de perfil del cliente ──
+                            // Si el cliente tiene selfieUrl guardada en Firestore, se muestra la imagen real (AsyncImage con Coil).
+                            // Si no tiene foto (selfieUrl vacío), se muestra el círculo con la inicial del nombre como antes (fallback).
                             Surface(modifier = Modifier.size(44.dp), shape = RoundedCornerShape(22.dp), color = ClientColor.copy(alpha = 0.15f)) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Text(c.name.firstOrNull()?.toString() ?: "C", style = MaterialTheme.typography.titleMedium, color = ClientColor, fontWeight = FontWeight.Bold)
+                                if (c.selfieUrl.isNotBlank()) {
+                                    AsyncImage(
+                                        model = c.selfieUrl,
+                                        contentDescription = "Foto de perfil del cliente",
+                                        modifier = Modifier.size(44.dp).clip(RoundedCornerShape(22.dp)),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                } else {
+                                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                        Text(c.name.firstOrNull()?.toString() ?: "C", style = MaterialTheme.typography.titleMedium, color = ClientColor, fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
+
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text(c.name, style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
+                                // Nombre completo del cliente: se concatena nombre + apellido guardados en Firestore
+                                Text("${c.name} ${c.lastName}", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
                                 if (c.rating > 0) Text("⭐ ${"%.1f".format(c.rating)}", style = MaterialTheme.typography.bodySmall, color = secondaryText)
                             }
                         }

@@ -32,6 +32,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.tunegocio.homefix.ui.client.SeleccionarUbicacionScreen
 import com.tunegocio.homefix.viewmodel.SolicitudViewModel
 
+import com.tunegocio.homefix.ui.technician.MyApplicationsScreen
 
 @Composable
 fun AppNavigation(
@@ -117,6 +118,24 @@ fun AppNavigation(
         }
         composable(Routes.EARNINGS) {
             EarningsScreen(navController = navController)
+        }
+
+        // ── Técnico
+        composable(Routes.HOME_TECHNICIAN) {
+            HomeTechnicianScreen(navController = navController)
+        }
+        composable(Routes.REQUEST_DETAIL) { backStackEntry ->
+            val requestId = backStackEntry.arguments?.getString("requestId") ?: ""
+            RequestDetailScreen(
+                navController = navController,
+                requestId = requestId
+            )
+        }
+        composable(Routes.EARNINGS) {
+            EarningsScreen(navController = navController)
+        }
+        composable(Routes.MY_APPLICATIONS) {
+            MyApplicationsScreen(navController = navController)
         }
 
         // Compartidas (ambos roles)

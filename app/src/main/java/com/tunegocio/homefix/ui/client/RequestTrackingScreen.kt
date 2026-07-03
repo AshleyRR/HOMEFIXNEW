@@ -651,6 +651,22 @@ fun RequestTrackingScreen(
                         Spacer(modifier = Modifier.height(8.dp))
                         Text("Proceso no continuado", style = MaterialTheme.typography.titleMedium, color = Error, fontWeight = FontWeight.SemiBold)
                         Text("El técnico no pudo continuar con este servicio.", style = MaterialTheme.typography.bodyMedium, color = TextSecondary, textAlign = TextAlign.Center)
+
+                        // Fecha en que el técnico marcó que no podía continuar
+                        if (req.technicianCanceledAt > 0) {
+                            Spacer(modifier = Modifier.height(10.dp))
+                            Text(
+                                "Técnico reportó: ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(req.technicianCanceledAt))}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary
+                            )
+                        }
+                        // Fecha en que el cliente confirmó (updatedAt se actualiza en confirmarSinContinuar())
+                        Text(
+                            "Confirmado: ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(req.updatedAt))}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = TextSecondary
+                        )
                     }
                 }
             }
