@@ -36,6 +36,11 @@ import com.tunegocio.homefix.ui.components.HomefixButton
 import com.tunegocio.homefix.ui.theme.*
 import java.util.UUID
 
+
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.BorderStroke
+
 @Composable
 fun RequestTrackingScreen(
     navController: NavController,
@@ -505,8 +510,24 @@ fun RequestTrackingScreen(
                     Text("Mi solicitud", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)
                 }
                 if (req.status == "pendiente" || req.status == "en_revision") {
-                    TextButton(onClick = { showCancelDialog = true }, colors = ButtonDefaults.textButtonColors(contentColor = Error)) {
-                        Text("Cancelar", fontWeight = FontWeight.Medium)
+                    Button(
+                        onClick = { showCancelDialog = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = Error),
+                        border = BorderStroke(1.dp, Error),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = "Cancelar",
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White
+                        )
                     }
                 }
             }
@@ -919,7 +940,7 @@ fun TecnicoInteresadoCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        tecnico.name,
+                        "${tecnico.name} ${tecnico.lastName}",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.SemiBold
@@ -1102,7 +1123,7 @@ fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        technician.name,
+                        "${technician.name} ${technician.lastName}",
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.SemiBold

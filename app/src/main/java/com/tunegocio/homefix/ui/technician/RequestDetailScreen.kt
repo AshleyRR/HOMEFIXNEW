@@ -35,6 +35,17 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.clickable
 
 
+import androidx.compose.material.icons.filled.ThumbUp
+import androidx.compose.material.icons.filled.ThumbDown
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.BorderStroke
+
+
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Block
+
+
+
 @Composable
 fun RequestDetailScreen(
     navController: NavController,
@@ -631,15 +642,15 @@ fun RequestDetailScreen(
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(14.dp),
-                            colors = CardDefaults.cardColors(containerColor = primaryColor.copy(alpha = 0.08f)),
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF17192E)),
                             border = androidx.compose.foundation.BorderStroke(1.dp, primaryColor.copy(alpha = 0.3f))
                         ) {
                             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Filled.HourglassBottom, contentDescription = null, tint = Color(0xFFE8D53E), modifier = Modifier.size(48.dp))
+                                Icon(imageVector = Icons.Filled.HourglassBottom, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text("Solicitud enviada", style = MaterialTheme.typography.titleMedium, color = primaryColor, fontWeight = FontWeight.SemiBold)
-                                    Text("Estás a la espera de que el cliente te elija.", style = MaterialTheme.typography.bodySmall, color = secondaryText)
+                                    Text("Solicitud enviada", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                    Text("Estás a la espera de que el cliente te elija.", style = MaterialTheme.typography.bodySmall, color = Color.White)
                                 }
                             }
                         }
@@ -648,39 +659,103 @@ fun RequestDetailScreen(
                             onClick = { showCancelReasonDialog = true },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = Color.White
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error)
                         ) {
-                            Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("Cancelar solicitud", style = MaterialTheme.typography.labelLarge)
+                            Text(
+                                "Cancelar solicitud",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.White
+                            )
                         }
                     } else {
-                        HomefixButton(text = "Me interesa", onClick = { showConfirmInterestDialog = true }, isLoading = actionLoading, color = primaryColor)
+                        HomefixButton(
+                            text = "Me interesa",
+                            onClick = { showConfirmInterestDialog = true },
+                            isLoading = actionLoading,
+                            color = primaryColor,
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.ThumbUp,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        )
                         Spacer(modifier = Modifier.height(12.dp))
-                        OutlinedButton(
+                        Button(
                             onClick = { navController.popBackStack() },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error)
                         ) {
-                            Text("No me interesa", style = MaterialTheme.typography.labelLarge)
+                            Icon(
+                                imageVector = Icons.Default.ThumbDown,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "No me interesa",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.White
+                            )
                         }
                     }
                 }
 
                 "aceptada" -> {
                     if (req.technicianId == technicianId) {
-                        HomefixButton(text = "Marcar como finalizado", onClick = { showCompletadoDialog = true }, isLoading = actionLoading, color = Success)
+                        HomefixButton(
+                            text = "Finalizado",
+                            onClick = { showCompletadoDialog = true },
+                            isLoading = actionLoading,
+                            color = Color(0xFF17192E),
+                            icon = {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        )
                         Spacer(modifier = Modifier.height(12.dp))
                         OutlinedButton(
                             onClick = { showSinContinuarDialog = true },
                             modifier = Modifier.fillMaxWidth().height(52.dp),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.5f))
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                containerColor = MaterialTheme.colorScheme.error,
+                                contentColor = Color.White
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error)
                         ) {
-                            Text("Proceso sin continuar", style = MaterialTheme.typography.labelLarge)
+                            Icon(
+                                imageVector = Icons.Default.Block,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Sin continuar",
+                                style = MaterialTheme.typography.labelLarge,
+                                color = Color.White
+                            )
                         }
                     }
                 }
@@ -689,15 +764,15 @@ fun RequestDetailScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
-                        colors = CardDefaults.cardColors(containerColor = Warning.copy(alpha = 0.08f)),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Warning.copy(alpha = 0.4f))
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF17192E)),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, primaryColor.copy(alpha = 0.3f))
                     ) {
                         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.HourglassBottom, contentDescription = null, tint = Warning, modifier = Modifier.size(40.dp))
+                            Icon(imageVector = Icons.Filled.HourglassBottom, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text("Esperando confirmación", style = MaterialTheme.typography.titleMedium, color = Warning, fontWeight = FontWeight.SemiBold)
-                                Text("El cliente debe confirmar que el trabajo fue completado.", style = MaterialTheme.typography.bodySmall, color = secondaryText)
+                                Text("Solicitud enviada", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                Text("Estás a la espera de que el cliente te elija.", style = MaterialTheme.typography.bodySmall, color = Color.White)
                             }
                         }
                     }

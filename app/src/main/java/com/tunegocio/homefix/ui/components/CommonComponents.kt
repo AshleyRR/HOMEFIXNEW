@@ -50,7 +50,8 @@ fun HomefixButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     isLoading: Boolean = false,
-    color: Color = Primary
+    color: Color = Primary,
+    icon: @Composable (() -> Unit)? = null
 ) {
     Button(
         onClick = onClick,
@@ -68,6 +69,10 @@ fun HomefixButton(
                 strokeWidth = 2.dp
             )
         } else {
+            if (icon != null) {
+                icon()
+                Spacer(modifier = Modifier.width(8.dp))
+            }
             Text(
                 text = text,
                 style = MaterialTheme.typography.labelLarge,

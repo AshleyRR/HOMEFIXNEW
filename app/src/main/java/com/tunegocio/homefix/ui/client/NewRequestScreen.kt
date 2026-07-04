@@ -683,7 +683,15 @@ fun NewRequestScreen(
             HomefixButton(
                 text = "Publicar solicitud",
                 onClick = { publishRequest() },
-                isLoading = isLoading
+                isLoading = isLoading,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Send,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             )
 
             Spacer(modifier = Modifier.height(32.dp))

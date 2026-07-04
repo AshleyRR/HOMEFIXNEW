@@ -42,6 +42,11 @@ import androidx.compose.foundation.BorderStroke
 
 import androidx.compose.foundation.isSystemInDarkTheme
 
+
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material.icons.filled.Logout
+import androidx.compose.material3.Icon
+
 @Composable
 fun ProfileScreen(navController: NavController) {
 
@@ -416,21 +421,37 @@ fun ProfileScreen(navController: NavController) {
                 text = "Guardar cambios",
                 onClick = { saveProfile() },
                 isLoading = isSaving || isUploadingPhoto,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.Save,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            OutlinedButton(
+            Button(
                 onClick = { showLogoutDialog = true },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Error),
-                border = BorderStroke(1.dp, CardBorder)
+                colors = ButtonDefaults.buttonColors(containerColor = Error)
             ) {
-                Text("Cerrar sesión", style = MaterialTheme.typography.labelLarge)
+                Icon(
+                    imageVector = Icons.Default.Logout,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Text(
+                    text = "Cerrar sesión",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = Color.White
+                )
             }
-
             Spacer(modifier = Modifier.height(32.dp))
         }
     }

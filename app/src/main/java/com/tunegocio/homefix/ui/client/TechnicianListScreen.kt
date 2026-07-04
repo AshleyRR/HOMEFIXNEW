@@ -506,7 +506,8 @@ fun TechnicianCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = technician.name,
+                        //se agrego el nombre y apellido
+                        text = "${technician.name} ${technician.lastName}".trim(),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.SemiBold
