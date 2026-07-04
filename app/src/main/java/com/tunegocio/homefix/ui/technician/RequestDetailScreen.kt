@@ -27,7 +27,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.tunegocio.homefix.data.NotificationsRepository
 import com.tunegocio.homefix.data.model.RequestModel
 import com.tunegocio.homefix.data.model.UserModel
-import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.components.HomefixButton
 import com.tunegocio.homefix.ui.theme.*
 import com.tunegocio.homefix.data.model.ReviewModel
@@ -71,6 +70,8 @@ fun RequestDetailScreen(
 
     //VER CALIFICACIONES Y RESEÑAS
     var review by remember { mutableStateOf<ReviewModel?>(null) }
+    var sinContinuarMotivo by remember { mutableStateOf("") }
+    var sinContinuarMotivoError by remember { mutableStateOf("") }
 
     LaunchedEffect(requestId) {
         db.collection("requests").document(requestId)
@@ -183,27 +184,32 @@ fun RequestDetailScreen(
     }
 
     fun solicitarSinContinuar() {
+        if (sinContinuarMotivo.isBlank()) { sinContinuarMotivoError = "Por favor escribe el motivo"; return }
         actionLoading = true
         val req = request ?: return
         db.collection("requests").document(requestId)
             .update(mapOf(
-                "status" to "pendiente_sin_continuar",
+                "status" to "sin_continuar", // ← cambia directo a sin_continuar
                 "updatedAt" to System.currentTimeMillis(),
-                "technicianCanceledAt" to System.currentTimeMillis() // Fecha/hora exacta en que el técnico marcó "no puede continuar"
+                "technicianCanceledAt" to System.currentTimeMillis()
             ))
             .addOnSuccessListener {
                 notificationsRepo.crearNotificacion(
                     userId = req.clientId,
                     titulo = "El técnico no puede continuar",
-                    cuerpo = "El técnico indicó que no puede continuar con el servicio de ${req.serviceType}. ¿Lo confirmas?",
-                    tipo = "confirmar_sin_continuar",
+                    cuerpo = "Motivo: $sinContinuarMotivo",
+                    tipo = "sin_continuar_confirmado",
                     requestId = requestId
                 )
                 actionLoading = false
                 showSinContinuarDialog = false
+                sinContinuarMotivo = ""
+                navController.popBackStack()
             }
             .addOnFailureListener { actionLoading = false; errorMessage = "Error al actualizar" }
     }
+
+
 
     fun openWhatsApp(phone: String) {
         val number = phone.replace(Regex("[^0-9]"), "")
@@ -292,24 +298,58 @@ fun RequestDetailScreen(
         )
     }
 
-    // ── Diálogo: proceso sin continuar ────────────────────────
+    // ── Diálogo: proceso sin continuar
     if (showSinContinuarDialog) {
         AlertDialog(
-            onDismissRequest = { showSinContinuarDialog = false },
+            onDismissRequest = { showSinContinuarDialog = false; sinContinuarMotivo = ""; sinContinuarMotivoError = "" },
             title = { Text("¿No puedes continuar?", fontWeight = FontWeight.Bold, color = textColor) },
-            text = { Text("Se notificará al cliente que no puedes continuar con este servicio. El cliente deberá confirmarlo.", color = secondaryText) },
+            text = {
+                Column {
+                    Text(
+                        "El cliente recibirá una notificación con el motivo.",
+                        color = secondaryText,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = sinContinuarMotivo,
+                        onValueChange = { sinContinuarMotivo = it; sinContinuarMotivoError = "" },
+                        placeholder = { Text("Ej: Surgió un inconveniente, no puedo llegar...", color = secondaryText) },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = primaryColor,
+                            unfocusedBorderColor = outlineColor,
+                            focusedTextColor = textColor,
+                            unfocusedTextColor = textColor,
+                            cursorColor = primaryColor
+                        ),
+                        modifier = Modifier.fillMaxWidth().height(100.dp)
+                    )
+                    if (sinContinuarMotivoError.isNotEmpty()) {
+                        Text(sinContinuarMotivoError, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            },
             confirmButton = {
-                Button(onClick = { solicitarSinContinuar() }, enabled = !actionLoading, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+                Button(
+                    onClick = { solicitarSinContinuar() },
+                    enabled = !actionLoading,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
                     if (actionLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
                     else Text("Confirmar", color = Color.White)
                 }
             },
-            dismissButton = { TextButton(onClick = { showSinContinuarDialog = false }) { Text("Cancelar", color = secondaryText) } },
+            dismissButton = {
+                TextButton(onClick = { showSinContinuarDialog = false; sinContinuarMotivo = ""; sinContinuarMotivoError = "" }) {
+                    Text("Cancelar", color = secondaryText)
+                }
+            },
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
 
-    // ── Loading ───────────────────────────────────────────────
+    // ── Loading
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize().background(bgColor), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = primaryColor)

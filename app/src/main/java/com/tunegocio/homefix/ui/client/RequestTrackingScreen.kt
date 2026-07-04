@@ -64,7 +64,7 @@ fun RequestTrackingScreen(
     var showRechazarCompletadoDialog by remember { mutableStateOf(false) }
 
     //  Confirmación sin continuar
-    var showConfirmarSinContinuarDialog by remember { mutableStateOf(false) }
+    //var showConfirmarSinContinuarDialog by remember { mutableStateOf(false) }
 
     // Modal de calificación inline
     var showRatingModal by remember { mutableStateOf(false) }
@@ -225,7 +225,7 @@ fun RequestTrackingScreen(
     }
 
     // Cliente confirma proceso sin continuar
-    fun confirmarSinContinuar() {
+    /*fun confirmarSinContinuar() {
         db.collection("requests").document(requestId)
             .update(mapOf("status" to "sin_continuar", "updatedAt" to System.currentTimeMillis()))
             .addOnSuccessListener {
@@ -243,7 +243,7 @@ fun RequestTrackingScreen(
                     popUpTo(Routes.HOME_CLIENT) { inclusive = false }
                 }
             }
-    }
+    }*/
 
     // Enviar calificación y redirigir al historial
     fun submitRating() {
@@ -337,7 +337,7 @@ fun RequestTrackingScreen(
     }
 
     // ── Diálogo: confirmar sin continuar
-    if (showConfirmarSinContinuarDialog) {
+    /*if (showConfirmarSinContinuarDialog) {
         AlertDialog(
             onDismissRequest = { /* no cerrar tocando afuera */ },
             title = { Text("El técnico no puede continuar", fontWeight = FontWeight.Bold) },
@@ -354,7 +354,7 @@ fun RequestTrackingScreen(
                 ) { Text("No, el técnico sí puede") }
             }
         )
-    }
+    }*/
 
     // Modal calificación
     if (showRatingModal) {
@@ -483,7 +483,7 @@ fun RequestTrackingScreen(
     LaunchedEffect(req.status) {
         when (req.status) {
             "pendiente_confirmacion"  -> showConfirmarCompletadoDialog = true
-            "pendiente_sin_continuar" -> showConfirmarSinContinuarDialog = true
+            // "pendiente_sin_continuar" -> showConfirmarSinContinuarDialog = true
         }
     }
 

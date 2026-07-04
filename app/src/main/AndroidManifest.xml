@@ -52,14 +52,14 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Servicio que recibe notificaciones push de Firebase Cloud Messaging
+        <!-- Servicio que recibe notificaciones push de Firebase Cloud Messaging -->
         <service
             android:name=".data.MyFirebaseMessagingService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
-        </service>-->
+        </service>
 
     </application>
 

@@ -15,10 +15,17 @@ import com.tunegocio.homefix.navigation.AppNavigation
 import com.tunegocio.homefix.ui.theme.HomefixTheme
 import java.util.Locale
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Context
+import android.os.Build
+import com.tunegocio.homefix.data.MyFirebaseMessagingService
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        crearCanalNotificaciones()
 
         val userPreferences = UserPreferences(applicationContext)
 
@@ -45,4 +52,22 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    private fun crearCanalNotificaciones() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                MyFirebaseMessagingService.CHANNEL_ID,
+                "Notificaciones HomeFix",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Notificaciones de solicitudes y técnicos"
+                enableVibration(true)
+                enableLights(true)
+            }
+            val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            manager.createNotificationChannel(channel)
+        }
+    }
+
+
 }
