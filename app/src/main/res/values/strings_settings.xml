@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Pantalla de configuraciones -->
+    <string name="settings_title">Configuraciones</string>
+    <string name="settings_back">Volver</string>
+    <string name="settings_select_language">Seleccionar idioma</string>
+    <string name="settings_close">Cerrar</string>
+
+    <!-- Apariencia -->
+    <string name="settings_appearance">Apariencia</string>
+    <string name="settings_dark_mode">Modo oscuro</string>
+    <string name="settings_light_mode">Modo claro</string>
+    <string name="settings_enabled">Activado</string>
+    <string name="settings_disabled">Desactivado</string>
+
+    <!-- Idioma -->
+    <string name="settings_language">Idioma</string>
+    <string name="settings_language_spanish_peru">Español (Perú)</string>
+    <string name="settings_language_english">English</string>
+    <string name="settings_language_portuguese">Português</string>
+
+    <string name="settings_language_option_spanish">🇵🇪  Español</string>
+    <string name="settings_language_option_english">🇺🇸  English</string>
+    <string name="settings_language_option_portuguese">🇧🇷  Português</string>
+
+    <!-- Notificaciones -->
+    <string name="settings_notifications">Notificaciones</string>
+    <string name="settings_sound">Sonido</string>
+    <string name="settings_sound_enabled">Las notificaciones emiten sonido</string>
+    <string name="settings_no_sound">Sin sonido</string>
+    <string name="settings_vibration">Vibración</string>
+    <string name="settings_vibration_enabled">El dispositivo vibra</string>
+    <string name="settings_no_vibration">Sin vibración</string>
+
+    <!-- Cuenta -->
+    <string name="settings_account">Cuenta</string>
+    <string name="settings_privacy">Privacidad</string>
+    <string name="settings_terms_and_conditions">Términos y condiciones</string>
+    <string name="settings_logout">Cerrar sesión</string>
+
+</resources>

@@ -14,10 +14,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+// NUEVO - MULTIDIOMA:
+// Permite obtener el texto correspondiente al idioma activo desde los archivos XML
+// values/strings_settings.xml, values-en/strings_settings.xml y
+// values-pt-rBR/strings_settings.xml.
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+// NUEVO - MULTIDIOMA:
+// R permite acceder a las claves de texto declaradas en los archivos de recursos XML.
+import com.tunegocio.homefix.R
 import com.tunegocio.homefix.data.UserPreferences
 import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.theme.*
@@ -32,10 +40,16 @@ fun SettingsScreen(navController: NavController) {
     val scope = rememberCoroutineScope()
 
     val darkMode by prefs.darkMode.collectAsState(initial = false)
+    // IDIOMA:
+    // Observa continuamente el idioma guardado en UserPreferences.
+    // "es" = español, "en" = inglés y "pt" = portugués.
+    // Se mantiene "es" como idioma predeterminado.
     val language by prefs.language.collectAsState(initial = "es")
     val notifSound by prefs.notifSound.collectAsState(initial = true)
     val notifVibration by prefs.notifVibration.collectAsState(initial = true)
 
+    // IDIOMA:
+    // Controla si se muestra o se oculta la ventana para elegir el idioma.
     var showLanguageDialog by remember { mutableStateOf(false) }
     var showTermsDialog by remember { mutableStateOf(false) }
 
@@ -46,23 +60,40 @@ fun SettingsScreen(navController: NavController) {
     val outlineColor = MaterialTheme.colorScheme.outline
     val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
 
+    // IDIOMA:
+    // Convierte el código guardado en UserPreferences en el nombre visible del idioma.
+    // stringResource selecciona automáticamente el texto del XML correspondiente
+    // al idioma activo de la aplicación.
     val languageLabel = when (language) {
-        "en" -> "English"
-        "pt" -> "Português"
-        else -> "Español (Perú)"
+        "en" -> stringResource(R.string.settings_language_english)
+        "pt" -> stringResource(R.string.settings_language_portuguese)
+        else -> stringResource(R.string.settings_language_spanish_peru)
     }
 
+    // IDIOMA:
+    // Diálogo que permite elegir entre español, inglés y portugués.
+    // No cambia la lógica de navegación ni los botones; solo guarda el código del idioma.
     if (showLanguageDialog) {
         AlertDialog(
             onDismissRequest = { showLanguageDialog = false },
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            title = { Text("Seleccionar idioma", fontWeight = FontWeight.Bold, color = textColor) },
+            title = {
+                Text(
+                    // IDIOMA: título obtenido desde strings_settings.xml.
+                    text = stringResource(R.string.settings_select_language),
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
+                )
+            },
             text = {
                 Column {
+                    // IDIOMA:
+                    // Cada opción conserva un código fijo para UserPreferences y obtiene
+                    // su nombre visible desde el archivo XML del idioma activo.
                     listOf(
-                        "es" to "🇵🇪  Español",
-                        "en" to "🇺🇸  English",
-                        "pt" to "🇧🇷  Português"
+                        "es" to stringResource(R.string.settings_language_option_spanish),
+                        "en" to stringResource(R.string.settings_language_option_english),
+                        "pt" to stringResource(R.string.settings_language_option_portuguese)
                     ).forEach { (code, label) ->
                         val isSelected = language == code
                         Row(
@@ -79,7 +110,12 @@ fun SettingsScreen(navController: NavController) {
                             RadioButton(
                                 selected = isSelected,
                                 onClick = {
+                                    // IDIOMA:
+                                    // Guarda el código seleccionado sin alterar ninguna
+                                    // otra preferencia ni proceso de la aplicación.
                                     scope.launch { prefs.setLanguage(code) }
+
+                                    // Cierra únicamente el diálogo después de seleccionar.
                                     showLanguageDialog = false
                                 },
                                 colors = RadioButtonDefaults.colors(selectedColor = Primary)
@@ -90,7 +126,11 @@ fun SettingsScreen(navController: NavController) {
             },
             confirmButton = {
                 TextButton(onClick = { showLanguageDialog = false }) {
-                    Text("Cerrar", color = secondaryText)
+                    Text(
+                        // IDIOMA: texto del botón obtenido desde el XML correspondiente.
+                        text = stringResource(R.string.settings_close),
+                        color = secondaryText
+                    )
                 }
             }
         )
@@ -101,7 +141,10 @@ fun SettingsScreen(navController: NavController) {
             containerColor = MaterialTheme.colorScheme.surface,
             title = {
                 Text(
-                    text = "Términos y Condiciones",
+                    // MODIFICADO - MULTIDIOMA:
+                    // Usa el mismo título traducido de strings_terms.xml
+                    // que utiliza el diálogo del registro.
+                    text = stringResource(R.string.terms_title),
                     fontWeight = FontWeight.Bold
                 )
             },
@@ -113,33 +156,13 @@ fun SettingsScreen(navController: NavController) {
                 ) {
 
                     Text(
-                        """
-Términos y Condiciones de Uso — HOMEFIX
-Última actualización: 2026 | Aplicable en Lima Metropolitana, Perú
-
-1. Aceptación
-Al registrarte en HOMEFIX declaras ser mayor de 18 años y aceptar estos Términos y Condiciones, así como la Política de Privacidad. El uso continuo de la aplicación implica la aceptación de cualquier actualización futura.
-2. Descripción del servicio
-HOMEFIX es una plataforma digital de intermediación que conecta clientes con técnicos independientes de servicios del hogar en Lima Metropolitana. La aplicación no presta servicios técnicos directamente, no emplea a los técnicos registrados, no supervisa la ejecución del trabajo ni procesa pagos. Los acuerdos económicos y condiciones del servicio son responsabilidad exclusiva de las partes involucradas.
-3. Registro y cuenta
-El usuario debe proporcionar información verdadera, completa y actualizada al registrarse. Está prohibido crear cuentas falsas o duplicadas, suplantar identidades o utilizar la plataforma para fines ajenos a su objeto. El usuario es responsable de la confidencialidad de sus credenciales de acceso.
-4. Datos personales y privacidad
-HOMEFIX recopila únicamente los datos necesarios para el funcionamiento de la plataforma, incluyendo información de identificación, contacto, ubicación GPS, fotografías e historial de solicitudes. Estos datos se tratan conforme a la Ley N.° 29733 de Protección de Datos Personales del Perú. HOMEFIX no vende ni comparte datos personales con terceros salvo los servicios técnicos necesarios para su operación: Firebase Authentication y Firestore para autenticación y almacenamiento, Cloudinary para imágenes, Google Maps para geolocalización y WhatsApp como canal externo de comunicación entre usuarios.
-5. Permisos del dispositivo
-La aplicación solicitará permisos de cámara, galería, ubicación y notificaciones únicamente cuando sean necesarios para el funcionamiento de sus funcionalidades. Denegar alguno de estos permisos puede limitar ciertas funciones de la app.
-6. Obligaciones de los usuarios
-Los clientes se comprometen a publicar solicitudes reales, describir claramente el servicio y calificar de forma objetiva. Los técnicos se comprometen a declarar información veraz sobre su identidad y especialidades, mantener actualizada su disponibilidad y actuar con profesionalismo. Cualquier daño, incumplimiento o desacuerdo derivado de la prestación del servicio es responsabilidad exclusiva de las partes.
-7. Seguridad
-HOMEFIX implementa medidas técnicas razonables para proteger la información de los usuarios, incluyendo autenticación, control de acceso por rol y reglas de seguridad en base de datos. Sin embargo, ningún sistema conectado a internet garantiza seguridad absoluta. HOMEFIX no se responsabiliza por pérdida de credenciales, mal uso de la cuenta o ataques de terceros.
-8. Calificaciones y sanciones
-Las calificaciones deben basarse en experiencias reales y expresarse con respeto. HOMEFIX podrá retirar comentarios ofensivos, falsos o difamatorios, así como suspender o eliminar cuentas que incumplan estos términos, registren información falsa o hagan uso indebido de la plataforma.
-9. Notificaciones
-HOMEFIX enviará notificaciones relacionadas con el estado de las solicitudes, selección de técnicos, verificación de cuenta y otros eventos relevantes. El usuario puede gestionar sus preferencias de notificación desde la configuración de la aplicación. Desactivarlas puede afectar el seguimiento oportuno de los servicios.
-10. Derechos del usuario
-El usuario puede ejercer sus derechos de acceso, rectificación, cancelación y oposición sobre sus datos personales contactando al equipo de soporte de HOMEFIX. En caso de solicitar la eliminación de cuenta, los datos serán suprimidos salvo aquellos que deban conservarse por razones legales o de seguridad.
-11. Modificaciones y legislación
-HOMEFIX puede modificar estos términos por razones técnicas, legales u operativas, comunicándolo a través de la aplicación. Estos términos se rigen por las leyes de la República del Perú y su ámbito funcional se limita a Lima Metropolitana.
-                    """.trimIndent()
+                        // MODIFICADO - MULTIDIOMA:
+                        // El contenido legal ya no está escrito directamente en español.
+                        // Se reutiliza terms_full_text de strings_terms.xml para mostrar
+                        // español, inglés o portugués según el idioma activo.
+                        text = stringResource(R.string.terms_full_text),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                 }
             },
@@ -149,7 +172,11 @@ HOMEFIX puede modificar estos términos por razones técnicas, legales u operati
                         showTermsDialog = false
                     }
                 ) {
-                    Text("Cerrar")
+                    Text(
+                        // MODIFICADO - MULTIDIOMA:
+                        // Reutiliza el botón traducido de strings_terms.xml.
+                        text = stringResource(R.string.terms_close)
+                    )
                 }
             }
         )
@@ -167,23 +194,49 @@ HOMEFIX puede modificar estos términos por razones técnicas, legales u operati
             // Header
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = textColor)
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        // IDIOMA: descripción accesible traducida del botón volver.
+                        contentDescription = stringResource(R.string.settings_back),
+                        tint = textColor
+                    )
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Configuraciones", style = MaterialTheme.typography.headlineMedium, color = textColor, fontWeight = FontWeight.Bold)
+                Text(
+                    // IDIOMA: título principal obtenido desde los recursos traducidos.
+                    text = stringResource(R.string.settings_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = textColor,
+                    fontWeight = FontWeight.Bold
+                )
             }
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // Apariencia
-            SettingsSectionTitle(title = "Apariencia", color = secondaryText)
+            // APARIENCIA - MULTIDIOMA:
+            // Solo se reemplazó el texto fijo por stringResource; la lógica no cambió.
+            SettingsSectionTitle(
+                title = stringResource(R.string.settings_appearance),
+                color = secondaryText
+            )
             Spacer(modifier = Modifier.height(8.dp))
 
             SettingsToggleItem(
                 icon = if (darkMode) Icons.Default.DarkMode else Icons.Default.LightMode,
                 iconColor = if (darkMode) Color(0xFF90CAF9) else Warning,
-                title = if (darkMode) "Modo oscuro" else "Modo claro",
-                subtitle = if (darkMode) "Activado" else "Desactivado",
+                // IDIOMA:
+                // Los textos cambian según el modo y el idioma, pero el Switch conserva
+                // exactamente la misma lógica y función.
+                title = if (darkMode) {
+                    stringResource(R.string.settings_dark_mode)
+                } else {
+                    stringResource(R.string.settings_light_mode)
+                },
+                subtitle = if (darkMode) {
+                    stringResource(R.string.settings_enabled)
+                } else {
+                    stringResource(R.string.settings_disabled)
+                },
                 checked = darkMode,
                 onCheckedChange = { scope.launch { prefs.setDarkMode(it) } },
                 titleColor = textColor,
@@ -194,11 +247,14 @@ HOMEFIX puede modificar estos términos por razones técnicas, legales u operati
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // IDIOMA:
+            // La tarjeta conserva su icono, diseño y acción. Solo usa textos traducibles.
             SettingsClickItem(
                 icon = Icons.Default.Language,
                 iconColor = Info,
-                title = "Idioma",
+                title = stringResource(R.string.settings_language),
                 subtitle = languageLabel,
+                // IDIOMA: abre el mismo diálogo selector; no modifica la navegación.
                 onClick = { showLanguageDialog = true },
                 titleColor = textColor,
                 subtitleColor = secondaryText,
@@ -208,15 +264,24 @@ HOMEFIX puede modificar estos términos por razones técnicas, legales u operati
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Notificaciones
-            SettingsSectionTitle(title = "Notificaciones", color = secondaryText)
+            // NOTIFICACIONES - MULTIDIOMA:
+            // Se traduce únicamente el texto visible; sonido y vibración mantienen su lógica.
+            SettingsSectionTitle(
+                title = stringResource(R.string.settings_notifications),
+                color = secondaryText
+            )
             Spacer(modifier = Modifier.height(8.dp))
 
             SettingsToggleItem(
                 icon = Icons.Default.VolumeUp,
                 iconColor = Secondary,
-                title = "Sonido",
-                subtitle = if (notifSound) "Las notificaciones emiten sonido" else "Sin sonido",
+                // IDIOMA: textos del control de sonido obtenidos desde los XML.
+                title = stringResource(R.string.settings_sound),
+                subtitle = if (notifSound) {
+                    stringResource(R.string.settings_sound_enabled)
+                } else {
+                    stringResource(R.string.settings_no_sound)
+                },
                 checked = notifSound,
                 onCheckedChange = { scope.launch { prefs.setNotifSound(it) } },
                 titleColor = textColor,
@@ -230,8 +295,13 @@ HOMEFIX puede modificar estos términos por razones técnicas, legales u operati
             SettingsToggleItem(
                 icon = Icons.Default.Vibration,
                 iconColor = TechnicianColor,
-                title = "Vibración",
-                subtitle = if (notifVibration) "El dispositivo vibra" else "Sin vibración",
+                // IDIOMA: textos del control de vibración obtenidos desde los XML.
+                title = stringResource(R.string.settings_vibration),
+                subtitle = if (notifVibration) {
+                    stringResource(R.string.settings_vibration_enabled)
+                } else {
+                    stringResource(R.string.settings_no_vibration)
+                },
                 checked = notifVibration,
                 onCheckedChange = { scope.launch { prefs.setNotifVibration(it) } },
                 titleColor = textColor,
@@ -242,15 +312,20 @@ HOMEFIX puede modificar estos términos por razones técnicas, legales u operati
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Cuenta
-            SettingsSectionTitle(title = "Cuenta", color = secondaryText)
+            // CUENTA - MULTIDIOMA:
+            // Se traducen solo los textos visibles; las acciones permanecen intactas.
+            SettingsSectionTitle(
+                title = stringResource(R.string.settings_account),
+                color = secondaryText
+            )
             Spacer(modifier = Modifier.height(8.dp))
 
             SettingsClickItem(
                 icon = Icons.Default.Lock,
                 iconColor = Primary,
-                title = "Privacidad",
-                subtitle = "Términos y condiciones",
+                // IDIOMA: textos de privacidad obtenidos desde los XML.
+                title = stringResource(R.string.settings_privacy),
+                subtitle = stringResource(R.string.settings_terms_and_conditions),
                 onClick = {
                     showTermsDialog = true
                 },
@@ -273,7 +348,14 @@ HOMEFIX puede modificar estos términos por razones técnicas, legales u operati
             ) {
                 Icon(Icons.Default.Logout, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Cerrar sesión", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    // IDIOMA:
+                    // Solo cambia el texto visible. FirebaseAuth.signOut() y la navegación
+                    // hacia LOGIN permanecen exactamente iguales.
+                    text = stringResource(R.string.settings_logout),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
 
             Spacer(modifier = Modifier.height(32.dp))

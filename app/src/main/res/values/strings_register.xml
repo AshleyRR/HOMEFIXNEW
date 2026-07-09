@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- REGISTRO - ESPAÑOL -->
+    <string name="register_title">Crear cuenta</string>
+    <string name="register_subtitle">Completa tus datos para comenzar</string>
+    <string name="register_role_question">¿Cómo quieres usar HomeFix?</string>
+    <string name="register_role_client">Cliente</string>
+    <string name="register_role_client_description">Necesito un técnico</string>
+    <string name="register_role_technician">Técnico</string>
+    <string name="register_role_technician_description">Ofrezco servicios</string>
+    <string name="register_first_names">Nombres</string>
+    <string name="register_last_names">Apellidos</string>
+    <string name="register_email">Correo electrónico</string>
+    <string name="register_password">Contraseña</string>
+    <string name="register_confirm_password">Confirmar contraseña</string>
+    <string name="register_phone_number">Número de teléfono</string>
+    <string name="register_district">Distrito</string>
+    <string name="register_select_district">Selecciona tu distrito</string>
+    <string name="register_profile_photo">Foto de perfil</string>
+    <string name="register_profile_photo_description">Tómate una selfie en este momento. Es obligatoria para todos los usuarios.</string>
+    <string name="register_selfie">Selfie</string>
+    <string name="register_retake_selfie">Repetir selfie</string>
+    <string name="register_take_another_photo">Toca la X para tomar otra foto</string>
+    <string name="register_take_selfie_now">Tomar selfie ahora</string>
+    <string name="register_technician_data">Datos del técnico</string>
+    <string name="register_dni">DNI (8 dígitos)</string>
+    <string name="register_years_experience">Años de experiencia</string>
+    <string name="register_specialties_max">Especialidades (máximo %1$d)</string>
+    <string name="register_select_specialties">Seleccionar especialidades</string>
+    <string name="register_one_specialty_selected">%1$d seleccionada</string>
+    <string name="register_multiple_specialties_selected">%1$d seleccionadas</string>
+    <string name="register_remove">Quitar</string>
+    <string name="register_terms_prefix">He leído y acepto los\u0020</string>
+    <string name="register_terms_and_conditions">Términos y Condiciones</string>
+    <string name="register_adult_confirmation">Confirmo que soy mayor de 18 años</string>
+    <string name="register_create_account_button">Crear cuenta</string>
+    <string name="register_already_have_account">¿Ya tienes cuenta?\u0020</string>
+    <string name="register_login">Inicia sesión</string>
+    <string name="register_first_name_required">Los nombres son obligatorios</string>
+    <string name="register_minimum_two_characters">Mínimo 2 caracteres</string>
+    <string name="register_last_name_required">Los apellidos son obligatorios</string>
+    <string name="register_email_required">El correo es obligatorio</string>
+    <string name="register_invalid_email">Ingresa un correo válido (ej.: correo@gmail.com)</string>
+    <string name="register_password_required">La contraseña es obligatoria</string>
+    <string name="register_password_min_length">Mínimo 6 caracteres</string>
+    <string name="register_password_uppercase">Debe tener al menos una mayúscula</string>
+    <string name="register_password_number">Debe tener al menos un número</string>
+    <string name="register_confirm_password_required">Confirma tu contraseña</string>
+    <string name="register_passwords_do_not_match">Las contraseñas no coinciden</string>
+    <string name="register_phone_required">El teléfono es obligatorio</string>
+    <string name="register_invalid_phone">Ingresa un número válido de 9 dígitos</string>
+    <string name="register_district_required">Selecciona tu distrito</string>
+    <string name="register_role_required">Selecciona cómo quieres usar HomeFix</string>
+    <string name="register_photo_required">La foto de perfil es obligatoria</string>
+    <string name="register_dni_required">El DNI es obligatorio</string>
+    <string name="register_invalid_dni">El DNI debe tener exactamente 8 dígitos</string>
+    <string name="register_specialty_required">Selecciona al menos una especialidad</string>
+    <string name="register_terms_required">Debes aceptar los términos y condiciones</string>
+    <string name="register_adult_required">Debes ser mayor de 18 años para registrarte</string>
+    <string name="register_save_data_error">Error al guardar los datos</string>
+    <string name="register_photo_upload_error">Error al subir la foto</string>
+    <string name="register_authentication_error">Error al autenticar después del registro</string>
+    <string name="register_email_already_exists">Ese correo ya está registrado</string>
+    <string name="register_generic_retry_error">Error al registrarse, intenta de nuevo</string>
+    <string name="register_generic_error">Error al registrarse</string>
+    <string name="register_search_district">Buscar distrito…</string>
+    <string name="register_district_not_found">No se encontró ese distrito</string>
+    <string name="register_cancel">Cancelar</string>
+    <string name="register_select_your_specialties">Selecciona tus especialidades</string>
+    <string name="register_specialty_selection_status">Máximo %1$d — %2$d/%1$d seleccionadas</string>
+    <string name="register_confirm">Confirmar</string>
+
+</resources>

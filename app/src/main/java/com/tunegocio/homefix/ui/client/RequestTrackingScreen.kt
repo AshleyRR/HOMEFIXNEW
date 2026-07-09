@@ -18,6 +18,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener textos y plurales desde strings_client.xml.
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -34,12 +39,60 @@ import com.tunegocio.homefix.data.model.UserModel
 import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.components.HomefixButton
 import com.tunegocio.homefix.ui.theme.*
+
+// NUEVO - MULTIDIOMA:
+// Permite acceder a las claves del módulo cliente.
+import com.tunegocio.homefix.R
 import java.util.UUID
 
 
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.BorderStroke
+
+// NUEVO - MULTIDIOMA:
+// Traduce únicamente la etiqueta visible del servicio o especialidad.
+// El valor interno permanece sin cambios para conservar la compatibilidad
+// con Firebase, filtros y solicitudes existentes.
+@Composable
+private fun trackingServiceLabel(serviceType: String): String = when (serviceType) {
+    "Electricidad" -> stringResource(R.string.service_electricity)
+    "Gasfitería" -> stringResource(R.string.service_plumbing)
+    "Pintura" -> stringResource(R.string.service_painting)
+    "Carpintería" -> stringResource(R.string.service_carpentry)
+    "Vidriería" -> stringResource(R.string.service_glasswork)
+    "Jardinería" -> stringResource(R.string.service_gardening)
+    "Cerrajería" -> stringResource(R.string.service_locksmith)
+    "Albañilería" -> stringResource(R.string.service_masonry)
+    "Muebles a medida" -> stringResource(R.string.service_custom_furniture)
+    "Lavado de tapizados" -> stringResource(R.string.service_upholstery_cleaning)
+    "Mudanzas" -> stringResource(R.string.service_moving)
+    else -> serviceType
+}
+
+// NUEVO - MULTIDIOMA:
+// Genera una lista visible de especialidades traducidas sin modificar
+// los valores originales almacenados en el perfil del técnico.
+@Composable
+private fun trackingSpecialtiesLabel(specialties: List<String>): String {
+    val labels = mapOf(
+        "Electricidad" to stringResource(R.string.service_electricity),
+        "Gasfitería" to stringResource(R.string.service_plumbing),
+        "Pintura" to stringResource(R.string.service_painting),
+        "Carpintería" to stringResource(R.string.service_carpentry),
+        "Vidriería" to stringResource(R.string.service_glasswork),
+        "Jardinería" to stringResource(R.string.service_gardening),
+        "Cerrajería" to stringResource(R.string.service_locksmith),
+        "Albañilería" to stringResource(R.string.service_masonry),
+        "Muebles a medida" to stringResource(R.string.service_custom_furniture),
+        "Lavado de tapizados" to stringResource(R.string.service_upholstery_cleaning),
+        "Mudanzas" to stringResource(R.string.service_moving)
+    )
+
+    return specialties.joinToString(", ") { specialty ->
+        labels[specialty] ?: specialty
+    }
+}
 
 @Composable
 fun RequestTrackingScreen(
@@ -77,6 +130,67 @@ fun RequestTrackingScreen(
     var ratingComment by remember { mutableStateOf("") }
     var ratingLoading by remember { mutableStateOf(false) }
     var starsError by remember { mutableStateOf("") }
+
+    // NUEVO - MULTIDIOMA:
+    // Estos textos se resuelven durante la composición para poder usarlos
+    // después dentro de callbacks de Firebase y funciones locales.
+    val currentServiceLabel =
+        trackingServiceLabel(request?.serviceType ?: "")
+
+    val defaultClientName =
+        stringResource(R.string.tracking_default_client_name)
+
+    val cancelNotificationTitle =
+        stringResource(R.string.tracking_notification_request_canceled_title)
+    val cancelNotificationBody =
+        stringResource(
+            R.string.tracking_notification_request_canceled_body,
+            currentServiceLabel
+        )
+    val cancelNotificationNamedBody =
+        stringResource(
+            R.string.tracking_notification_request_canceled_named_body,
+            clienteName.ifEmpty { defaultClientName },
+            currentServiceLabel
+        )
+
+    val chosenNotificationTitle =
+        stringResource(R.string.tracking_notification_chosen_title)
+    val chosenNotificationBody =
+        stringResource(
+            R.string.tracking_notification_chosen_body,
+            currentServiceLabel
+        )
+    val otherChosenNotificationTitle =
+        stringResource(R.string.tracking_notification_other_chosen_title)
+    val otherChosenNotificationBody =
+        stringResource(R.string.tracking_notification_other_chosen_body)
+
+    val notConfirmedNotificationTitle =
+        stringResource(R.string.tracking_notification_not_confirmed_title)
+    val notConfirmedNotificationBody =
+        stringResource(R.string.tracking_notification_not_confirmed_body)
+
+    val notContinuedNotificationTitle =
+        stringResource(R.string.tracking_notification_not_continued_title)
+    val notContinuedNotificationBody =
+        stringResource(R.string.tracking_notification_not_continued_body)
+
+    val ratedNotificationTitle =
+        stringResource(R.string.tracking_notification_rated_title)
+    val ratedNotificationBody =
+        pluralStringResource(
+            R.plurals.tracking_stars_received,
+            selectedStars.coerceAtLeast(1),
+            selectedStars,
+            currentServiceLabel
+        )
+
+    val whatsappMessage =
+        stringResource(R.string.tracking_client_whatsapp_message)
+
+    val selectRatingError =
+        stringResource(R.string.tracking_select_rating_error)
 
     // Escucha en tiempo real
     LaunchedEffect(requestId) {
@@ -144,8 +258,8 @@ fun RequestTrackingScreen(
                 tecnicosInteresados.forEach { tecnico ->
                     notificationsRepo.crearNotificacion(
                         userId = tecnico.uid,
-                        titulo = "Solicitud cancelada",
-                        cuerpo = "El cliente canceló la solicitud de ${request?.serviceType}.",
+                        titulo = cancelNotificationTitle,
+                        cuerpo = cancelNotificationBody,
                         tipo = "cliente_cancelo",
                         requestId = requestId
                     )
@@ -155,8 +269,8 @@ fun RequestTrackingScreen(
                 if (techId.isNotEmpty()) {
                     notificationsRepo.crearNotificacion(
                         userId = techId,
-                        titulo = "Solicitud cancelada",
-                        cuerpo = "${clienteName.ifEmpty { "El cliente" }} canceló la solicitud de ${request?.serviceType ?: ""}.",
+                        titulo = cancelNotificationTitle,
+                        cuerpo = cancelNotificationNamedBody,
                         tipo = "tecnico_cancelo",
                         requestId = requestId
                     )
@@ -170,7 +284,7 @@ fun RequestTrackingScreen(
     fun openWhatsApp(phone: String) {
         val number = phone.replace(Regex("[^0-9]"), "")
         val fullNumber = if (number.startsWith("51")) number else "51$number"
-        val message = "Hola, soy el cliente de HomeFix. ¿Cómo va el servicio?"
+        val message = whatsappMessage
         val uri = Uri.parse("https://wa.me/$fullNumber?text=${Uri.encode(message)}")
         try { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) } catch (e: Exception) { }
     }
@@ -182,16 +296,16 @@ fun RequestTrackingScreen(
             .addOnSuccessListener {
                 notificationsRepo.crearNotificacion(
                     userId = tecnicoElegidoId,
-                    titulo = "¡Te eligieron!",
-                    cuerpo = "El cliente eligió tu propuesta para ${request?.serviceType ?: ""}. Prepárate para ir.",
+                    titulo = chosenNotificationTitle,
+                    cuerpo = chosenNotificationBody,
                     tipo = "tecnico_elegido",
                     requestId = requestId
                 )
                 tecnicosInteresados.filter { it.uid != tecnicoElegidoId }.forEach { tecnico ->
                     notificationsRepo.crearNotificacion(
                         userId = tecnico.uid,
-                        titulo = "Solicitud asignada a otro",
-                        cuerpo = "El cliente eligió a otro técnico para esta solicitud.",
+                        titulo = otherChosenNotificationTitle,
+                        cuerpo = otherChosenNotificationBody,
                         tipo = "tecnico_rechazado",
                         requestId = requestId
                     )
@@ -219,8 +333,8 @@ fun RequestTrackingScreen(
                 request?.technicianId?.let { techId ->
                     notificationsRepo.crearNotificacion(
                         userId = techId,
-                        titulo = "El cliente no confirmó el trabajo",
-                        cuerpo = "El cliente indicó que el trabajo no fue completado. Revisa la situación.",
+                        titulo = notConfirmedNotificationTitle,
+                        cuerpo = notConfirmedNotificationBody,
                         tipo = "completado_rechazado",
                         requestId = requestId
                     )
@@ -237,8 +351,8 @@ fun RequestTrackingScreen(
                 request?.technicianId?.let { techId ->
                     notificationsRepo.crearNotificacion(
                         userId = techId,
-                        titulo = "Proceso confirmado como no continuado",
-                        cuerpo = "El cliente confirmó que el proceso no continuó.",
+                        titulo = notContinuedNotificationTitle,
+                        cuerpo = notContinuedNotificationBody,
                         tipo = "sin_continuar_confirmado",
                         requestId = requestId
                     )
@@ -252,7 +366,7 @@ fun RequestTrackingScreen(
 
     // Enviar calificación y redirigir al historial
     fun submitRating() {
-        if (selectedStars == 0) { starsError = "Selecciona una calificación"; return }
+        if (selectedStars == 0) { starsError = selectRatingError; return }
         ratingLoading = true
         val techId = request?.technicianId ?: ""
         val reviewId = UUID.randomUUID().toString()
@@ -278,8 +392,8 @@ fun RequestTrackingScreen(
                     // Notificar al técnico que fue calificado
                     notificationsRepo.crearNotificacion(
                         userId = techId,
-                        titulo = "¡Te han calificado!",
-                        cuerpo = "Recibiste ${selectedStars} estrella${if (selectedStars != 1) "s" else ""} por el servicio de ${request?.serviceType ?: ""}.",
+                        titulo = ratedNotificationTitle,
+                        cuerpo = ratedNotificationBody,
                         tipo = "nueva_solicitud",
                         requestId = requestId
                     )
@@ -295,14 +409,14 @@ fun RequestTrackingScreen(
     if (showCancelDialog) {
         AlertDialog(
             onDismissRequest = { showCancelDialog = false },
-            title = { Text("Cancelar solicitud", fontWeight = FontWeight.Bold) },
-            text = { Text("¿Estás seguro que deseas cancelar esta solicitud?") },
+            title = { Text(stringResource(R.string.tracking_cancel_request), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.tracking_cancel_request_question)) },
             confirmButton = {
                 TextButton(onClick = { cancelRequest() }, colors = ButtonDefaults.textButtonColors(contentColor = Error)) {
-                    Text("Sí, cancelar", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.tracking_yes_cancel), fontWeight = FontWeight.SemiBold)
                 }
             },
-            dismissButton = { TextButton(onClick = { showCancelDialog = false }) { Text("No, mantener") } }
+            dismissButton = { TextButton(onClick = { showCancelDialog = false }) { Text(stringResource(R.string.tracking_keep_request)) } }
         )
     }
 
@@ -310,18 +424,18 @@ fun RequestTrackingScreen(
     if (showConfirmarCompletadoDialog) {
         AlertDialog(
             onDismissRequest = { /* no cerrar tocando afuera */ },
-            title = { Text("¿El trabajo fue completado?", fontWeight = FontWeight.Bold) },
-            text = { Text("El técnico indicó que terminó el trabajo. ¿Confirmas esto?") },
+            title = { Text(stringResource(R.string.tracking_completed_question), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.tracking_completed_description)) },
             confirmButton = {
                 Button(onClick = { confirmarCompletado() }, colors = ButtonDefaults.buttonColors(containerColor = Success)) {
-                    Text("Sí, confirmar", color = Color.White)
+                    Text(stringResource(R.string.tracking_yes_confirm), color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { showConfirmarCompletadoDialog = false; showRechazarCompletadoDialog = true },
                     colors = ButtonDefaults.textButtonColors(contentColor = Error)
-                ) { Text("No, no terminó") }
+                ) { Text(stringResource(R.string.tracking_no_not_finished)) }
             }
         )
     }
@@ -330,14 +444,14 @@ fun RequestTrackingScreen(
     if (showRechazarCompletadoDialog) {
         AlertDialog(
             onDismissRequest = { showRechazarCompletadoDialog = false },
-            title = { Text("¿El trabajo no fue completado?", fontWeight = FontWeight.Bold) },
-            text = { Text("Se notificará al técnico que el trabajo no fue aceptado como completado.") },
+            title = { Text(stringResource(R.string.tracking_not_completed_question), fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.tracking_not_completed_notice)) },
             confirmButton = {
                 Button(onClick = { rechazarCompletado() }, colors = ButtonDefaults.buttonColors(containerColor = Error)) {
-                    Text("Confirmar", color = Color.White)
+                    Text(stringResource(R.string.client_confirm), color = Color.White)
                 }
             },
-            dismissButton = { TextButton(onClick = { showRechazarCompletadoDialog = false }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { showRechazarCompletadoDialog = false }) { Text(stringResource(R.string.client_cancel)) } }
         )
     }
 
@@ -349,7 +463,7 @@ fun RequestTrackingScreen(
             text = { Text("El técnico indicó que no puede continuar con el servicio. ¿Confirmas esto?") },
             confirmButton = {
                 Button(onClick = { confirmarSinContinuar() }, colors = ButtonDefaults.buttonColors(containerColor = Primary)) {
-                    Text("Sí, confirmar", color = Color.White)
+                    Text(stringResource(R.string.tracking_yes_confirm), color = Color.White)
                 }
             },
             dismissButton = {
@@ -375,9 +489,9 @@ fun RequestTrackingScreen(
                 ) {
                     Text("⭐", fontSize = 40.sp)
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("Califica el servicio", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text(stringResource(R.string.tracking_rate_service), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                     technician?.let { tech ->
-                        Text("¿Cómo fue tu experiencia con ${tech.name}?", style = MaterialTheme.typography.bodyMedium, color = TextSecondary, textAlign = TextAlign.Center)
+                        Text(stringResource(R.string.tracking_how_was_experience_with, tech.name), style = MaterialTheme.typography.bodyMedium, color = TextSecondary, textAlign = TextAlign.Center)
                     }
                     Spacer(modifier = Modifier.height(20.dp))
 
@@ -386,7 +500,7 @@ fun RequestTrackingScreen(
                         (1..5).forEach { star ->
                             Icon(
                                 imageVector = if (star <= selectedStars) Icons.Default.Star else Icons.Default.StarBorder,
-                                contentDescription = "Estrella $star",
+                                contentDescription = stringResource(R.string.tracking_star_description, star),
                                 tint = if (star <= selectedStars) Warning else TextHint,
                                 modifier = Modifier.size(44.dp).clickable { selectedStars = star; starsError = "" }
                             )
@@ -397,8 +511,12 @@ fun RequestTrackingScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = when (selectedStars) {
-                                1 -> "Muy malo 😞"; 2 -> "Malo 😕"; 3 -> "Regular 😐"
-                                4 -> "Bueno 😊"; 5 -> "Excelente 🤩"; else -> ""
+                                1 -> stringResource(R.string.tracking_very_bad)
+                                2 -> stringResource(R.string.tracking_bad)
+                                3 -> stringResource(R.string.tracking_regular)
+                                4 -> stringResource(R.string.tracking_good)
+                                5 -> stringResource(R.string.tracking_excellent)
+                                else -> ""
                             },
                             style = MaterialTheme.typography.titleSmall,
                             color = when (selectedStars) { 1, 2 -> Error; 3 -> Warning; else -> Success },
@@ -416,7 +534,7 @@ fun RequestTrackingScreen(
                         value = ratingComment,
                         onValueChange = { if (it.length <= 300) ratingComment = it },
                         modifier = Modifier.fillMaxWidth().height(90.dp),
-                        placeholder = { Text("Comentario opcional...", color = TextHint) },
+                        placeholder = { Text(stringResource(R.string.tracking_optional_comment), color = TextHint) },
                         shape = RoundedCornerShape(12.dp),
                         colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Primary, unfocusedBorderColor = CardBorder)
                     )
@@ -424,7 +542,7 @@ fun RequestTrackingScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    HomefixButton(text = "Enviar calificación", onClick = { submitRating() }, isLoading = ratingLoading)
+                    HomefixButton(text = stringResource(R.string.tracking_send_rating), onClick = { submitRating() }, isLoading = ratingLoading)
 
                     Spacer(modifier = Modifier.height(8.dp))
                     TextButton(
@@ -434,7 +552,7 @@ fun RequestTrackingScreen(
                             }
                         }
                     ) {
-                        Text("Omitir por ahora", color = TextSecondary)
+                        Text(stringResource(R.string.tracking_skip_now), color = TextSecondary)
                     }
                 }
             }
@@ -451,7 +569,7 @@ fun RequestTrackingScreen(
             ) {
                 AsyncImage(
                     model = url,
-                    contentDescription = "Foto ampliada",
+                    contentDescription = stringResource(R.string.client_photos),
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(20.dp)), // Bordes curvos
@@ -466,7 +584,7 @@ fun RequestTrackingScreen(
                 ) {
                     Icon(
                         Icons.Default.Close,
-                        contentDescription = "Cerrar",
+                        contentDescription = stringResource(R.string.client_close),
                         tint = Color.White
                     )
                 }
@@ -505,9 +623,9 @@ fun RequestTrackingScreen(
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = TextPrimary)
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.client_back), tint = TextPrimary)
                     }
-                    Text("Mi solicitud", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.tracking_title), style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)
                 }
                 if (req.status == "pendiente" || req.status == "en_revision") {
                     Button(
@@ -524,7 +642,7 @@ fun RequestTrackingScreen(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "Cancelar",
+                            text = stringResource(R.string.client_cancel),
                             fontWeight = FontWeight.Medium,
                             color = Color.White
                         )
@@ -540,7 +658,12 @@ fun RequestTrackingScreen(
             // Técnicos interesados — pendiente o en_revision
             if ((req.status == "pendiente" || req.status == "en_revision") && tecnicosInteresados.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(20.dp))
-                Text("Técnicos interesados (${tecnicosInteresados.size})", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
+                Text(
+                    pluralStringResource(
+                        R.plurals.tracking_interested_count,
+                        tecnicosInteresados.size,
+                        tecnicosInteresados.size
+                    ), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(8.dp))
                 tecnicosInteresados.forEach { tecnico ->
                     TecnicoInteresadoCard(
@@ -555,7 +678,7 @@ fun RequestTrackingScreen(
 
             // Detalle
             Spacer(modifier = Modifier.height(20.dp))
-            Text("Detalle", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.tracking_detail), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(8.dp))
 
             Card(
@@ -577,7 +700,8 @@ fun RequestTrackingScreen(
                             color = Primary.copy(alpha = 0.1f)
                         ) {
                             Text(
-                                req.serviceType,
+                                // MODIFICADO - MULTIDIOMA:
+                                trackingServiceLabel(req.serviceType),
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = Primary,
@@ -602,7 +726,7 @@ fun RequestTrackingScreen(
                                         modifier = Modifier.size(12.dp)
                                     )
                                     Text(
-                                        "Urgente",
+                                        stringResource(R.string.client_urgent),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = Error,
                                         fontWeight = FontWeight.Bold
@@ -617,7 +741,7 @@ fun RequestTrackingScreen(
 
                     // Descripción
                     Text(
-                        "Descripción",
+                        stringResource(R.string.client_description),
                         style = MaterialTheme.typography.labelMedium,
                         color = TextSecondary,
                         fontWeight = FontWeight.Medium
@@ -633,7 +757,7 @@ fun RequestTrackingScreen(
                     if (req.address.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            "Dirección",
+                            stringResource(R.string.client_address),
                             style = MaterialTheme.typography.labelMedium,
                             color = TextSecondary,
                             fontWeight = FontWeight.Medium
@@ -653,7 +777,7 @@ fun RequestTrackingScreen(
                             Icon(Icons.Default.Info, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                "Ref: ${req.reference}",
+                                "${stringResource(R.string.client_reference)}: ${req.reference}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextSecondary
                             )
@@ -677,7 +801,7 @@ fun RequestTrackingScreen(
                     if (req.imageUrls.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            "Fotos",
+                            stringResource(R.string.client_photos),
                             style = MaterialTheme.typography.labelMedium,
                             color = TextSecondary,
                             fontWeight = FontWeight.Medium
@@ -721,7 +845,7 @@ fun RequestTrackingScreen(
             // Técnico asignado
             if (technician != null && req.status != "pendiente" && req.status != "en_revision") {
                 Spacer(modifier = Modifier.height(20.dp))
-                Text("Técnico asignado", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.tracking_assigned_technician), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
                 Spacer(modifier = Modifier.height(8.dp))
                 TecnicoAsignadoCard(technician = technician!!, onWhatsApp = { openWhatsApp(technician!!.whatsapp) })
             }
@@ -744,13 +868,19 @@ fun RequestTrackingScreen(
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(
-                                "Servicio completado",
+                                stringResource(R.string.tracking_service_completed),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = Success,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Text(
-                                "Finalizado el ${java.text.SimpleDateFormat("dd/MM/yyyy 'a las' HH:mm", java.util.Locale.getDefault()).format(java.util.Date(req.updatedAt))}",
+                                stringResource(
+                                    R.string.tracking_completed_on,
+                                    java.text.SimpleDateFormat(
+                                        "dd/MM/yyyy HH:mm",
+                                        java.util.Locale.getDefault()
+                                    ).format(java.util.Date(req.updatedAt))
+                                ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextSecondary
                             )
@@ -771,7 +901,7 @@ fun RequestTrackingScreen(
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                "Tu calificación",
+                                stringResource(R.string.tracking_your_rating),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontWeight = FontWeight.SemiBold
@@ -804,7 +934,13 @@ fun RequestTrackingScreen(
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                "Calificado el ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(reviewExistente?.createdAt ?: 0L))}",
+                                stringResource(
+                                    R.string.tracking_rated_on,
+                                    java.text.SimpleDateFormat(
+                                        "dd/MM/yyyy HH:mm",
+                                        java.util.Locale.getDefault()
+                                    ).format(java.util.Date(reviewExistente?.createdAt ?: 0L))
+                                ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextSecondary
                             )
@@ -823,14 +959,14 @@ fun RequestTrackingScreen(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                "¿Cómo fue tu experiencia?",
+                                stringResource(R.string.tracking_how_was_experience),
                                 style = MaterialTheme.typography.titleSmall,
                                 color = MaterialTheme.colorScheme.onBackground,
                                 fontWeight = FontWeight.SemiBold
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                "Tu opinión ayuda a otros clientes a elegir mejor",
+                                stringResource(R.string.tracking_rating_help),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextSecondary,
                                 textAlign = TextAlign.Center
@@ -844,7 +980,7 @@ fun RequestTrackingScreen(
                             ) {
                                 Icon(Icons.Default.Star, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Calificar servicio", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                                Text(stringResource(R.string.tracking_rate_service), color = Color.White, style = MaterialTheme.typography.labelLarge)
                             }
                         }
                     }
@@ -858,21 +994,33 @@ fun RequestTrackingScreen(
                     Column(modifier = Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("❌", style = MaterialTheme.typography.headlineMedium)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text("Proceso no continuado", style = MaterialTheme.typography.titleMedium, color = Error, fontWeight = FontWeight.SemiBold)
-                        Text("El técnico no pudo continuar con este servicio.", style = MaterialTheme.typography.bodyMedium, color = TextSecondary, textAlign = TextAlign.Center)
+                        Text(stringResource(R.string.tracking_process_not_continued), style = MaterialTheme.typography.titleMedium, color = Error, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.tracking_technician_could_not_continue), style = MaterialTheme.typography.bodyMedium, color = TextSecondary, textAlign = TextAlign.Center)
 
                         // Fecha en que el técnico marcó que no podía continuar
                         if (req.technicianCanceledAt > 0) {
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
-                                "Técnico reportó: ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(req.technicianCanceledAt))}",
+                                stringResource(
+                                    R.string.tracking_technician_reported_date,
+                                    java.text.SimpleDateFormat(
+                                        "dd/MM/yyyy HH:mm",
+                                        java.util.Locale.getDefault()
+                                    ).format(java.util.Date(req.technicianCanceledAt))
+                                ),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = TextSecondary
                             )
                         }
                         // Fecha en que el cliente confirmó (updatedAt se actualiza en confirmarSinContinuar())
                         Text(
-                            "Confirmado: ${java.text.SimpleDateFormat("dd/MM/yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(req.updatedAt))}",
+                            stringResource(
+                                R.string.tracking_confirmed_date,
+                                java.text.SimpleDateFormat(
+                                    "dd/MM/yyyy HH:mm",
+                                    java.util.Locale.getDefault()
+                                ).format(java.util.Date(req.updatedAt))
+                            ),
                             style = MaterialTheme.typography.labelSmall,
                             color = TextSecondary
                         )
@@ -913,7 +1061,7 @@ fun TecnicoInteresadoCard(
                 if (tecnico.selfieUrl.isNotEmpty()) {
                     AsyncImage(
                         model = tecnico.selfieUrl,
-                        contentDescription = "Foto de ${tecnico.name}",
+                        contentDescription = stringResource(R.string.technicians_photo),
                         modifier = Modifier
                             .size(52.dp)
                             .clip(RoundedCornerShape(26.dp)),
@@ -966,7 +1114,7 @@ fun TecnicoInteresadoCard(
                         }
                     } else {
                         Text(
-                            "Sin calificaciones aún",
+                            stringResource(R.string.client_no_ratings),
                             style = MaterialTheme.typography.labelSmall,
                             color = TextSecondary
                         )
@@ -1002,7 +1150,7 @@ fun TecnicoInteresadoCard(
                     Icon(Icons.Default.Build, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        tecnico.specialties.joinToString(", "),
+                        trackingSpecialtiesLabel(tecnico.specialties),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Medium
@@ -1017,7 +1165,11 @@ fun TecnicoInteresadoCard(
                     Icon(Icons.Default.WorkHistory, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        "${tecnico.yearsExp} año${if (tecnico.yearsExp != 1) "s" else ""} de experiencia",
+                        pluralStringResource(
+                            R.plurals.tracking_years_experience,
+                            tecnico.yearsExp,
+                            tecnico.yearsExp
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Medium
@@ -1031,8 +1183,15 @@ fun TecnicoInteresadoCard(
                 Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Success, modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    if (trabajosRealizados == 0) "Nuevo en la plataforma"
-                    else "$trabajosRealizados servicio${if (trabajosRealizados != 1) "s" else ""} realizado${if (trabajosRealizados != 1) "s" else ""}",
+                    if (trabajosRealizados == 0) {
+                        stringResource(R.string.client_new_on_platform)
+                    } else {
+                        pluralStringResource(
+                            R.plurals.tracking_completed_jobs,
+                            trabajosRealizados,
+                            trabajosRealizados
+                        )
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = if (trabajosRealizados > 0) Success else TextSecondary,
                     fontWeight = if (trabajosRealizados > 0) FontWeight.Medium else FontWeight.Normal
@@ -1051,7 +1210,7 @@ fun TecnicoInteresadoCard(
                 )
                 if (tecnico.bio.length > 80) {
                     Text(
-                        text = if (bioExpandida) "Ver menos" else "Ver más",
+                        text = if (bioExpandida) stringResource(R.string.client_view_less) else stringResource(R.string.client_view_more),
                         style = MaterialTheme.typography.labelSmall,
                         color = Primary,
                         fontWeight = FontWeight.SemiBold,
@@ -1074,7 +1233,7 @@ fun TecnicoInteresadoCard(
                 if (eligiendoId == tecnico.uid) {
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Elegir este técnico", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.tracking_choose_technician), color = Color.White, style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -1096,7 +1255,7 @@ fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
                 if (technician.selfieUrl.isNotEmpty()) {
                     AsyncImage(
                         model = technician.selfieUrl,
-                        contentDescription = "Foto de ${technician.name}",
+                        contentDescription = stringResource(R.string.technicians_photo),
                         modifier = Modifier
                             .size(52.dp)
                             .clip(RoundedCornerShape(26.dp)),
@@ -1166,7 +1325,7 @@ fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
                     Icon(Icons.Default.Build, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        technician.specialties.joinToString(", "),
+                        trackingSpecialtiesLabel(technician.specialties),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Medium
@@ -1181,7 +1340,11 @@ fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
                     Icon(Icons.Default.WorkHistory, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        "${technician.yearsExp} año${if (technician.yearsExp != 1) "s" else ""} de experiencia",
+                        pluralStringResource(
+                            R.plurals.tracking_years_experience,
+                            technician.yearsExp,
+                            technician.yearsExp
+                        ),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Medium
@@ -1199,7 +1362,7 @@ fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
                 ) {
                     Icon(Icons.Default.Phone, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Contactar por WhatsApp", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                    Text(stringResource(R.string.tracking_contact_whatsapp), color = Color.White, style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -1209,11 +1372,13 @@ fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
 @Composable
 fun StatusProgressBar(status: String) {
     // "en_camino" eliminado del flujo
+    // MODIFICADO - MULTIDIOMA:
+    // Los códigos internos de estado se mantienen; solo cambian sus etiquetas.
     val steps = listOf(
-        "pendiente"   to "Pendiente",
-        "en_revision" to "En revisión",
-        "aceptada"    to "Aceptada",
-        "completada"  to "Completada"
+        "pendiente" to stringResource(R.string.status_pending),
+        "en_revision" to stringResource(R.string.status_under_review),
+        "aceptada" to stringResource(R.string.status_accepted),
+        "completada" to stringResource(R.string.status_completed)
     )
 
     // Estados intermedios de confirmación se mapean visualmente a "aceptada"
@@ -1227,7 +1392,7 @@ fun StatusProgressBar(status: String) {
 
     Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface), elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Estado del servicio", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
+            Text(stringResource(R.string.tracking_service_status), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.SemiBold)
             Spacer(modifier = Modifier.height(16.dp))
 
             steps.forEachIndexed { index, (_, label) ->
@@ -1269,14 +1434,25 @@ fun StatusProgressBar(status: String) {
     }
 }
 
+// MODIFICADO - MULTIDIOMA:
+// Traduce únicamente la descripción visible del estado.
+@Composable
 fun getStatusDescription(status: String): String = when (status) {
-    "pendiente"               -> "Esperando que un técnico acepte..."
-    "en_revision"             -> "Hay técnicos interesados, elige uno"
-    "aceptada"                -> "¡Elegiste un técnico!"
-    "pendiente_confirmacion"  -> "El técnico terminó, confirma el trabajo"
-    "pendiente_sin_continuar" -> "El técnico no puede continuar, confirma"
-    "completada"              -> "El servicio fue completado exitosamente"
-    "sin_continuar"           -> "El proceso no pudo completarse"
-    "cancelada"               -> "La solicitud fue cancelada"
-    else                      -> ""
+    "pendiente" ->
+        stringResource(R.string.tracking_status_pending_description)
+    "en_revision" ->
+        stringResource(R.string.tracking_status_review_description)
+    "aceptada" ->
+        stringResource(R.string.tracking_status_accepted_description)
+    "pendiente_confirmacion" ->
+        stringResource(R.string.tracking_status_pending_confirmation_description)
+    "pendiente_sin_continuar" ->
+        stringResource(R.string.tracking_status_pending_not_continue_description)
+    "completada" ->
+        stringResource(R.string.tracking_status_completed_description)
+    "sin_continuar" ->
+        stringResource(R.string.tracking_status_not_continued_description)
+    "cancelada" ->
+        stringResource(R.string.tracking_status_canceled_description)
+    else -> ""
 }

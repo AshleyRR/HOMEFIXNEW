@@ -20,6 +20,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener textos y plurales desde strings_client.xml.
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -28,9 +33,34 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.tunegocio.homefix.data.model.UserModel
 import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.theme.*
+
+// NUEVO - MULTIDIOMA:
+// Permite acceder a las claves del módulo cliente.
+import com.tunegocio.homefix.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URL
+
+// NUEVO - MULTIDIOMA:
+// Traduce solo la etiqueta visible de cada especialidad.
+// Los valores internos permanecen en español para no afectar Firebase,
+// filtros ni los datos existentes.
+@Composable
+private fun technicianServiceLabel(serviceType: String): String = when (serviceType) {
+    "Todos" -> stringResource(R.string.service_all)
+    "Electricidad" -> stringResource(R.string.service_electricity)
+    "Gasfitería" -> stringResource(R.string.service_plumbing)
+    "Pintura" -> stringResource(R.string.service_painting)
+    "Carpintería" -> stringResource(R.string.service_carpentry)
+    "Vidriería" -> stringResource(R.string.service_glasswork)
+    "Jardinería" -> stringResource(R.string.service_gardening)
+    "Cerrajería" -> stringResource(R.string.service_locksmith)
+    "Albañilería" -> stringResource(R.string.service_masonry)
+    "Muebles a medida" -> stringResource(R.string.service_custom_furniture)
+    "Lavado de tapizados" -> stringResource(R.string.service_upholstery_cleaning)
+    "Mudanzas" -> stringResource(R.string.service_moving)
+    else -> serviceType
+}
 
 @Composable
 fun TechnicianListScreen(navController: NavController) {
@@ -110,10 +140,12 @@ fun TechnicianListScreen(navController: NavController) {
         }
     }
 
-    fun openWhatsApp(phone: String, techName: String) {
+    fun openWhatsApp(phone: String, message: String) {
+        // MODIFICADO - MULTIDIOMA:
+        // Recibe el mensaje ya traducido desde la interfaz.
+        // La apertura de WhatsApp permanece igual.
         val number = phone.replace(Regex("[^0-9]"), "")
         val fullNumber = if (number.startsWith("51")) number else "51$number"
-        val message = "Hola $techName, te contacto desde HomeFix. ¿Estás disponible para un servicio?"
         val uri = Uri.parse("https://wa.me/$fullNumber?text=${Uri.encode(message)}")
         val intent = Intent(Intent.ACTION_VIEW, uri)
 
@@ -143,7 +175,7 @@ fun TechnicianListScreen(navController: NavController) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Técnicos disponibles",
+                        text = stringResource(R.string.technicians_title),
                         style = MaterialTheme.typography.headlineMedium,
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.Bold
@@ -166,7 +198,7 @@ fun TechnicianListScreen(navController: NavController) {
                     onValueChange = { searchQuery = it },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = {
-                        Text("Buscar técnico o especialidad...", color = TextHint)
+                        Text(stringResource(R.string.technicians_search_hint), color = TextHint)
                     },
                     leadingIcon = {
                         Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondary)
@@ -192,7 +224,7 @@ fun TechnicianListScreen(navController: NavController) {
             // Filtro por especialidad
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Text(
-                    text = "Especialidad",
+                    text = stringResource(R.string.technicians_specialty),
                     style = MaterialTheme.typography.labelMedium,
                     color = TextSecondary,
                     modifier = Modifier.padding(bottom = 6.dp)
@@ -225,7 +257,7 @@ fun TechnicianListScreen(navController: NavController) {
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = selectedFilter,
+                                text = technicianServiceLabel(selectedFilter),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = if (selectedFilter != "Todos") Primary else MaterialTheme.colorScheme.onBackground,
                                 fontWeight = if (selectedFilter != "Todos") FontWeight.SemiBold else FontWeight.Normal
@@ -240,7 +272,7 @@ fun TechnicianListScreen(navController: NavController) {
                                 ) {
                                     Icon(
                                         Icons.Default.Close,
-                                        contentDescription = "Limpiar filtro",
+                                        contentDescription = stringResource(R.string.technicians_clear_filter),
                                         tint = Primary,
                                         modifier = Modifier.size(16.dp)
                                     )
@@ -268,7 +300,7 @@ fun TechnicianListScreen(navController: NavController) {
                         DropdownMenuItem(
                             text = {
                                 Text(
-                                    text = filter,
+                                    text = technicianServiceLabel(filter),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = if (selectedFilter == filter) Primary
                                     else MaterialTheme.colorScheme.onBackground,
@@ -295,7 +327,7 @@ fun TechnicianListScreen(navController: NavController) {
                             trailingIcon = {
                                 if (filter == "Todos" && selectedFilter != "Todos") {
                                     Text(
-                                        text = "Ver todos",
+                                        text = stringResource(R.string.technicians_view_all),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = TextSecondary
                                     )
@@ -329,16 +361,20 @@ fun TechnicianListScreen(navController: NavController) {
                         Text(text = "", style = MaterialTheme.typography.headlineLarge)
 
                         Text(
-                            text = if (selectedFilter == "Todos")
-                                "No hay técnicos disponibles"
-                            else
-                                "No hay técnicos de $selectedFilter disponibles",
+                            text = if (selectedFilter == "Todos") {
+                                stringResource(R.string.technicians_none_available)
+                            } else {
+                                stringResource(
+                                    R.string.technicians_none_for_specialty,
+                                    technicianServiceLabel(selectedFilter)
+                                )
+                            },
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onBackground
                         )
 
                         Text(
-                            text = "Intenta con otro filtro o vuelve más tarde",
+                            text = stringResource(R.string.technicians_try_another_filter),
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
                         )
@@ -354,7 +390,11 @@ fun TechnicianListScreen(navController: NavController) {
                 ) {
                     item {
                         Text(
-                            text = "${filteredTechnicians.size} técnico${if (filteredTechnicians.size != 1) "s" else ""} disponible${if (filteredTechnicians.size != 1) "s" else ""}",
+                            text = pluralStringResource(
+                                R.plurals.technicians_available_count,
+                                filteredTechnicians.size,
+                                filteredTechnicians.size
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
                         )
@@ -371,7 +411,7 @@ fun TechnicianListScreen(navController: NavController) {
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "En tu distrito",
+                                    text = stringResource(R.string.technicians_in_your_district),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = Primary,
                                     fontWeight = FontWeight.Bold
@@ -379,6 +419,13 @@ fun TechnicianListScreen(navController: NavController) {
                             }
                         }
                         items(filteredTechnicians.filter { it.district == clientDistrict }) { tech ->
+                            // NUEVO - MULTIDIOMA:
+                            // El mensaje se traduce aquí y se envía sin cambiar la lógica.
+                            val whatsappMessage = stringResource(
+                                R.string.technicians_whatsapp_message,
+                                tech.name
+                            )
+
                             TechnicianCard(
                                 technician = tech,
                                 isSelected = selectedTechnicianUid == tech.uid,
@@ -387,7 +434,7 @@ fun TechnicianListScreen(navController: NavController) {
                                     selectedTechnicianUid =
                                         if (selectedTechnicianUid == tech.uid) null else tech.uid
                                 },
-                                onWhatsAppClick = { openWhatsApp(tech.whatsapp, tech.name) }
+                                onWhatsAppClick = { openWhatsApp(tech.whatsapp, whatsappMessage) }
                             )
                         }
                     }
@@ -405,7 +452,7 @@ fun TechnicianListScreen(navController: NavController) {
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Otros distritos",
+                                    text = stringResource(R.string.technicians_other_districts),
                                     style = MaterialTheme.typography.labelLarge,
                                     color = TextSecondary,
                                     fontWeight = FontWeight.Bold
@@ -413,6 +460,12 @@ fun TechnicianListScreen(navController: NavController) {
                             }
                         }
                         items(filteredTechnicians.filter { it.district != clientDistrict }) { tech ->
+                            // NUEVO - MULTIDIOMA:
+                            val whatsappMessage = stringResource(
+                                R.string.technicians_whatsapp_message,
+                                tech.name
+                            )
+
                             TechnicianCard(
                                 technician = tech,
                                 isSelected = selectedTechnicianUid == tech.uid,
@@ -423,7 +476,7 @@ fun TechnicianListScreen(navController: NavController) {
                                         if (selectedTechnicianUid == tech.uid) null else tech.uid
                                 },
                                 onWhatsAppClick = {
-                                    openWhatsApp(tech.whatsapp, tech.name)
+                                    openWhatsApp(tech.whatsapp, whatsappMessage)
                                 }
                             )
                         }
@@ -484,7 +537,7 @@ fun TechnicianCard(
                         if (imageBitmap != null) {
                             Image(
                                 bitmap = imageBitmap!!.asImageBitmap(),
-                                contentDescription = "Foto del técnico",
+                                contentDescription = stringResource(R.string.technicians_photo),
                                 modifier = Modifier
                                     .size(52.dp)
                                     .clip(RoundedCornerShape(26.dp)),
@@ -533,7 +586,7 @@ fun TechnicianCard(
                         }
                     } else {
                         Text(
-                            text = "Sin calificaciones aún",
+                            text = stringResource(R.string.client_no_ratings),
                             style = MaterialTheme.typography.bodySmall,
                             color = TextHint
                         )
@@ -541,7 +594,11 @@ fun TechnicianCard(
 
                     if (technician.yearsExp > 0) {
                         Text(
-                            text = "${technician.yearsExp} años de experiencia",
+                            text = pluralStringResource(
+                                R.plurals.technicians_years_experience,
+                                technician.yearsExp,
+                                technician.yearsExp
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary
                         )
@@ -553,7 +610,7 @@ fun TechnicianCard(
                     color = Success.copy(alpha = 0.15f)
                 ) {
                     Text(
-                        text = "● Activo",
+                        text = stringResource(R.string.technicians_active),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
                         color = Success,
@@ -576,7 +633,7 @@ fun TechnicianCard(
                             color = TechnicianColor.copy(alpha = 0.08f)
                         ) {
                             Text(
-                                text = specialty,
+                                text = technicianServiceLabel(specialty),
                                 modifier = Modifier.padding(
                                     horizontal = 8.dp,
                                     vertical = 3.dp
@@ -628,8 +685,15 @@ fun TechnicianCard(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = if (completedJobs == 0) "Nuevo en la plataforma"
-                                else "$completedJobs servicio${if (completedJobs != 1) "s" else ""} realizado${if (completedJobs != 1) "s" else ""}",
+                                text = if (completedJobs == 0) {
+                                    stringResource(R.string.client_new_on_platform)
+                                } else {
+                                    pluralStringResource(
+                                        R.plurals.technicians_completed_services,
+                                        completedJobs,
+                                        completedJobs
+                                    )
+                                },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (completedJobs > 0) Success else TextSecondary,
                                 fontWeight = if (completedJobs > 0) FontWeight.Medium else FontWeight.Normal
@@ -639,7 +703,7 @@ fun TechnicianCard(
                         // Descripción profesional
                         if (technician.bio.isNotBlank()) {
                             Text(
-                                text = "Descripción: ${technician.bio}",
+                                text = stringResource(R.string.technicians_bio_format, technician.bio),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = TextSecondary
                             )
@@ -672,7 +736,7 @@ fun TechnicianCard(
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Text(
-                    text = "Contactar por WhatsApp",
+                    text = stringResource(R.string.technicians_contact_whatsapp),
                     color = Color.White,
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.Medium

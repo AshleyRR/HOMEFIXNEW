@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- TERMS AND CONDITIONS - ENGLISH -->
+    <string name="terms_title">Terms and Conditions</string>
+    <string name="terms_accept">I accept the terms</string>
+    <string name="terms_close">Close</string>
+
+    <!--
+        NUEVO - MULTIDIOMA:
+        El contenido legal completo se conserva en este recurso para que Android
+        muestre la versión correspondiente al idioma activo.
+    -->
+    <string name="terms_full_text"><![CDATA[HOMEFIX Terms and Conditions of Use
+Last updated: 2026 | Applicable in Metropolitan Lima, Peru
+
+1. Acceptance
+By registering with HOMEFIX, you declare that you are over 18 years old and accept these Terms and Conditions, as well as the Privacy Policy. Continued use of the application implies acceptance of any future updates.
+
+2. Description of the service
+HOMEFIX is a digital intermediary platform that connects clients with independent home-service technicians in Metropolitan Lima. The application does not directly provide technical services, does not employ registered technicians, does not supervise the performance of the work, and does not process payments. Financial agreements and service conditions are the sole responsibility of the parties involved.
+
+3. Registration and account
+Users must provide truthful, complete, and up-to-date information when registering. Creating false or duplicate accounts, impersonating another person, or using the platform for purposes unrelated to its intended function is prohibited. Users are responsible for keeping their access credentials confidential.
+
+4. Personal data and privacy
+HOMEFIX collects only the data necessary for the operation of the platform, including identification and contact information, GPS location, photographs, and request history. This data is processed in accordance with Peruvian Personal Data Protection Law No. 29733. HOMEFIX does not sell or share personal data with third parties, except for the technical services required for its operation: Firebase Authentication and Firestore for authentication and storage, Cloudinary for images, Google Maps for geolocation, and WhatsApp as an external communication channel between users.
+
+5. Device permissions
+The application will request camera, gallery, location, and notification permissions only when they are necessary for its features to function. Denying any of these permissions may limit certain app functions.
+
+6. User obligations
+Clients agree to publish genuine requests, clearly describe the service, and provide objective ratings. Technicians agree to provide truthful information about their identity and specialties, keep their availability updated, and act professionally. Any damage, breach, or disagreement arising from the provision of the service is the sole responsibility of the parties.
+
+7. Security
+HOMEFIX implements reasonable technical measures to protect user information, including authentication, role-based access control, and database security rules. However, no internet-connected system can guarantee absolute security. HOMEFIX is not responsible for lost credentials, misuse of an account, or attacks by third parties.
+
+8. Ratings and penalties
+Ratings must be based on real experiences and expressed respectfully. HOMEFIX may remove offensive, false, or defamatory comments and may suspend or delete accounts that violate these terms, register false information, or misuse the platform.
+
+9. Notifications
+HOMEFIX will send notifications related to request status, technician selection, account verification, and other relevant events. Users can manage their notification preferences in the application settings. Disabling notifications may affect the timely monitoring of services.
+
+10. User rights
+Users may exercise their rights of access, rectification, cancellation, and objection regarding their personal data by contacting the HOMEFIX support team. If account deletion is requested, the data will be deleted except for information that must be retained for legal or security reasons.
+
+11. Amendments and governing law
+HOMEFIX may modify these terms for technical, legal, or operational reasons and will communicate such changes through the application. These terms are governed by the laws of the Republic of Peru, and their functional scope is limited to Metropolitan Lima.]]></string>
+
+</resources>

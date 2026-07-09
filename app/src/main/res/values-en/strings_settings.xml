@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+	<!-- Settings screen -->
+	<string name="settings_title">Settings</string>
+	<string name="settings_back">Back</string>
+	<string name="settings_select_language">Select language</string>
+	<string name="settings_close">Close</string>
+
+	<!-- Appearance -->
+	<string name="settings_appearance">Appearance</string>
+	<string name="settings_dark_mode">Dark mode</string>
+	<string name="settings_light_mode">Light mode</string>
+	<string name="settings_enabled">Enabled</string>
+	<string name="settings_disabled">Disabled</string>
+
+	<!-- Language -->
+	<string name="settings_language">Language</string>
+	<string name="settings_language_spanish_peru">Spanish (Peru)</string>
+	<string name="settings_language_english">English</string>
+	<string name="settings_language_portuguese">Portuguese</string>
+
+	<string name="settings_language_option_spanish">🇵🇪  Spanish</string>
+	<string name="settings_language_option_english">🇺🇸  English</string>
+	<string name="settings_language_option_portuguese">🇧🇷  Portuguese</string>
+
+	<!-- Notifications -->
+	<string name="settings_notifications">Notifications</string>
+	<string name="settings_sound">Sound</string>
+	<string name="settings_sound_enabled">Notifications play a sound</string>
+	<string name="settings_no_sound">No sound</string>
+	<string name="settings_vibration">Vibration</string>
+	<string name="settings_vibration_enabled">The device vibrates</string>
+	<string name="settings_no_vibration">No vibration</string>
+
+	<!-- Account -->
+	<string name="settings_account">Account</string>
+	<string name="settings_privacy">Privacy</string>
+	<string name="settings_terms_and_conditions">Terms and conditions</string>
+	<string name="settings_logout">Log out</string>
+
+</resources>

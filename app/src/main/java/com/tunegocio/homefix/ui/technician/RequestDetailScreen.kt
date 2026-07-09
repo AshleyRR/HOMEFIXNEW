@@ -19,12 +19,20 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener los textos de strings_technician.xml según el idioma activo.
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.tunegocio.homefix.data.NotificationsRepository
+
+// NUEVO - MULTIDIOMA:
+// Permite acceder a las claves de recursos del módulo técnico.
+import com.tunegocio.homefix.R
 import com.tunegocio.homefix.data.model.RequestModel
 import com.tunegocio.homefix.data.model.UserModel
 import com.tunegocio.homefix.ui.components.HomefixButton
@@ -45,6 +53,28 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Block
 
 
+
+
+// NUEVO - MULTIDIOMA:
+// Traduce solamente la etiqueta visible del tipo de servicio.
+// El valor almacenado en Firebase se mantiene sin cambios.
+@Composable
+private fun requestDetailServiceLabel(serviceType: String): String {
+    return when (serviceType) {
+        "Electricidad" -> stringResource(R.string.technician_service_electricity)
+        "Gasfitería" -> stringResource(R.string.technician_service_plumbing)
+        "Pintura" -> stringResource(R.string.technician_service_painting)
+        "Carpintería" -> stringResource(R.string.technician_service_carpentry)
+        "Vidriería" -> stringResource(R.string.technician_service_glasswork)
+        "Jardinería" -> stringResource(R.string.technician_service_gardening)
+        "Cerrajería" -> stringResource(R.string.technician_service_locksmith)
+        "Albañilería" -> stringResource(R.string.technician_service_masonry)
+        "Muebles a medida" -> stringResource(R.string.technician_service_custom_furniture)
+        "Lavado de tapizados" -> stringResource(R.string.technician_service_upholstery_cleaning)
+        "Mudanzas" -> stringResource(R.string.technician_service_moving)
+        else -> serviceType
+    }
+}
 
 @Composable
 fun RequestDetailScreen(
@@ -83,6 +113,52 @@ fun RequestDetailScreen(
     var review by remember { mutableStateOf<ReviewModel?>(null) }
     var sinContinuarMotivo by remember { mutableStateOf("") }
     var sinContinuarMotivoError by remember { mutableStateOf("") }
+
+    // NUEVO - MULTIDIOMA:
+    // Traduce el servicio solo para mostrarlo al usuario. El valor interno no cambia.
+    val currentServiceLabel =
+        requestDetailServiceLabel(request?.serviceType ?: "")
+
+    // NUEVO - MULTIDIOMA:
+    // Estos textos se resuelven durante la composición para poder utilizarlos
+    // dentro de callbacks de Firebase, notificaciones e Intents sin consultar
+    // recursos desde procesos asíncronos.
+    val interestNotificationTitle =
+        stringResource(R.string.technician_interest_notification_title)
+    val interestNotificationBody =
+        stringResource(
+            R.string.technician_interest_notification_body,
+            currentServiceLabel
+        )
+    val errorRegisterInterest =
+        stringResource(R.string.technician_error_register_interest)
+    val errorVerifyRequest =
+        stringResource(R.string.technician_error_verify_request)
+    val reasonRequired =
+        stringResource(R.string.technician_reason_required)
+    val cancelInterestNotificationTitle =
+        stringResource(R.string.technician_cancel_interest_notification_title)
+    val cancelReasonNotificationBody =
+        stringResource(R.string.technician_reason_format, cancelReason)
+    val cannotContinueReasonNotificationBody =
+        stringResource(R.string.technician_reason_format, sinContinuarMotivo)
+    val errorCancel =
+        stringResource(R.string.technician_error_cancel)
+    val completedNotificationTitle =
+        stringResource(R.string.technician_completed_notification_title)
+    val completedNotificationBody =
+        stringResource(
+            R.string.technician_completed_notification_body,
+            currentServiceLabel
+        )
+    val errorUpdate =
+        stringResource(R.string.technician_error_update)
+    val cannotContinueNotificationTitle =
+        stringResource(R.string.technician_cannot_continue_notification_title)
+    val whatsappMessage =
+        stringResource(R.string.technician_whatsapp_message)
+    val whatsappNotInstalled =
+        stringResource(R.string.technician_whatsapp_not_installed)
 
     LaunchedEffect(requestId) {
         db.collection("requests").document(requestId)
@@ -128,8 +204,8 @@ fun RequestDetailScreen(
                     .addOnSuccessListener {
                         notificationsRepo.crearNotificacion(
                             userId = req.clientId,
-                            titulo = "¡Un técnico está interesado!",
-                            cuerpo = "Alguien quiere atender tu solicitud de ${req.serviceType}. Revísala para elegir.",
+                            titulo = interestNotificationTitle,
+                            cuerpo = interestNotificationBody,
                             tipo = "tecnico_aceptado",
                             requestId = requestId
                         )
@@ -137,17 +213,17 @@ fun RequestDetailScreen(
                     }
                     .addOnFailureListener {
                         actionLoading = false
-                        errorMessage = "Error al registrar interés"
+                        errorMessage = errorRegisterInterest
                     }
             }
             .addOnFailureListener {
                 actionLoading = false
-                errorMessage = "Error al verificar la solicitud"
+                errorMessage = errorVerifyRequest
             }
     }
 
     fun cancelInterest() {
-        if (cancelReason.isBlank()) { cancelReasonError = "Por favor escribe el motivo"; return }
+        if (cancelReason.isBlank()) { cancelReasonError = reasonRequired; return }
         actionLoading = true
         val req = request ?: return
         db.collection("requests").document(requestId)
@@ -162,8 +238,8 @@ fun RequestDetailScreen(
                     }
                 notificationsRepo.crearNotificacion(
                     userId = req.clientId,
-                    titulo = "Un técnico canceló su interés",
-                    cuerpo = "Motivo: $cancelReason",
+                    titulo = cancelInterestNotificationTitle,
+                    cuerpo = cancelReasonNotificationBody,
                     tipo = "tecnico_cancelo",
                     requestId = requestId
                 )
@@ -172,7 +248,7 @@ fun RequestDetailScreen(
                 cancelReason = ""
                 navController.popBackStack()
             }
-            .addOnFailureListener { actionLoading = false; errorMessage = "Error al cancelar" }
+            .addOnFailureListener { actionLoading = false; errorMessage = errorCancel }
     }
 
     fun solicitarCompletado() {
@@ -183,19 +259,19 @@ fun RequestDetailScreen(
             .addOnSuccessListener {
                 notificationsRepo.crearNotificacion(
                     userId = req.clientId,
-                    titulo = "El técnico terminó el trabajo",
-                    cuerpo = "¿Confirmas que el servicio de ${req.serviceType} fue completado?",
+                    titulo = completedNotificationTitle,
+                    cuerpo = completedNotificationBody,
                     tipo = "confirmar_completado",
                     requestId = requestId
                 )
                 actionLoading = false
                 showCompletadoDialog = false
             }
-            .addOnFailureListener { actionLoading = false; errorMessage = "Error al actualizar" }
+            .addOnFailureListener { actionLoading = false; errorMessage = errorUpdate }
     }
 
     fun solicitarSinContinuar() {
-        if (sinContinuarMotivo.isBlank()) { sinContinuarMotivoError = "Por favor escribe el motivo"; return }
+        if (sinContinuarMotivo.isBlank()) { sinContinuarMotivoError = reasonRequired; return }
         actionLoading = true
         val req = request ?: return
         db.collection("requests").document(requestId)
@@ -207,8 +283,8 @@ fun RequestDetailScreen(
             .addOnSuccessListener {
                 notificationsRepo.crearNotificacion(
                     userId = req.clientId,
-                    titulo = "El técnico no puede continuar",
-                    cuerpo = "Motivo: $sinContinuarMotivo",
+                    titulo = cannotContinueNotificationTitle,
+                    cuerpo = cannotContinueReasonNotificationBody,
                     tipo = "sin_continuar_confirmado",
                     requestId = requestId
                 )
@@ -217,7 +293,7 @@ fun RequestDetailScreen(
                 sinContinuarMotivo = ""
                 navController.popBackStack()
             }
-            .addOnFailureListener { actionLoading = false; errorMessage = "Error al actualizar" }
+            .addOnFailureListener { actionLoading = false; errorMessage = errorUpdate }
     }
 
 
@@ -225,10 +301,10 @@ fun RequestDetailScreen(
     fun openWhatsApp(phone: String) {
         val number = phone.replace(Regex("[^0-9]"), "")
         val fullNumber = if (number.startsWith("51")) number else "51$number"
-        val message = "Hola, vi tu solicitud en HomeFix y me gustaría ayudarte."
+        val message = whatsappMessage
         val uri = Uri.parse("https://wa.me/$fullNumber?text=${Uri.encode(message)}")
         try { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) }
-        catch (e: Exception) { errorMessage = "WhatsApp no está instalado" }
+        catch (e: Exception) { errorMessage = whatsappNotInstalled }
     }
 
     fun openGoogleMaps(lat: Double, lng: Double, address: String) {
@@ -243,14 +319,14 @@ fun RequestDetailScreen(
     if (showConfirmInterestDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmInterestDialog = false },
-            title = { Text("¿Confirmar interés?", fontWeight = FontWeight.Bold, color = textColor) },
-            text = { Text("Al confirmar, el cliente verá que estás interesado en atender esta solicitud y podrá elegirte.", color = secondaryText) },
+            title = { Text(stringResource(R.string.technician_confirm_interest_title), fontWeight = FontWeight.Bold, color = textColor) },
+            text = { Text(stringResource(R.string.technician_confirm_interest_body), color = secondaryText) },
             confirmButton = {
                 Button(onClick = { showConfirmInterestDialog = false; acceptRequest() }, colors = ButtonDefaults.buttonColors(containerColor = primaryColor)) {
-                    Text("Sí, me interesa", color = Color.White)
+                    Text(stringResource(R.string.technician_yes_interested), color = Color.White)
                 }
             },
-            dismissButton = { TextButton(onClick = { showConfirmInterestDialog = false }) { Text("Cancelar", color = secondaryText) } },
+            dismissButton = { TextButton(onClick = { showConfirmInterestDialog = false }) { Text(stringResource(R.string.technician_cancel), color = secondaryText) } },
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
@@ -259,15 +335,15 @@ fun RequestDetailScreen(
     if (showCancelReasonDialog) {
         AlertDialog(
             onDismissRequest = { showCancelReasonDialog = false; cancelReason = ""; cancelReasonError = "" },
-            title = { Text("¿Por qué cancelas?", fontWeight = FontWeight.Bold, color = textColor) },
+            title = { Text(stringResource(R.string.technician_cancel_reason_title), fontWeight = FontWeight.Bold, color = textColor) },
             text = {
                 Column {
-                    Text("El cliente recibirá una notificación con el motivo.", color = secondaryText, style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(R.string.technician_reason_notice), color = secondaryText, style = MaterialTheme.typography.bodySmall)
                     Spacer(modifier = Modifier.height(12.dp))
                     OutlinedTextField(
                         value = cancelReason,
                         onValueChange = { cancelReason = it; cancelReasonError = "" },
-                        placeholder = { Text("Ej: Surgió un inconveniente, estoy lejos...", color = secondaryText) },
+                        placeholder = { Text(stringResource(R.string.technician_cancel_reason_hint), color = secondaryText) },
                         shape = RoundedCornerShape(10.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = primaryColor,
@@ -284,10 +360,10 @@ fun RequestDetailScreen(
             confirmButton = {
                 Button(onClick = { cancelInterest() }, enabled = !actionLoading, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
                     if (actionLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    else Text("Confirmar cancelación", color = Color.White)
+                    else Text(stringResource(R.string.technician_confirm_cancellation), color = Color.White)
                 }
             },
-            dismissButton = { TextButton(onClick = { showCancelReasonDialog = false; cancelReason = ""; cancelReasonError = "" }) { Text("Volver", color = secondaryText) } },
+            dismissButton = { TextButton(onClick = { showCancelReasonDialog = false; cancelReason = ""; cancelReasonError = "" }) { Text(stringResource(R.string.technician_back), color = secondaryText) } },
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
@@ -296,15 +372,15 @@ fun RequestDetailScreen(
     if (showCompletadoDialog) {
         AlertDialog(
             onDismissRequest = { showCompletadoDialog = false },
-            title = { Text("¿Marcar como completado?", fontWeight = FontWeight.Bold, color = textColor) },
-            text = { Text("Se notificará al cliente para que confirme que el trabajo fue terminado.", color = secondaryText) },
+            title = { Text(stringResource(R.string.technician_mark_completed_title), fontWeight = FontWeight.Bold, color = textColor) },
+            text = { Text(stringResource(R.string.technician_mark_completed_body), color = secondaryText) },
             confirmButton = {
                 Button(onClick = { solicitarCompletado() }, enabled = !actionLoading, colors = ButtonDefaults.buttonColors(containerColor = Success)) {
                     if (actionLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    else Text("Confirmar", color = Color.White)
+                    else Text(stringResource(R.string.technician_confirm), color = Color.White)
                 }
             },
-            dismissButton = { TextButton(onClick = { showCompletadoDialog = false }) { Text("Cancelar", color = secondaryText) } },
+            dismissButton = { TextButton(onClick = { showCompletadoDialog = false }) { Text(stringResource(R.string.technician_cancel), color = secondaryText) } },
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         )
     }
@@ -313,11 +389,11 @@ fun RequestDetailScreen(
     if (showSinContinuarDialog) {
         AlertDialog(
             onDismissRequest = { showSinContinuarDialog = false; sinContinuarMotivo = ""; sinContinuarMotivoError = "" },
-            title = { Text("¿No puedes continuar?", fontWeight = FontWeight.Bold, color = textColor) },
+            title = { Text(stringResource(R.string.technician_cannot_continue_title), fontWeight = FontWeight.Bold, color = textColor) },
             text = {
                 Column {
                     Text(
-                        "El cliente recibirá una notificación con el motivo.",
+                        stringResource(R.string.technician_reason_notice),
                         color = secondaryText,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -325,7 +401,7 @@ fun RequestDetailScreen(
                     OutlinedTextField(
                         value = sinContinuarMotivo,
                         onValueChange = { sinContinuarMotivo = it; sinContinuarMotivoError = "" },
-                        placeholder = { Text("Ej: Surgió un inconveniente, no puedo llegar...", color = secondaryText) },
+                        placeholder = { Text(stringResource(R.string.technician_cannot_continue_hint), color = secondaryText) },
                         shape = RoundedCornerShape(10.dp),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = primaryColor,
@@ -348,12 +424,12 @@ fun RequestDetailScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
                 ) {
                     if (actionLoading) CircularProgressIndicator(color = Color.White, modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                    else Text("Confirmar", color = Color.White)
+                    else Text(stringResource(R.string.technician_confirm), color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showSinContinuarDialog = false; sinContinuarMotivo = ""; sinContinuarMotivoError = "" }) {
-                    Text("Cancelar", color = secondaryText)
+                    Text(stringResource(R.string.technician_cancel), color = secondaryText)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -383,7 +459,7 @@ fun RequestDetailScreen(
             ) {
                 AsyncImage(
                     model = url,
-                    contentDescription = "Foto ampliada",
+                    contentDescription = stringResource(R.string.technician_photo_enlarged),
                     modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)),
                     contentScale = ContentScale.FillWidth
                 )
@@ -391,7 +467,7 @@ fun RequestDetailScreen(
                     onClick = { fotoExpandidaUrl = null },
                     modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
                 ) {
-                    Icon(Icons.Default.Close, contentDescription = "Cerrar", tint = Color.White)
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.technician_close), tint = Color.White)
                 }
             }
         }
@@ -408,10 +484,10 @@ fun RequestDetailScreen(
             // Header
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = textColor)
+                    Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.technician_back), tint = textColor)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Detalle de solicitud", style = MaterialTheme.typography.headlineMedium, color = textColor, fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.technician_request_detail_title), style = MaterialTheme.typography.headlineMedium, color = textColor, fontWeight = FontWeight.Bold)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -423,7 +499,9 @@ fun RequestDetailScreen(
             ) {
                 Surface(shape = RoundedCornerShape(8.dp), color = primaryColor.copy(alpha = 0.1f)) {
                     Text(
-                        req.serviceType,
+                        // MODIFICADO - MULTIDIOMA:
+                        // La etiqueta visible se traduce; req.serviceType no se modifica.
+                        currentServiceLabel,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                         style = MaterialTheme.typography.labelLarge,
                         color = primaryColor,
@@ -441,7 +519,7 @@ fun RequestDetailScreen(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(Icons.Default.ElectricBolt, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(12.dp))
-                            Text("Urgente", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.technician_urgent), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -453,7 +531,7 @@ fun RequestDetailScreen(
                             horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
                             Icon(Icons.Default.Build, contentDescription = null, tint = Info, modifier = Modifier.size(12.dp))
-                            Text("En proceso", style = MaterialTheme.typography.labelSmall, color = Info, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.technician_in_progress), style = MaterialTheme.typography.labelSmall, color = Info, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -471,7 +549,7 @@ fun RequestDetailScreen(
                 Column(modifier = Modifier.padding(16.dp)) {
 
                     // Descripción
-                    Text("Descripción", style = MaterialTheme.typography.labelMedium, color = secondaryText, fontWeight = FontWeight.Medium)
+                    Text(stringResource(R.string.technician_description), style = MaterialTheme.typography.labelMedium, color = secondaryText, fontWeight = FontWeight.Medium)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(req.description, style = MaterialTheme.typography.bodyMedium, color = textColor)
 
@@ -480,7 +558,7 @@ fun RequestDetailScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text("Dirección", style = MaterialTheme.typography.labelMedium, color = secondaryText, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.technician_address), style = MaterialTheme.typography.labelMedium, color = secondaryText, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.LocationOn, contentDescription = null, tint = primaryColor, modifier = Modifier.size(16.dp))
@@ -492,7 +570,11 @@ fun RequestDetailScreen(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Info, contentDescription = null, tint = secondaryText, modifier = Modifier.size(14.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Ref: ${req.reference}", style = MaterialTheme.typography.bodySmall, color = secondaryText)
+                                Text(
+                                    stringResource(
+                                        R.string.technician_reference_format,
+                                        req.reference
+                                    ), style = MaterialTheme.typography.bodySmall, color = secondaryText)
                             }
                         }
                         if (req.lat != 0.0 || req.address.isNotEmpty()) {
@@ -505,7 +587,7 @@ fun RequestDetailScreen(
                             ) {
                                 Icon(Icons.Default.Map, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Ver en Google Maps", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                                Text(stringResource(R.string.technician_view_google_maps), color = Color.White, style = MaterialTheme.typography.labelLarge)
                             }
                         }
                     }
@@ -530,7 +612,7 @@ fun RequestDetailScreen(
                         Spacer(modifier = Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                         Spacer(modifier = Modifier.height(12.dp))
-                        Text("Fotos", style = MaterialTheme.typography.labelMedium, color = secondaryText, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.technician_photos), style = MaterialTheme.typography.labelMedium, color = secondaryText, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.height(6.dp))
                         val urls = req.imageUrls.first().split(",").filter { it.isNotEmpty() }
                         if (urls.size == 1) {
@@ -571,7 +653,7 @@ fun RequestDetailScreen(
 
             // Cliente
             client?.let { c ->
-                Text("Cliente", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.technician_client), style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -621,7 +703,7 @@ fun RequestDetailScreen(
                             ) {
                                 Icon(Icons.Default.Phone, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Contactar por WhatsApp", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                                Text(stringResource(R.string.technician_contact_whatsapp), color = Color.White, style = MaterialTheme.typography.labelLarge)
                             }
                         }
                     }
@@ -649,8 +731,8 @@ fun RequestDetailScreen(
                                 Icon(imageVector = Icons.Filled.HourglassBottom, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text("Solicitud enviada", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
-                                    Text("Estás a la espera de que el cliente te elija.", style = MaterialTheme.typography.bodySmall, color = Color.White)
+                                    Text(stringResource(R.string.technician_request_sent), style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                    Text(stringResource(R.string.technician_waiting_client_choice), style = MaterialTheme.typography.bodySmall, color = Color.White)
                                 }
                             }
                         }
@@ -673,14 +755,14 @@ fun RequestDetailScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "Cancelar solicitud",
+                                stringResource(R.string.technician_cancel_request),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = Color.White
                             )
                         }
                     } else {
                         HomefixButton(
-                            text = "Me interesa",
+                            text = stringResource(R.string.technician_interested),
                             onClick = { showConfirmInterestDialog = true },
                             isLoading = actionLoading,
                             color = primaryColor,
@@ -709,7 +791,7 @@ fun RequestDetailScreen(
                             )
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "No me interesa",
+                                text = stringResource(R.string.technician_not_interested),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = Color.White
                             )
@@ -720,7 +802,7 @@ fun RequestDetailScreen(
                 "aceptada" -> {
                     if (req.technicianId == technicianId) {
                         HomefixButton(
-                            text = "Finalizado",
+                            text = stringResource(R.string.technician_finished),
                             onClick = { showCompletadoDialog = true },
                             isLoading = actionLoading,
                             color = Color(0xFF17192E),
@@ -752,7 +834,7 @@ fun RequestDetailScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                "Sin continuar",
+                                stringResource(R.string.technician_not_continue),
                                 style = MaterialTheme.typography.labelLarge,
                                 color = Color.White
                             )
@@ -771,8 +853,8 @@ fun RequestDetailScreen(
                             Icon(imageVector = Icons.Filled.HourglassBottom, contentDescription = null, tint = Color.White, modifier = Modifier.size(48.dp))
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text("Solicitud enviada", style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
-                                Text("Estás a la espera de que el cliente te elija.", style = MaterialTheme.typography.bodySmall, color = Color.White)
+                                Text(stringResource(R.string.technician_request_sent), style = MaterialTheme.typography.titleMedium, color = Color.White, fontWeight = FontWeight.SemiBold)
+                                Text(stringResource(R.string.technician_waiting_client_choice), style = MaterialTheme.typography.bodySmall, color = Color.White)
                             }
                         }
                     }
@@ -789,8 +871,8 @@ fun RequestDetailScreen(
                             Icon(imageVector = Icons.Default.HourglassBottom, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(40.dp))
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text("Esperando confirmación", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
-                                Text("El cliente debe confirmar que el proceso no continuó.", style = MaterialTheme.typography.bodySmall, color = secondaryText)
+                                Text(stringResource(R.string.technician_waiting_confirmation), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                                Text(stringResource(R.string.technician_client_confirm_not_continued), style = MaterialTheme.typography.bodySmall, color = secondaryText)
                             }
                         }
                     }
@@ -807,9 +889,19 @@ fun RequestDetailScreen(
                             Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Success, modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text("Servicio completado", style = MaterialTheme.typography.titleSmall, color = Success, fontWeight = FontWeight.SemiBold)
+                                Text(stringResource(R.string.technician_service_completed), style = MaterialTheme.typography.titleSmall, color = Success, fontWeight = FontWeight.SemiBold)
+                                val completedDate =
+                                    java.text.SimpleDateFormat(
+                                        "dd/MM/yyyy HH:mm",
+                                        java.util.Locale.getDefault()
+                                    ).format(java.util.Date(req.updatedAt))
+
                                 Text(
-                                    "Finalizado el ${java.text.SimpleDateFormat("dd/MM/yyyy 'a las' HH:mm", java.util.Locale.getDefault()).format(java.util.Date(req.updatedAt))}",
+                                    // MODIFICADO - MULTIDIOMA:
+                                    text = stringResource(
+                                        R.string.technician_finished_on,
+                                        completedDate
+                                    ),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = secondaryText
                                 )
@@ -827,7 +919,7 @@ fun RequestDetailScreen(
                             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text("Calificación del cliente", style = MaterialTheme.typography.titleSmall, color = textColor, fontWeight = FontWeight.SemiBold)
+                                Text(stringResource(R.string.technician_client_rating), style = MaterialTheme.typography.titleSmall, color = textColor, fontWeight = FontWeight.SemiBold)
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     (1..5).forEach { star ->
@@ -864,7 +956,7 @@ fun RequestDetailScreen(
                             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.StarBorder, contentDescription = null, tint = secondaryText, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("El cliente aún no ha calificado el servicio.", style = MaterialTheme.typography.bodySmall, color = secondaryText)
+                                Text(stringResource(R.string.technician_client_not_rated), style = MaterialTheme.typography.bodySmall, color = secondaryText)
                             }
                         }
                     }
@@ -879,7 +971,7 @@ fun RequestDetailScreen(
                         Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
                             Icon(Icons.Default.Cancel, contentDescription = null, tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text("Proceso no continuado", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(R.string.technician_process_not_continued), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }

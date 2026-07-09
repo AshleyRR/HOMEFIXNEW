@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- =========================================================
+         MÓDULO SHARED - ESPAÑOL
+         HistoryScreen, NotificationsScreen y RatingScreen
+         ========================================================= -->
+
+    <!-- Historial -->
+    <string name="shared_history_title">Historial</string>
+    <string name="shared_history_subtitle">Todos tus servicios pasados</string>
+    <string name="shared_history_filter_all">Todos</string>
+    <string name="shared_history_filter_completed">Completadas</string>
+    <string name="shared_history_filter_not_continued">No continuadas</string>
+    <string name="shared_history_empty_title">Sin historial aún</string>
+    <string name="shared_history_empty_description">Aquí aparecerán tus servicios completados</string>
+    <string name="shared_history_status_completed">Completada</string>
+    <string name="shared_history_status_not_continued">No continuada</string>
+    <string name="shared_history_status_canceled">Cancelada</string>
+    <string name="shared_history_view_detail">Ver detalle</string>
+
+    <plurals name="shared_history_services_count">
+        <item quantity="one">%1$d servicio</item>
+        <item quantity="other">%1$d servicios</item>
+    </plurals>
+
+    <!-- Etiquetas visibles de servicios.
+         Los valores internos de Firebase no se modifican. -->
+    <string name="shared_service_electricity">Electricidad</string>
+    <string name="shared_service_plumbing">Gasfitería</string>
+    <string name="shared_service_painting">Pintura</string>
+    <string name="shared_service_carpentry">Carpintería</string>
+    <string name="shared_service_glasswork">Vidriería</string>
+    <string name="shared_service_gardening">Jardinería</string>
+    <string name="shared_service_locksmith">Cerrajería</string>
+    <string name="shared_service_masonry">Albañilería</string>
+    <string name="shared_service_custom_furniture">Muebles a medida</string>
+    <string name="shared_service_upholstery_cleaning">Lavado de tapizados</string>
+    <string name="shared_service_moving">Mudanzas</string>
+
+    <!-- Notificaciones -->
+    <string name="shared_notifications_back">Volver</string>
+    <string name="shared_notifications_title">Notificaciones</string>
+    <string name="shared_notifications_empty_title">Sin notificaciones</string>
+    <string name="shared_notifications_empty_description">Aquí aparecerán tus alertas</string>
+
+    <plurals name="shared_notifications_new_count">
+        <item quantity="one">%1$d nueva</item>
+        <item quantity="other">%1$d nuevas</item>
+    </plurals>
+
+    <!-- Etiquetas de tipo -->
+    <string name="shared_notification_label_new_request">Nueva solicitud</string>
+    <string name="shared_notification_label_interested">Técnico interesado</string>
+    <string name="shared_notification_label_selected">Te eligieron</string>
+    <string name="shared_notification_label_not_selected">No seleccionado</string>
+    <string name="shared_notification_label_technician_canceled">Técnico canceló</string>
+    <string name="shared_notification_label_client_canceled">Cliente canceló</string>
+    <string name="shared_notification_label_on_the_way">En camino</string>
+    <string name="shared_notification_label_completed">Completado</string>
+    <string name="shared_notification_label_confirm_work">Confirmar trabajo</string>
+    <string name="shared_notification_label_confirm_closure">Confirmar cierre</string>
+    <string name="shared_notification_label_work_rejected">Trabajo rechazado</string>
+    <string name="shared_notification_label_process_closed">Proceso cerrado</string>
+    <string name="shared_notification_label_default">Notificación</string>
+
+    <!-- Títulos traducidos según el campo interno type -->
+    <string name="shared_notification_title_new_request">Nueva solicitud disponible</string>
+    <string name="shared_notification_title_interested">¡Un técnico está interesado!</string>
+    <string name="shared_notification_title_selected">¡Te eligieron!</string>
+    <string name="shared_notification_title_not_selected">Solicitud asignada a otro técnico</string>
+    <string name="shared_notification_title_technician_canceled">El técnico canceló el servicio</string>
+    <string name="shared_notification_title_client_canceled">Solicitud cancelada</string>
+    <string name="shared_notification_title_on_the_way">El técnico está en camino</string>
+    <string name="shared_notification_title_completed">Servicio completado</string>
+    <string name="shared_notification_title_confirm_work">El técnico terminó el trabajo</string>
+    <string name="shared_notification_title_confirm_closure">Confirma el cierre del proceso</string>
+    <string name="shared_notification_title_work_rejected">Trabajo no confirmado</string>
+    <string name="shared_notification_title_process_closed">Proceso cerrado</string>
+
+    <!-- Cuerpos genéricos para traducir notificaciones antiguas guardadas en Firebase -->
+    <string name="shared_notification_body_new_request">Hay una nueva solicitud de servicio disponible.</string>
+    <string name="shared_notification_body_interested">Un técnico quiere atender tu solicitud. Revísala para elegir.</string>
+    <string name="shared_notification_body_selected">El cliente eligió tu propuesta. Revisa la solicitud.</string>
+    <string name="shared_notification_body_not_selected">El cliente eligió a otro técnico para esta solicitud.</string>
+    <string name="shared_notification_body_technician_canceled">El técnico indicó que no puede continuar con el servicio.</string>
+    <string name="shared_notification_body_client_canceled">El cliente canceló la solicitud.</string>
+    <string name="shared_notification_body_on_the_way">El técnico se dirige a la ubicación del servicio.</string>
+    <string name="shared_notification_body_completed">El servicio fue marcado como completado.</string>
+    <string name="shared_notification_body_confirm_work">Confirma si el servicio fue completado.</string>
+    <string name="shared_notification_body_confirm_closure">El técnico indicó que no puede continuar. Revisa y confirma.</string>
+    <string name="shared_notification_body_work_rejected">El cliente indicó que el trabajo no fue completado.</string>
+    <string name="shared_notification_body_process_closed">El proceso fue confirmado como no continuado.</string>
+
+    <!-- Calificación -->
+    <string name="shared_rating_select_error">Selecciona una calificación</string>
+    <string name="shared_rating_already_rated">Ya calificaste este servicio</string>
+    <string name="shared_rating_back_home">Volver al inicio</string>
+    <string name="shared_rating_title">Califica el servicio</string>
+    <string name="shared_rating_experience_with">¿Cómo fue tu experiencia con %1$s?</string>
+    <string name="shared_rating_your_rating">Tu calificación</string>
+    <string name="shared_rating_star_description">Estrella %1$d</string>
+    <string name="shared_rating_very_bad">Muy malo 😞</string>
+    <string name="shared_rating_bad">Malo 😕</string>
+    <string name="shared_rating_regular">Regular 😐</string>
+    <string name="shared_rating_good">Bueno 😊</string>
+    <string name="shared_rating_excellent">Excelente 🤩</string>
+    <string name="shared_rating_optional_comment">Comentario (opcional)</string>
+    <string name="shared_rating_comment_hint">Cuéntanos sobre tu experiencia…</string>
+    <string name="shared_rating_send">Enviar calificación</string>
+    <string name="shared_rating_skip">Omitir por ahora</string>
+
+</resources>

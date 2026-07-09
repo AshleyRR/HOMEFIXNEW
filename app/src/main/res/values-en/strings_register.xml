@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- REGISTER - ENGLISH -->
+    <string name="register_title">Create account</string>
+    <string name="register_subtitle">Complete your information to get started</string>
+    <string name="register_role_question">How do you want to use HomeFix?</string>
+    <string name="register_role_client">Client</string>
+    <string name="register_role_client_description">I need a technician</string>
+    <string name="register_role_technician">Technician</string>
+    <string name="register_role_technician_description">I offer services</string>
+    <string name="register_first_names">First name</string>
+    <string name="register_last_names">Last name</string>
+    <string name="register_email">Email address</string>
+    <string name="register_password">Password</string>
+    <string name="register_confirm_password">Confirm password</string>
+    <string name="register_phone_number">Phone number</string>
+    <string name="register_district">District</string>
+    <string name="register_select_district">Select your district</string>
+    <string name="register_profile_photo">Profile photo</string>
+    <string name="register_profile_photo_description">Take a selfie now. It is required for all users.</string>
+    <string name="register_selfie">Selfie</string>
+    <string name="register_retake_selfie">Retake selfie</string>
+    <string name="register_take_another_photo">Tap the X to take another photo</string>
+    <string name="register_take_selfie_now">Take selfie now</string>
+    <string name="register_technician_data">Technician information</string>
+    <string name="register_dni">DNI (8 digits)</string>
+    <string name="register_years_experience">Years of experience</string>
+    <string name="register_specialties_max">Specialties (maximum %1$d)</string>
+    <string name="register_select_specialties">Select specialties</string>
+    <string name="register_one_specialty_selected">%1$d selected</string>
+    <string name="register_multiple_specialties_selected">%1$d selected</string>
+    <string name="register_remove">Remove</string>
+    <string name="register_terms_prefix">I have read and accept the\u0020</string>
+    <string name="register_terms_and_conditions">Terms and Conditions</string>
+    <string name="register_adult_confirmation">I confirm that I am over 18 years old</string>
+    <string name="register_create_account_button">Create account</string>
+    <string name="register_already_have_account">Already have an account?\u0020</string>
+    <string name="register_login">Log in</string>
+    <string name="register_first_name_required">First name is required</string>
+    <string name="register_minimum_two_characters">Minimum 2 characters</string>
+    <string name="register_last_name_required">Last name is required</string>
+    <string name="register_email_required">Email is required</string>
+    <string name="register_invalid_email">Enter a valid email address (e.g., email@gmail.com)</string>
+    <string name="register_password_required">Password is required</string>
+    <string name="register_password_min_length">Minimum 6 characters</string>
+    <string name="register_password_uppercase">It must contain at least one uppercase letter</string>
+    <string name="register_password_number">It must contain at least one number</string>
+    <string name="register_confirm_password_required">Confirm your password</string>
+    <string name="register_passwords_do_not_match">Passwords do not match</string>
+    <string name="register_phone_required">Phone number is required</string>
+    <string name="register_invalid_phone">Enter a valid 9-digit number</string>
+    <string name="register_district_required">Select your district</string>
+    <string name="register_role_required">Select how you want to use HomeFix</string>
+    <string name="register_photo_required">Profile photo is required</string>
+    <string name="register_dni_required">DNI is required</string>
+    <string name="register_invalid_dni">DNI must contain exactly 8 digits</string>
+    <string name="register_specialty_required">Select at least one specialty</string>
+    <string name="register_terms_required">You must accept the Terms and Conditions</string>
+    <string name="register_adult_required">You must be over 18 years old to register</string>
+    <string name="register_save_data_error">Error saving data</string>
+    <string name="register_photo_upload_error">Error uploading photo</string>
+    <string name="register_authentication_error">Authentication error after registration</string>
+    <string name="register_email_already_exists">That email is already registered</string>
+    <string name="register_generic_retry_error">Registration error. Try again</string>
+    <string name="register_generic_error">Registration error</string>
+    <string name="register_search_district">Search district…</string>
+    <string name="register_district_not_found">That district was not found</string>
+    <string name="register_cancel">Cancel</string>
+    <string name="register_select_your_specialties">Select your specialties</string>
+    <string name="register_specialty_selection_status">Maximum %1$d — %2$d/%1$d selected</string>
+    <string name="register_confirm">Confirm</string>
+
+</resources>

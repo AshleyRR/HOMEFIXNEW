@@ -29,7 +29,49 @@ import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
 
 import androidx.compose.ui.platform.LocalContext
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener textos y plurales desde strings_client.xml.
+import androidx.compose.ui.res.stringResource
 import com.tunegocio.homefix.data.local.database.LocalDatabase
+
+// NUEVO - MULTIDIOMA:
+// Permite acceder a las claves definidas en strings_client.xml.
+import com.tunegocio.homefix.R
+// NUEVO - MULTIDIOMA:
+// Traduce únicamente la etiqueta visible del tipo de servicio.
+// El valor interno guardado en Firebase se mantiene en español para no
+// afectar filtros, consultas ni solicitudes existentes.
+@Composable
+private fun clientServiceLabel(serviceType: String): String = when (serviceType) {
+    "Electricidad" -> stringResource(R.string.service_electricity)
+    "Gasfitería" -> stringResource(R.string.service_plumbing)
+    "Pintura" -> stringResource(R.string.service_painting)
+    "Carpintería" -> stringResource(R.string.service_carpentry)
+    "Vidriería" -> stringResource(R.string.service_glasswork)
+    "Jardinería" -> stringResource(R.string.service_gardening)
+    "Cerrajería" -> stringResource(R.string.service_locksmith)
+    "Albañilería" -> stringResource(R.string.service_masonry)
+    "Muebles a medida" -> stringResource(R.string.service_custom_furniture)
+    "Lavado de tapizados" -> stringResource(R.string.service_upholstery_cleaning)
+    "Mudanzas" -> stringResource(R.string.service_moving)
+    else -> serviceType
+}
+
+// NUEVO - MULTIDIOMA:
+// Traduce únicamente el estado visible. El código interno del estado no cambia.
+@Composable
+private fun clientStatusLabel(status: String): String = when (status) {
+    "pendiente" -> stringResource(R.string.status_pending)
+    "en_revision" -> stringResource(R.string.status_under_review)
+    "aceptada" -> stringResource(R.string.status_accepted)
+    "en_camino" -> stringResource(R.string.status_on_the_way)
+    "completada" -> stringResource(R.string.status_completed)
+    "cancelada" -> stringResource(R.string.status_canceled)
+    "sin_continuar" -> stringResource(R.string.status_not_continued)
+    else -> status
+}
+
 @Composable
 fun HomeClientScreen(navController: NavController) {
 
@@ -115,13 +157,17 @@ fun HomeClientScreen(navController: NavController) {
                 ) {
                     Column {
                         Text(
-                            text = "Hola, ${userName.split(" ").firstOrNull() ?: ""}",
+                            // MODIFICADO - MULTIDIOMA:
+                            text = stringResource(
+                                R.string.home_client_greeting,
+                                userName.split(" ").firstOrNull() ?: ""
+                            ),
                             style = MaterialTheme.typography.headlineMedium,
                             color = MaterialTheme.colorScheme.onBackground,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "¿Qué necesitas reparar hoy?",
+                            text = stringResource(R.string.home_client_question),
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
                         )
@@ -139,7 +185,7 @@ fun HomeClientScreen(navController: NavController) {
                             IconButton(onClick = { navController.navigate(Routes.NOTIFICATIONS) }) {
                                 Icon(
                                     Icons.Default.Notifications,
-                                    contentDescription = "Notificaciones",
+                                    contentDescription = stringResource(R.string.client_notifications),
                                     tint = MaterialTheme.colorScheme.onBackground,
                                     modifier = Modifier.size(28.dp)
                                 )
@@ -149,7 +195,7 @@ fun HomeClientScreen(navController: NavController) {
                             if (userPhotoUrl.isNotEmpty()) {
                                 AsyncImage(
                                     model = userPhotoUrl,
-                                    contentDescription = "Perfil",
+                                    contentDescription = stringResource(R.string.client_profile),
                                     modifier = Modifier
                                         .size(36.dp)
                                         .clip(RoundedCornerShape(18.dp)),
@@ -158,7 +204,7 @@ fun HomeClientScreen(navController: NavController) {
                             } else {
                                 Icon(
                                     Icons.Default.AccountCircle,
-                                    contentDescription = "Perfil",
+                                    contentDescription = stringResource(R.string.client_profile),
                                     tint = Primary,
                                     modifier = Modifier.size(36.dp)
                                 )
@@ -182,7 +228,7 @@ fun HomeClientScreen(navController: NavController) {
                     Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Nueva solicitud",
+                        text = stringResource(R.string.home_client_new_request),
                         style = MaterialTheme.typography.titleMedium,
                         color = Color.White,
                         fontWeight = FontWeight.SemiBold
@@ -204,7 +250,7 @@ fun HomeClientScreen(navController: NavController) {
                     Icon(Icons.Default.Search, contentDescription = null)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Ver técnicos disponibles",
+                        text = stringResource(R.string.home_client_view_technicians),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium
                     )
@@ -214,7 +260,7 @@ fun HomeClientScreen(navController: NavController) {
             item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Mis solicitudes activas",
+                    text = stringResource(R.string.home_client_active_requests),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.SemiBold
@@ -268,13 +314,13 @@ fun EmptyRequestsCard() {
             Text(text = "🔍", style = MaterialTheme.typography.headlineLarge)
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Sin solicitudes activas",
+                text = stringResource(R.string.home_client_no_active_requests),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Medium
             )
             Text(
-                text = "Crea una nueva solicitud para encontrar un técnico",
+                text = stringResource(R.string.home_client_empty_description),
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary
             )
@@ -291,13 +337,9 @@ fun RequestStatusCard(request: RequestModel, onClick: () -> Unit) {
         "en_camino" -> Secondary
         else -> TextSecondary
     }
-    val statusLabel = when (request.status) {
-        "pendiente" -> "Pendiente"
-        "en_revision" -> "En revisión"
-        "aceptada" -> "Aceptada"
-        "en_camino" -> "En camino"
-        else -> request.status
-    }
+    // MODIFICADO - MULTIDIOMA:
+    // Se traduce solo la etiqueta visible del estado.
+    val statusLabel = clientStatusLabel(request.status)
 
     Card(
         modifier = Modifier
@@ -313,7 +355,8 @@ fun RequestStatusCard(request: RequestModel, onClick: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = request.serviceType,
+                    // MODIFICADO - MULTIDIOMA:
+                    text = clientServiceLabel(request.serviceType),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.SemiBold
@@ -326,7 +369,7 @@ fun RequestStatusCard(request: RequestModel, onClick: () -> Unit) {
                 if (request.isUrgent) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "⚡ Urgente",
+                        text = "⚡ ${stringResource(R.string.client_urgent)}",
                         style = MaterialTheme.typography.labelSmall,
                         color = Error
                     )
@@ -355,26 +398,46 @@ fun ClientBottomBar(navController: NavController, current: String) {
         NavigationBarItem(
             selected = current == "home",
             onClick = { navController.navigate(Routes.HOME_CLIENT) },
-            icon = { Icon(Icons.Default.Home, contentDescription = "Inicio") },
-            label = { Text("Inicio") }
+            icon = {
+                Icon(
+                    Icons.Default.Home,
+                    contentDescription = stringResource(R.string.client_nav_home)
+                )
+            },
+            label = { Text(stringResource(R.string.client_nav_home)) }
         )
         NavigationBarItem(
             selected = current == "technicians",
             onClick = { navController.navigate(Routes.TECHNICIAN_LIST) },
-            icon = { Icon(Icons.Default.Search, contentDescription = "Técnicos") },
-            label = { Text("Técnicos") }
+            icon = {
+                Icon(
+                    Icons.Default.Search,
+                    contentDescription = stringResource(R.string.client_nav_technicians)
+                )
+            },
+            label = { Text(stringResource(R.string.client_nav_technicians)) }
         )
         NavigationBarItem(
             selected = current == "history",
             onClick = { navController.navigate(Routes.HISTORY) },
-            icon = { Icon(Icons.Default.List, contentDescription = "Historial") },
-            label = { Text("Historial") }
+            icon = {
+                Icon(
+                    Icons.Default.List,
+                    contentDescription = stringResource(R.string.client_nav_history)
+                )
+            },
+            label = { Text(stringResource(R.string.client_nav_history)) }
         )
         NavigationBarItem(
             selected = current == "profile",
             onClick = { navController.navigate(Routes.PROFILE) },
-            icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
-            label = { Text("Perfil") }
+            icon = {
+                Icon(
+                    Icons.Default.Person,
+                    contentDescription = stringResource(R.string.client_nav_profile)
+                )
+            },
+            label = { Text(stringResource(R.string.client_nav_profile)) }
         )
     }
 }

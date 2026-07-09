@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- TERMOS E CONDIÇÕES - PORTUGUÊS DO BRASIL -->
+    <string name="terms_title">Termos e Condições</string>
+    <string name="terms_accept">Aceito os termos</string>
+    <string name="terms_close">Fechar</string>
+
+    <!--
+        NUEVO - MULTIDIOMA:
+        El contenido legal completo se conserva en este recurso para que Android
+        muestre la versión correspondiente al idioma activo.
+    -->
+    <string name="terms_full_text"><![CDATA[Termos e Condições de Uso — HOMEFIX
+Última atualização: 2026 | Aplicável à Região Metropolitana de Lima, Peru
+
+1. Aceitação
+Ao se cadastrar no HOMEFIX, você declara ter mais de 18 anos e aceitar estes Termos e Condições, bem como a Política de Privacidade. O uso contínuo do aplicativo implica a aceitação de futuras atualizações.
+
+2. Descrição do serviço
+O HOMEFIX é uma plataforma digital de intermediação que conecta clientes a técnicos independentes de serviços residenciais na Região Metropolitana de Lima. O aplicativo não presta serviços técnicos diretamente, não emprega os técnicos cadastrados, não supervisiona a execução do trabalho e não processa pagamentos. Os acordos financeiros e as condições do serviço são de responsabilidade exclusiva das partes envolvidas.
+
+3. Cadastro e conta
+O usuário deve fornecer informações verdadeiras, completas e atualizadas ao se cadastrar. É proibido criar contas falsas ou duplicadas, assumir a identidade de outra pessoa ou utilizar a plataforma para finalidades diferentes de seu objetivo. O usuário é responsável pela confidencialidade de suas credenciais de acesso.
+
+4. Dados pessoais e privacidade
+O HOMEFIX coleta apenas os dados necessários para o funcionamento da plataforma, incluindo informações de identificação e contato, localização GPS, fotografias e histórico de solicitações. Esses dados são tratados de acordo com a Lei Peruana de Proteção de Dados Pessoais N.º 29733. O HOMEFIX não vende nem compartilha dados pessoais com terceiros, exceto com os serviços técnicos necessários para sua operação: Firebase Authentication e Firestore para autenticação e armazenamento, Cloudinary para imagens, Google Maps para geolocalização e WhatsApp como canal externo de comunicação entre usuários.
+
+5. Permissões do dispositivo
+O aplicativo solicitará permissões de câmera, galeria, localização e notificações somente quando forem necessárias para o funcionamento de seus recursos. Negar alguma dessas permissões pode limitar determinadas funções do aplicativo.
+
+6. Obrigações dos usuários
+Os clientes se comprometem a publicar solicitações reais, descrever claramente o serviço e avaliar de forma objetiva. Os técnicos se comprometem a fornecer informações verdadeiras sobre sua identidade e especialidades, manter sua disponibilidade atualizada e agir com profissionalismo. Qualquer dano, descumprimento ou desacordo decorrente da prestação do serviço é de responsabilidade exclusiva das partes.
+
+7. Segurança
+O HOMEFIX implementa medidas técnicas razoáveis para proteger as informações dos usuários, incluindo autenticação, controle de acesso por função e regras de segurança do banco de dados. No entanto, nenhum sistema conectado à internet pode garantir segurança absoluta. O HOMEFIX não se responsabiliza por perda de credenciais, uso indevido da conta ou ataques de terceiros.
+
+8. Avaliações e sanções
+As avaliações devem se basear em experiências reais e ser expressas com respeito. O HOMEFIX poderá remover comentários ofensivos, falsos ou difamatórios, bem como suspender ou excluir contas que descumpram estes termos, cadastrem informações falsas ou utilizem a plataforma de forma indevida.
+
+9. Notificações
+O HOMEFIX enviará notificações relacionadas ao status das solicitações, seleção de técnicos, verificação da conta e outros eventos relevantes. O usuário pode gerenciar suas preferências de notificação nas configurações do aplicativo. Desativá-las pode afetar o acompanhamento oportuno dos serviços.
+
+10. Direitos do usuário
+O usuário pode exercer seus direitos de acesso, retificação, cancelamento e oposição em relação aos seus dados pessoais entrando em contato com a equipe de suporte do HOMEFIX. Caso solicite a exclusão da conta, os dados serão apagados, exceto aqueles que devam ser mantidos por razões legais ou de segurança.
+
+11. Alterações e legislação aplicável
+O HOMEFIX pode modificar estes termos por razões técnicas, legais ou operacionais, comunicando as alterações por meio do aplicativo. Estes termos são regidos pelas leis da República do Peru, e seu âmbito funcional está limitado à Região Metropolitana de Lima.]]></string>
+
+</resources>

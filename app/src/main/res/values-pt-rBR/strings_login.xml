@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Tela de login -->
+    <string name="login_welcome">Bem-vindo ao HomeFix</string>
+    <string name="login_subtitle">Entre para continuar</string>
+    <string name="login_email_label">Endereço de e-mail</string>
+    <string name="login_password_label">Senha</string>
+    <string name="login_forgot_password">Esqueceu sua senha?</string>
+    <string name="login_button">Entrar</string>
+    <string name="login_no_account">Não tem uma conta? </string>
+    <string name="login_register">Cadastre-se</string>
+
+    <!-- Validações -->
+    <string name="login_email_required">O e-mail é obrigatório</string>
+    <string name="login_invalid_email">Digite um endereço de e-mail válido</string>
+    <string name="login_password_required">A senha é obrigatória</string>
+    <string name="login_password_min_length">Mínimo de 6 caracteres</string>
+
+    <!-- Mensagens de autenticação -->
+    <string name="login_verify_email">Você deve verificar seu e-mail antes de entrar</string>
+    <string name="login_profile_error">Erro ao carregar o perfil</string>
+    <string name="login_authentication_error">Erro de autenticação</string>
+    <string name="login_email_not_found">Não existe uma conta com esse e-mail</string>
+    <string name="login_incorrect_password">Senha incorreta</string>
+    <string name="login_user_disabled">Esta conta foi desativada</string>
+    <string name="login_invalid_credentials">Credenciais inválidas</string>
+    <string name="login_too_many_attempts">Muitas tentativas. Tente novamente mais tarde</string>
+    <string name="login_generic_error">Erro ao entrar</string>
+    <string name="login_unknown_error">Erro desconhecido</string>
+
+</resources>

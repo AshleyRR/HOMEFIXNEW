@@ -17,16 +17,46 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener los textos de strings_technician.xml según el idioma activo.
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.tunegocio.homefix.data.model.RequestModel
 import com.tunegocio.homefix.data.model.ReviewModel
 import com.tunegocio.homefix.navigation.Routes
+
+// NUEVO - MULTIDIOMA:
+// Permite acceder a las claves de recursos del módulo técnico.
+import com.tunegocio.homefix.R
 import com.tunegocio.homefix.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
+
+
+// NUEVO - MULTIDIOMA:
+// Traduce únicamente la etiqueta visible del servicio.
+// El valor interno guardado en Firebase se conserva sin cambios.
+@Composable
+private fun earningsServiceLabel(serviceType: String): String {
+    return when (serviceType) {
+        "Electricidad" -> stringResource(R.string.technician_service_electricity)
+        "Gasfitería" -> stringResource(R.string.technician_service_plumbing)
+        "Pintura" -> stringResource(R.string.technician_service_painting)
+        "Carpintería" -> stringResource(R.string.technician_service_carpentry)
+        "Vidriería" -> stringResource(R.string.technician_service_glasswork)
+        "Jardinería" -> stringResource(R.string.technician_service_gardening)
+        "Cerrajería" -> stringResource(R.string.technician_service_locksmith)
+        "Albañilería" -> stringResource(R.string.technician_service_masonry)
+        "Muebles a medida" -> stringResource(R.string.technician_service_custom_furniture)
+        "Lavado de tapizados" -> stringResource(R.string.technician_service_upholstery_cleaning)
+        "Mudanzas" -> stringResource(R.string.technician_service_moving)
+        else -> serviceType
+    }
+}
 
 private fun getServiceTypeIcon(serviceType: String): ImageVector {
     return when (serviceType) {
@@ -64,6 +94,10 @@ fun EarningsScreen(navController: NavController) {
     var userName by remember { mutableStateOf("") }
     var clienteNombresMap by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
+    // NUEVO - MULTIDIOMA:
+    // Se resuelve durante la composición y puede reutilizarse en callbacks de Firebase.
+    val defaultClientName = stringResource(R.string.technician_default_client)
+
     LaunchedEffect(uid) {
         // Nombre del técnico
         db.collection("users").document(uid).get()
@@ -90,7 +124,7 @@ fun EarningsScreen(navController: NavController) {
                             .get()
                             .addOnSuccessListener { clientSnap ->
                                 val nuevos = clientSnap.documents.associate { doc ->
-                                    (doc.getString("uid") ?: "") to (doc.getString("name") ?: "Cliente")
+                                    (doc.getString("uid") ?: "") to (doc.getString("name") ?: defaultClientName)
                                 }
                                 clienteNombresMap = clienteNombresMap + nuevos
                             }
@@ -116,7 +150,7 @@ fun EarningsScreen(navController: NavController) {
                             .get()
                             .addOnSuccessListener { clientSnap ->
                                 val nuevos = clientSnap.documents.associate { doc ->
-                                    (doc.getString("uid") ?: "") to (doc.getString("name") ?: "Cliente")
+                                    (doc.getString("uid") ?: "") to (doc.getString("name") ?: defaultClientName)
                                 }
                                 clienteNombresMap = clienteNombresMap + nuevos
                             }
@@ -171,7 +205,7 @@ fun EarningsScreen(navController: NavController) {
                     ) {
                         Column {
                             Text(
-                                "Mi actividad",
+                                stringResource(R.string.technician_activity_title),
                                 style = MaterialTheme.typography.headlineMedium,
                                 color = textColor,
                                 fontWeight = FontWeight.Bold
@@ -211,7 +245,7 @@ fun EarningsScreen(navController: NavController) {
                         ) {
                             MetricCard(
                                 value = completedRequests.size.toString(),
-                                label = "Completados",
+                                label = stringResource(R.string.technician_activity_completed_metric),
                                 icon = Icons.Default.CheckCircle,
                                 color = Success,
                                 modifier = Modifier.weight(1f),
@@ -221,7 +255,7 @@ fun EarningsScreen(navController: NavController) {
                             )
                             MetricCard(
                                 value = monthlyRequests.size.toString(),
-                                label = "Este mes",
+                                label = stringResource(R.string.technician_activity_this_month),
                                 icon = Icons.Default.CalendarToday,
                                 color = Info,
                                 modifier = Modifier.weight(1f),
@@ -236,7 +270,7 @@ fun EarningsScreen(navController: NavController) {
                         ) {
                             MetricCard(
                                 value = sinContinuarRequests.size.toString(),
-                                label = "Sin continuar",
+                                label = stringResource(R.string.technician_activity_not_continued),
                                 icon = Icons.Default.Cancel,
                                 color = Error,
                                 modifier = Modifier.weight(1f),
@@ -246,7 +280,7 @@ fun EarningsScreen(navController: NavController) {
                             )
                             MetricCard(
                                 value = reviews.size.toString(),
-                                label = "Reseñas",
+                                label = stringResource(R.string.technician_activity_reviews),
                                 icon = Icons.Default.RateReview,
                                 color = Warning,
                                 modifier = Modifier.weight(1f),
@@ -267,7 +301,7 @@ fun EarningsScreen(navController: NavController) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "Servicios completados",
+                                stringResource(R.string.technician_activity_completed_services),
                                 style = MaterialTheme.typography.titleLarge,
                                 color = textColor,
                                 fontWeight = FontWeight.SemiBold
@@ -309,7 +343,7 @@ fun EarningsScreen(navController: NavController) {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                "Sin continuar",
+                                stringResource(R.string.technician_activity_not_continued),
                                 style = MaterialTheme.typography.titleLarge,
                                 color = textColor,
                                 fontWeight = FontWeight.SemiBold
@@ -367,13 +401,13 @@ fun EarningsScreen(navController: NavController) {
                                     }
                                 }
                                 Text(
-                                    "Sin actividad aún",
+                                    stringResource(R.string.technician_activity_empty_title),
                                     style = MaterialTheme.typography.titleMedium,
                                     color = textColor,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Text(
-                                    "Aquí verás tus servicios completados",
+                                    stringResource(R.string.technician_activity_empty_body),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = secondaryText
                                 )
@@ -400,6 +434,11 @@ fun ActividadServiceCard(
     onClick: () -> Unit
 ) {
     val color = if (esCompletado) Success else Error
+
+    // MODIFICADO - MULTIDIOMA:
+    // Solo se traduce la etiqueta visible; request.serviceType conserva su valor interno.
+    val serviceLabel = earningsServiceLabel(request.serviceType)
+
     val fecha = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         .format(Date(request.updatedAt))
 
@@ -436,7 +475,7 @@ fun ActividadServiceCard(
             Column(modifier = Modifier.weight(1f)) {
                 // Tipo de servicio
                 Text(
-                    request.serviceType,
+                    serviceLabel,
                     style = MaterialTheme.typography.titleMedium,
                     color = textColor,
                     fontWeight = FontWeight.SemiBold
@@ -499,7 +538,7 @@ fun ActividadServiceCard(
                             horizontalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
                             Icon(Icons.Default.ElectricBolt, contentDescription = null, tint = Error, modifier = Modifier.size(10.dp))
-                            Text("Urgente", style = MaterialTheme.typography.labelSmall, color = Error, fontWeight = FontWeight.Bold)
+                            Text(stringResource(R.string.technician_urgent), style = MaterialTheme.typography.labelSmall, color = Error, fontWeight = FontWeight.Bold)
                         }
                     }
                 }

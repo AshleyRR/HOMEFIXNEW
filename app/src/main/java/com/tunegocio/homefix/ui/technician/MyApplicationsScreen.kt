@@ -15,12 +15,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener textos y plurales de strings_technician.xml.
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.tunegocio.homefix.data.model.RequestModel
 import com.tunegocio.homefix.navigation.Routes
+
+// NUEVO - MULTIDIOMA:
+// Permite acceder a los recursos del módulo técnico.
+import com.tunegocio.homefix.R
 import com.tunegocio.homefix.ui.theme.*
+
+
+// NUEVO - MULTIDIOMA:
+// Traduce solo la etiqueta visible del servicio.
+// Los valores internos usados por Firebase permanecen sin cambios.
+@Composable
+private fun applicationsServiceLabel(serviceType: String): String {
+    return when (serviceType) {
+        "Electricidad" -> stringResource(R.string.technician_service_electricity)
+        "Gasfitería" -> stringResource(R.string.technician_service_plumbing)
+        "Pintura" -> stringResource(R.string.technician_service_painting)
+        "Carpintería" -> stringResource(R.string.technician_service_carpentry)
+        "Vidriería" -> stringResource(R.string.technician_service_glasswork)
+        "Jardinería" -> stringResource(R.string.technician_service_gardening)
+        "Cerrajería" -> stringResource(R.string.technician_service_locksmith)
+        "Albañilería" -> stringResource(R.string.technician_service_masonry)
+        "Muebles a medida" -> stringResource(R.string.technician_service_custom_furniture)
+        "Lavado de tapizados" -> stringResource(R.string.technician_service_upholstery_cleaning)
+        "Mudanzas" -> stringResource(R.string.technician_service_moving)
+        else -> serviceType
+    }
+}
 
 private fun getServiceTypeIcon(serviceType: String): ImageVector {
     return when (serviceType) {
@@ -56,6 +87,10 @@ fun MyApplicationsScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(true) }
     var clienteNombresMap by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
+    // NUEVO - MULTIDIOMA:
+    // Se obtiene en composición para reutilizarlo de forma segura en Firebase.
+    val defaultClientName = stringResource(R.string.technician_default_client)
+
     LaunchedEffect(uid) {
         db.collection("requests")
             .whereArrayContains("interestedTechnicians", uid)
@@ -77,7 +112,7 @@ fun MyApplicationsScreen(navController: NavController) {
                             .get()
                             .addOnSuccessListener { clientSnap ->
                                 val nuevos = clientSnap.documents.associate { doc ->
-                                    (doc.getString("uid") ?: "") to (doc.getString("name") ?: "Cliente")
+                                    (doc.getString("uid") ?: "") to (doc.getString("name") ?: defaultClientName)
                                 }
                                 clienteNombresMap = clienteNombresMap + nuevos
                             }
@@ -90,11 +125,11 @@ fun MyApplicationsScreen(navController: NavController) {
         topBar = {
             TopAppBar(
                 title = {
-                    Text("Mis postulaciones", fontWeight = FontWeight.Bold, color = textColor)
+                    Text(stringResource(R.string.technician_applications_title), fontWeight = FontWeight.Bold, color = textColor)
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = textColor)
+                        Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.technician_back), tint = textColor)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = bgColor)
@@ -135,13 +170,13 @@ fun MyApplicationsScreen(navController: NavController) {
                                 }
                             }
                             Text(
-                                "Sin postulaciones activas",
+                                stringResource(R.string.technician_applications_empty_title),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = textColor,
                                 fontWeight = FontWeight.Medium
                             )
                             Text(
-                                "Aquí verás las solicitudes donde marcaste \"Me interesa\"",
+                                stringResource(R.string.technician_applications_empty_body),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = secondaryText
                             )
@@ -158,7 +193,13 @@ fun MyApplicationsScreen(navController: NavController) {
                     ) {
                         item {
                             Text(
-                                "${applications.size} postulación${if (applications.size != 1) "es" else ""} en espera",
+                                // MODIFICADO - MULTIDIOMA:
+                                // Se usa pluralStringResource sin cambiar el conteo.
+                                pluralStringResource(
+                                    R.plurals.technician_applications_waiting_count,
+                                    applications.size,
+                                    applications.size
+                                ),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = secondaryText
                             )
@@ -192,7 +233,15 @@ fun PostulacionCard(
     onClick: () -> Unit
 ) {
     val statusColor = if (request.status == "en_revision") Info else Warning
-    val statusLabel = if (request.status == "en_revision") "En revisión" else "Pendiente"
+    // MODIFICADO - MULTIDIOMA:
+    // El código interno del estado no cambia; solo se traduce su etiqueta.
+    val statusLabel = if (request.status == "en_revision") {
+        stringResource(R.string.technician_status_under_review)
+    } else {
+        stringResource(R.string.technician_status_pending)
+    }
+
+    val serviceLabel = applicationsServiceLabel(request.serviceType)
     val fecha = java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault())
         .format(java.util.Date(request.createdAt))
 
@@ -228,7 +277,7 @@ fun PostulacionCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    request.serviceType,
+                    serviceLabel,
                     style = MaterialTheme.typography.titleMedium,
                     color = textColor,
                     fontWeight = FontWeight.SemiBold
@@ -304,7 +353,7 @@ fun PostulacionCard(
                                 modifier = Modifier.size(10.dp)
                             )
                             Text(
-                                "Urgente",
+                                stringResource(R.string.technician_urgent),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Error,
                                 fontWeight = FontWeight.Bold

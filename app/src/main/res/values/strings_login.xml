@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Login screen -->
+    <string name="login_welcome">Welcome to HomeFix</string>
+    <string name="login_subtitle">Log in to continue</string>
+    <string name="login_email_label">Email address</string>
+    <string name="login_password_label">Password</string>
+    <string name="login_forgot_password">Forgot your password?</string>
+    <string name="login_button">Log in</string>
+    <string name="login_no_account">Don’t have an account? </string>
+    <string name="login_register">Sign up</string>
+
+    <!-- Validation -->
+    <string name="login_email_required">Email is required</string>
+    <string name="login_invalid_email">Enter a valid email address</string>
+    <string name="login_password_required">Password is required</string>
+    <string name="login_password_min_length">Minimum 6 characters</string>
+
+    <!-- Authentication messages -->
+    <string name="login_verify_email">You must verify your email before logging in</string>
+    <string name="login_profile_error">Error loading profile</string>
+    <string name="login_authentication_error">Authentication error</string>
+    <string name="login_email_not_found">No account exists with that email</string>
+    <string name="login_incorrect_password">Incorrect password</string>
+    <string name="login_user_disabled">This account has been disabled</string>
+    <string name="login_invalid_credentials">Invalid credentials</string>
+    <string name="login_too_many_attempts">Too many attempts. Try again later</string>
+    <string name="login_generic_error">Error logging in</string>
+    <string name="login_unknown_error">Unknown error</string>
+
+</resources>

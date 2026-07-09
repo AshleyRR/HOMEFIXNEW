@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- COMPONENTES COMUNS - PORTUGUÊS DO BRASIL -->
+    <string name="component_show_password">Mostrar senha</string>
+    <string name="component_hide_password">Ocultar senha</string>
+
+    <string name="component_password_min_length">Mínimo de 6 caracteres</string>
+    <string name="component_password_uppercase">Pelo menos uma letra maiúscula (A-Z)</string>
+    <string name="component_password_number">Pelo menos um número (0-9)</string>
+
+</resources>

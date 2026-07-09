@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Tela Meu perfil -->
+    <string name="profile_title">Meu perfil</string>
+    <string name="profile_back">Voltar</string>
+    <string name="profile_settings">Configurações</string>
+
+    <!-- Foto e função -->
+    <string name="profile_photo">Foto do perfil</string>
+    <string name="profile_change_photo">Alterar foto</string>
+    <string name="profile_role_technician">Técnico</string>
+    <string name="profile_role_client">Cliente</string>
+    <string name="profile_rating_format">⭐ %1$.1f de avaliação</string>
+
+    <!-- Dados pessoais -->
+    <string name="profile_personal_data">Dados pessoais</string>
+    <string name="profile_first_names">Nome</string>
+    <string name="profile_last_names">Sobrenome</string>
+    <string name="profile_email">Endereço de e-mail</string>
+    <string name="profile_whatsapp_number">Número do WhatsApp</string>
+    <string name="profile_district">Distrito</string>
+    <string name="profile_select_district">Selecione seu distrito</string>
+
+    <!-- Informações profissionais -->
+    <string name="profile_professional_information">Informações profissionais</string>
+    <string name="profile_specialties">Especialidades</string>
+    <string name="profile_years_experience">%1$d anos de experiência</string>
+
+    <!-- Ações -->
+    <string name="profile_save_changes">Salvar alterações</string>
+    <string name="profile_logout">Sair</string>
+    <string name="profile_logout_question">Tem certeza de que deseja sair?</string>
+    <string name="profile_cancel">Cancelar</string>
+
+    <!-- Mensagens -->
+    <string name="profile_update_success">Perfil atualizado com sucesso</string>
+    <string name="profile_save_error">Erro ao salvar</string>
+    <string name="profile_photo_upload_error">Erro ao enviar a foto</string>
+
+</resources>

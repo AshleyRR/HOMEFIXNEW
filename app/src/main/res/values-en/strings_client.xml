@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- =========================================================
+         CLIENT MODULE - ENGLISH
+         Texts for HomeClientScreen, NewRequestScreen,
+         RequestTrackingScreen, SeleccionarUbicacionScreen
+         and TechnicianListScreen.
+         ========================================================= -->
+
+    <!-- IMPORTANT:
+         Internal values stored in Firebase such as "pendiente",
+         "aceptada", "Electricidad" and "Gasfitería" remain unchanged.
+         These resources only translate what the user sees. -->
+
+    <!-- Common texts -->
+    <string name="client_back">Back</string>
+    <string name="client_cancel">Cancel</string>
+    <string name="client_confirm">Confirm</string>
+    <string name="client_close">Close</string>
+    <string name="client_profile">Profile</string>
+    <string name="client_notifications">Notifications</string>
+    <string name="client_whatsapp">WhatsApp</string>
+    <string name="client_urgent">Urgent</string>
+    <string name="client_description">Description</string>
+    <string name="client_address">Address</string>
+    <string name="client_reference">Reference</string>
+    <string name="client_photos">Photos</string>
+    <string name="client_no_ratings">No ratings yet</string>
+    <string name="client_new_on_platform">New to the platform</string>
+    <string name="client_view_more">View more</string>
+    <string name="client_view_less">View less</string>
+
+    <!-- Service categories: display labels only -->
+    <string name="service_all">All</string>
+    <string name="service_electricity">Electrical</string>
+    <string name="service_plumbing">Plumbing</string>
+    <string name="service_painting">Painting</string>
+    <string name="service_carpentry">Carpentry</string>
+    <string name="service_glasswork">Glasswork</string>
+    <string name="service_gardening">Gardening</string>
+    <string name="service_locksmith">Locksmith</string>
+    <string name="service_masonry">Masonry</string>
+    <string name="service_custom_furniture">Custom furniture</string>
+    <string name="service_upholstery_cleaning">Upholstery cleaning</string>
+    <string name="service_moving">Moving</string>
+
+    <!-- Visible statuses -->
+    <string name="status_pending">Pending</string>
+    <string name="status_under_review">Under review</string>
+    <string name="status_accepted">Accepted</string>
+    <string name="status_on_the_way">On the way</string>
+    <string name="status_completed">Completed</string>
+    <string name="status_canceled">Canceled</string>
+    <string name="status_not_continued">Not continued</string>
+
+    <!-- HOME CLIENT -->
+    <string name="home_client_greeting">Hello, %1$s</string>
+    <string name="home_client_question">What do you need repaired today?</string>
+    <string name="home_client_new_request">New request</string>
+    <string name="home_client_view_technicians">View available technicians</string>
+    <string name="home_client_active_requests">My active requests</string>
+    <string name="home_client_no_active_requests">No active requests</string>
+    <string name="home_client_empty_description">Create a new request to find a technician</string>
+
+    <!-- Client bottom navigation -->
+    <string name="client_nav_home">Home</string>
+    <string name="client_nav_technicians">Technicians</string>
+    <string name="client_nav_history">History</string>
+    <string name="client_nav_profile">Profile</string>
+
+    <!-- NEW REQUEST -->
+    <string name="new_request_title">New request</string>
+    <string name="new_request_service_type">Service type</string>
+    <string name="new_request_select_service">Select a service…</string>
+    <string name="new_request_describe_problem">Describe the problem</string>
+    <string name="new_request_description_hint">Example: The kitchen outlet is not working and there may be a short circuit.</string>
+    <string name="new_request_problem_photo_optional">Problem photo (optional)</string>
+    <string name="new_request_camera">Camera</string>
+    <string name="new_request_gallery">Gallery</string>
+    <string name="new_request_photo_content_description">Photo %1$d</string>
+    <string name="new_request_remove_photo">Remove photo</string>
+    <string name="new_request_service_location">Service location</string>
+    <string name="new_request_select_location_map">Select location on the map</string>
+    <string name="new_request_move_pin">Move the pin to set the location</string>
+    <string name="new_request_reference_optional">Reference (optional)</string>
+    <string name="new_request_reference_hint">Example: Across from the park, house with blue bars</string>
+    <string name="new_request_high_priority">High priority for technicians</string>
+    <string name="new_request_publish">Publish request</string>
+
+    <!-- New request validation -->
+    <string name="new_request_error_select_service">Select the service type</string>
+    <string name="new_request_error_outside_lima">We currently serve Lima only</string>
+    <string name="new_request_error_description_min">The description must contain at least 20 characters</string>
+    <string name="new_request_error_publish">Error publishing the request</string>
+
+    <!-- Notification created when publishing -->
+    <string name="new_request_notification_title">New %1$s request</string>
+    <string name="new_request_notification_body">A client needs help in %1$s</string>
+
+    <plurals name="new_request_photos_added">
+        <item quantity="one">%1$d/2 photo added</item>
+        <item quantity="other">%1$d/2 photos added</item>
+    </plurals>
+
+    <!-- SELECT LOCATION -->
+    <string name="location_disabled_title">Location disabled</string>
+    <string name="location_disabled_description">To use your current location, enable GPS on your device.</string>
+    <string name="location_activate_gps">Enable GPS</string>
+    <string name="location_select_title">Select your location</string>
+    <string name="location_search_hint">Search for an address in Lima…</string>
+    <string name="location_clear_search">Clear</string>
+    <string name="location_move_pin">Move the pin to set the location</string>
+    <string name="location_confirm">Confirm location</string>
+    <string name="location_my_location">My location</string>
+    <string name="location_error_outside_lima">We currently serve Lima only</string>
+    <string name="location_error_could_not_get">Could not get your location. Try again</string>
+    <string name="location_error_getting">Error getting location</string>
+    <string name="location_error_permission">Enable location permission</string>
+
+    <!-- TECHNICIAN LIST -->
+    <string name="technicians_title">Available technicians</string>
+    <string name="technicians_search_hint">Search technician or specialty…</string>
+    <string name="technicians_specialty">Specialty</string>
+    <string name="technicians_clear_filter">Clear filter</string>
+    <string name="technicians_view_all">View all</string>
+    <string name="technicians_none_available">No technicians are available</string>
+    <string name="technicians_none_for_specialty">No %1$s technicians are available</string>
+    <string name="technicians_try_another_filter">Try another filter or come back later</string>
+    <string name="technicians_in_your_district">In your district</string>
+    <string name="technicians_other_districts">Other districts</string>
+    <string name="technicians_photo">Technician photo</string>
+    <string name="technicians_active">● Active</string>
+    <string name="technicians_bio_format">Description: %1$s</string>
+    <string name="technicians_contact_whatsapp">Contact via WhatsApp</string>
+    <string name="technicians_whatsapp_message">Hello %1$s, I am contacting you through HomeFix. Are you available for a service?</string>
+
+    <plurals name="technicians_available_count">
+        <item quantity="one">%1$d technician available</item>
+        <item quantity="other">%1$d technicians available</item>
+    </plurals>
+
+    <plurals name="technicians_years_experience">
+        <item quantity="one">%1$d year of experience</item>
+        <item quantity="other">%1$d years of experience</item>
+    </plurals>
+
+    <plurals name="technicians_completed_services">
+        <item quantity="one">%1$d completed service</item>
+        <item quantity="other">%1$d completed services</item>
+    </plurals>
+
+    <!-- REQUEST TRACKING -->
+    <string name="tracking_title">My request</string>
+    <string name="tracking_cancel_request">Cancel request</string>
+    <string name="tracking_cancel_request_question">Are you sure you want to cancel this request?</string>
+    <string name="tracking_keep_request">No, keep it</string>
+    <string name="tracking_yes_cancel">Yes, cancel</string>
+    <string name="tracking_interested_technicians">Interested technicians</string>
+    <string name="tracking_detail">Details</string>
+    <string name="tracking_assigned_technician">Assigned technician</string>
+    <string name="tracking_choose_technician">Choose this technician</string>
+    <string name="tracking_contact_whatsapp">Contact via WhatsApp</string>
+    <string name="tracking_client_whatsapp_message">Hello, I am the HomeFix client. How is the service going?</string>
+
+    <string name="tracking_service_status">Service status</string>
+    <string name="tracking_status_pending_description">Waiting for a technician to accept…</string>
+    <string name="tracking_status_review_description">There are interested technicians. Choose one</string>
+    <string name="tracking_status_accepted_description">You chose a technician!</string>
+    <string name="tracking_status_pending_confirmation_description">The technician finished. Confirm the work</string>
+    <string name="tracking_status_pending_not_continue_description">The technician cannot continue. Please confirm</string>
+    <string name="tracking_status_completed_description">The service was completed successfully</string>
+    <string name="tracking_status_not_continued_description">The process could not be completed</string>
+    <string name="tracking_status_canceled_description">The request was canceled</string>
+
+    <!-- Work confirmation -->
+    <string name="tracking_completed_question">Was the work completed?</string>
+    <string name="tracking_completed_description">The technician indicated that the work is finished. Do you confirm?</string>
+    <string name="tracking_yes_confirm">Yes, confirm</string>
+    <string name="tracking_no_not_finished">No, it is not finished</string>
+    <string name="tracking_not_completed_question">Was the work not completed?</string>
+    <string name="tracking_not_completed_notice">The technician will be notified that the work was not accepted as completed.</string>
+
+    <!-- Process not continued -->
+    <string name="tracking_not_continue_question">Can the technician not continue?</string>
+    <string name="tracking_not_continue_description">The technician indicated that the service cannot continue. Do you confirm?</string>
+    <string name="tracking_no_technician_can_continue">No, the technician can continue</string>
+    <string name="tracking_process_not_continued">Process not continued</string>
+    <string name="tracking_technician_could_not_continue">The technician could not continue with this service.</string>
+    <string name="tracking_technician_reported_date">Technician reported: %1$s</string>
+    <string name="tracking_confirmed_date">Confirmed: %1$s</string>
+
+    <!-- Rating -->
+    <string name="tracking_rate_service">Rate the service</string>
+    <string name="tracking_how_was_experience">How was your experience?</string>
+    <string name="tracking_how_was_experience_with">How was your experience with %1$s?</string>
+    <string name="tracking_rating_help">Your opinion helps other clients make a better choice</string>
+    <string name="tracking_star_description">Star %1$d</string>
+    <string name="tracking_very_bad">Very bad 😞</string>
+    <string name="tracking_bad">Bad 😕</string>
+    <string name="tracking_regular">Average 😐</string>
+    <string name="tracking_good">Good 😊</string>
+    <string name="tracking_excellent">Excellent 🤩</string>
+    <string name="tracking_optional_comment">Optional comment…</string>
+    <string name="tracking_send_rating">Submit rating</string>
+    <string name="tracking_skip_now">Skip for now</string>
+    <string name="tracking_select_rating_error">Select a rating</string>
+    <string name="tracking_your_rating">Your rating</string>
+    <string name="tracking_rated_on">Rated on %1$s</string>
+    <string name="tracking_completed_on">Completed on %1$s</string>
+    <string name="tracking_service_completed">Service completed</string>
+
+    <plurals name="tracking_stars_received">
+        <item quantity="one">You received %1$d star for the %2$s service.</item>
+        <item quantity="other">You received %1$d stars for the %2$s service.</item>
+    </plurals>
+
+    <plurals name="tracking_interested_count">
+        <item quantity="one">%1$d interested technician</item>
+        <item quantity="other">%1$d interested technicians</item>
+    </plurals>
+
+    <plurals name="tracking_years_experience">
+        <item quantity="one">%1$d year of experience</item>
+        <item quantity="other">%1$d years of experience</item>
+    </plurals>
+
+    <plurals name="tracking_completed_jobs">
+        <item quantity="one">%1$d completed service</item>
+        <item quantity="other">%1$d completed services</item>
+    </plurals>
+
+    <!-- Tracking notifications -->
+    <string name="tracking_notification_request_canceled_title">Request canceled</string>
+    <string name="tracking_notification_request_canceled_body">The client canceled the %1$s request.</string>
+    <string name="tracking_notification_chosen_title">You were selected!</string>
+    <string name="tracking_notification_chosen_body">The client selected your proposal for %1$s. Get ready to go.</string>
+    <string name="tracking_notification_other_chosen_title">Request assigned to another technician</string>
+    <string name="tracking_notification_other_chosen_body">The client selected another technician for this request.</string>
+    <string name="tracking_notification_not_confirmed_title">The client did not confirm the work</string>
+    <string name="tracking_notification_not_confirmed_body">The client indicated that the work was not completed. Review the situation.</string>
+    <string name="tracking_notification_not_continued_title">Process confirmed as not continued</string>
+    <string name="tracking_notification_not_continued_body">The client confirmed that the process did not continue.</string>
+
+
+    <!-- NEW - MULTILANGUAGE: additional tracking texts -->
+    <string name="tracking_default_client_name">The client</string>
+    <string name="tracking_notification_request_canceled_named_body">%1$s canceled the %2$s request.</string>
+    <string name="tracking_notification_rated_title">You received a rating!</string>
+    </resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- COMMON COMPONENTS - ENGLISH -->
+    <string name="component_show_password">Show password</string>
+    <string name="component_hide_password">Hide password</string>
+
+    <string name="component_password_min_length">Minimum 6 characters</string>
+    <string name="component_password_uppercase">At least one uppercase letter (A-Z)</string>
+    <string name="component_password_number">At least one number (0-9)</string>
+
+</resources>

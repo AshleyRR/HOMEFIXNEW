@@ -15,6 +15,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener textos desde strings_shared.xml.
+import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -24,6 +28,10 @@ import com.tunegocio.homefix.data.model.UserModel
 import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.components.HomefixButton
 import com.tunegocio.homefix.ui.theme.*
+
+// NUEVO - MULTIDIOMA:
+// Permite acceder a las claves de recursos del módulo shared.
+import com.tunegocio.homefix.R
 import java.util.UUID
 
 @Composable
@@ -34,6 +42,12 @@ fun RatingScreen(
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
     val uid = auth.currentUser?.uid ?: ""
+
+    // NUEVO - MULTIDIOMA:
+    // El mensaje se resuelve durante la composición y puede usarse
+    // dentro de submitRating() sin consultar recursos en callbacks.
+    val selectRatingError =
+        stringResource(R.string.shared_rating_select_error)
 
     var request by remember { mutableStateOf<RequestModel?>(null) }
     var technician by remember { mutableStateOf<UserModel?>(null) }
@@ -69,7 +83,7 @@ fun RatingScreen(
 
     fun submitRating() {
         if (selectedStars == 0) {
-            starsError = "Selecciona una calificación"
+            starsError = selectRatingError
             return
         }
         isLoading = true
@@ -134,7 +148,8 @@ fun RatingScreen(
                 Text(text = "", fontSize = 64.sp)
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Ya calificaste este servicio",
+                    // MODIFICADO - MULTIDIOMA:
+                    text = stringResource(R.string.shared_rating_already_rated),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
@@ -142,7 +157,8 @@ fun RatingScreen(
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 HomefixButton(
-                    text = "Volver al inicio",
+                    // MODIFICADO - MULTIDIOMA:
+                    text = stringResource(R.string.shared_rating_back_home),
                     onClick = {
                         navController.navigate(Routes.HOME_CLIENT) {
                             popUpTo(Routes.HOME_CLIENT) { inclusive = true }
@@ -153,7 +169,8 @@ fun RatingScreen(
                 Text(text = "⭐", fontSize = 52.sp)
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Califica el servicio",
+                    // MODIFICADO - MULTIDIOMA:
+                    text = stringResource(R.string.shared_rating_title),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
@@ -163,7 +180,11 @@ fun RatingScreen(
                 technician?.let { tech ->
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "¿Cómo fue tu experiencia con ${tech.name}?",
+                        // MODIFICADO - MULTIDIOMA:
+                        text = stringResource(
+                            R.string.shared_rating_experience_with,
+                            tech.name
+                        ),
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary,
                         textAlign = TextAlign.Center
@@ -220,7 +241,8 @@ fun RatingScreen(
 
                 // Selector de estrellas
                 Text(
-                    text = "Tu calificación",
+                    // MODIFICADO - MULTIDIOMA:
+                    text = stringResource(R.string.shared_rating_your_rating),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Medium
@@ -239,7 +261,11 @@ fun RatingScreen(
                                 Icons.Default.Star
                             else
                                 Icons.Default.StarBorder,
-                            contentDescription = "Estrella $star",
+                            // MODIFICADO - MULTIDIOMA:
+                            contentDescription = stringResource(
+                                R.string.shared_rating_star_description,
+                                star
+                            ),
                             tint = if (star <= selectedStars) Warning else TextHint,
                             modifier = Modifier
                                 .size(48.dp)
@@ -256,12 +282,13 @@ fun RatingScreen(
                 if (selectedStars > 0) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
+                        // MODIFICADO - MULTIDIOMA:
                         text = when (selectedStars) {
-                            1 -> "Muy malo 😞"
-                            2 -> "Malo 😕"
-                            3 -> "Regular 😐"
-                            4 -> "Bueno 😊"
-                            5 -> "Excelente 🤩"
+                            1 -> stringResource(R.string.shared_rating_very_bad)
+                            2 -> stringResource(R.string.shared_rating_bad)
+                            3 -> stringResource(R.string.shared_rating_regular)
+                            4 -> stringResource(R.string.shared_rating_good)
+                            5 -> stringResource(R.string.shared_rating_excellent)
                             else -> ""
                         },
                         style = MaterialTheme.typography.titleMedium,
@@ -287,7 +314,8 @@ fun RatingScreen(
 
                 // Comentario opcional
                 Text(
-                    text = "Comentario (opcional)",
+                    // MODIFICADO - MULTIDIOMA:
+                    text = stringResource(R.string.shared_rating_optional_comment),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Medium,
@@ -302,7 +330,10 @@ fun RatingScreen(
                         .height(110.dp),
                     placeholder = {
                         Text(
-                            "Cuéntanos sobre tu experiencia...",
+                            // MODIFICADO - MULTIDIOMA:
+                            text = stringResource(
+                                R.string.shared_rating_comment_hint
+                            ),
                             color = TextHint
                         )
                     },
@@ -322,7 +353,8 @@ fun RatingScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 HomefixButton(
-                    text = "Enviar calificación",
+                    // MODIFICADO - MULTIDIOMA:
+                    text = stringResource(R.string.shared_rating_send),
                     onClick = { submitRating() },
                     isLoading = isLoading
                 )
@@ -337,7 +369,8 @@ fun RatingScreen(
                     }
                 ) {
                     Text(
-                        text = "Omitir por ahora",
+                        // MODIFICADO - MULTIDIOMA:
+                        text = stringResource(R.string.shared_rating_skip),
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodyMedium
                     )

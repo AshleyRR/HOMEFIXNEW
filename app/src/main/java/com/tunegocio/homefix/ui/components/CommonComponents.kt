@@ -38,8 +38,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 
 import androidx.compose.runtime.getValue
-
 import androidx.compose.runtime.setValue
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener los textos de accesibilidad y requisitos de contraseña
+// desde strings_components.xml según el idioma activo.
+import androidx.compose.ui.res.stringResource
+
+// NUEVO - MULTIDIOMA:
+// Permite acceder a las claves definidas en strings_components.xml.
+import com.tunegocio.homefix.R
 
 
 // Botón principal
@@ -139,10 +147,16 @@ fun HomefixTextField(
                                 Icons.Default.VisibilityOff
                             else
                                 Icons.Default.Visibility,
-                            contentDescription = if (isPasswordVisible)
-                                "Ocultar contraseña"
-                            else
-                                "Mostrar contraseña",
+
+                            // MODIFICADO - MULTIDIOMA:
+                            // Solo se traduce la descripción accesible del icono.
+                            // La lógica para mostrar u ocultar la contraseña no cambia.
+                            contentDescription = if (isPasswordVisible) {
+                                stringResource(R.string.component_hide_password)
+                            } else {
+                                stringResource(R.string.component_show_password)
+                            },
+
                             tint = TextSecondary
                         )
                     }
@@ -221,15 +235,22 @@ fun PasswordRequirements(password: String) {
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         PasswordRequirementItem(
-            text = "Mínimo 6 caracteres",
+            // MODIFICADO - MULTIDIOMA:
+            // La validación sigue usando validation.hasMinLength.
+            // Solo cambia el texto visible.
+            text = stringResource(R.string.component_password_min_length),
             isMet = validation.hasMinLength
         )
         PasswordRequirementItem(
-            text = "Al menos una mayúscula (A-Z)",
+            // MODIFICADO - MULTIDIOMA:
+            // La validación de mayúscula no cambia.
+            text = stringResource(R.string.component_password_uppercase),
             isMet = validation.hasUppercase
         )
         PasswordRequirementItem(
-            text = "Al menos un número (0-9)",
+            // MODIFICADO - MULTIDIOMA:
+            // La validación numérica no cambia.
+            text = stringResource(R.string.component_password_number),
             isMet = validation.hasNumber
         )
     }

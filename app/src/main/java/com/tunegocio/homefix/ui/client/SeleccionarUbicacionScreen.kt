@@ -16,6 +16,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener los textos de strings_client.xml según el idioma activo.
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -24,6 +28,10 @@ import com.tunegocio.homefix.ui.components.MapaUbicacion
 import com.tunegocio.homefix.ui.components.estaDentroDeLima
 import com.tunegocio.homefix.ui.theme.*
 import com.tunegocio.homefix.viewmodel.UbicacionViewModel
+
+// NUEVO - MULTIDIOMA:
+// Permite acceder a las claves del módulo cliente.
+import com.tunegocio.homefix.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -66,6 +74,18 @@ fun SeleccionarUbicacionScreen(
     var jobBusqueda by remember { mutableStateOf<Job?>(null) }
     var errorMessage by remember { mutableStateOf("") }
     var mostrarDialogoGps by remember { mutableStateOf(false) }
+
+    // NUEVO - MULTIDIOMA:
+    // Mensajes resueltos durante la composición para utilizarlos después
+    // en callbacks de ubicación sin alterar su funcionamiento.
+    val errorOutsideLima =
+        stringResource(R.string.location_error_outside_lima)
+    val errorCouldNotGetLocation =
+        stringResource(R.string.location_error_could_not_get)
+    val errorGettingLocation =
+        stringResource(R.string.location_error_getting)
+    val errorLocationPermission =
+        stringResource(R.string.location_error_permission)
 
     val bgColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
@@ -154,13 +174,13 @@ fun SeleccionarUbicacionScreen(
             },
             title = {
                 Text(
-                    text = "Ubicación desactivada",
+                    text = stringResource(R.string.location_disabled_title),
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
                 Text(
-                    text = "Para usar tu ubicación actual necesitas activar el GPS de tu dispositivo.",
+                    text = stringResource(R.string.location_disabled_description),
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -175,12 +195,12 @@ fun SeleccionarUbicacionScreen(
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Primary)
                 ) {
-                    Text("Activar GPS", color = Color.White)
+                    Text(stringResource(R.string.location_activate_gps), color = Color.White)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { mostrarDialogoGps = false }) {
-                    Text("Cancelar", color = TextSecondary)
+                    Text(stringResource(R.string.client_cancel), color = TextSecondary)
                 }
             }
         )
@@ -200,10 +220,10 @@ fun SeleccionarUbicacionScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         IconButton(onClick = { navController.popBackStack() }) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = textColor)
+                            Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.client_back), tint = textColor)
                         }
                         Text(
-                            text = "Selecciona tu ubicación",
+                            text = stringResource(R.string.location_select_title),
                             style = MaterialTheme.typography.titleLarge,
                             color = textColor,
                             fontWeight = FontWeight.SemiBold
@@ -216,7 +236,7 @@ fun SeleccionarUbicacionScreen(
                             buscarSugerencias(it)
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Buscar dirección en Lima...", color = TextHint) },
+                        placeholder = { Text(stringResource(R.string.location_search_hint), color = TextHint) },
                         leadingIcon = {
                             Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondary)
                         },
@@ -227,7 +247,7 @@ fun SeleccionarUbicacionScreen(
                                     sugerencias = emptyList()
                                     mostrarSugerencias = false
                                 }) {
-                                    Icon(Icons.Default.Close, contentDescription = "Limpiar", tint = TextSecondary)
+                                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.location_clear_search), tint = TextSecondary)
                                 }
                             }
                         },
@@ -298,7 +318,7 @@ fun SeleccionarUbicacionScreen(
                             Icon(Icons.Default.LocationOn, contentDescription = null, tint = if (locationLoaded) Success else TextSecondary, modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = if (locationLoaded) address else "Mueve el pin para definir la ubicación",
+                                text = if (locationLoaded) address else stringResource(R.string.location_move_pin),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (locationLoaded) textColor else TextSecondary
                             )
@@ -318,7 +338,7 @@ fun SeleccionarUbicacionScreen(
                     ) {
                         Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Confirmar ubicación", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.location_confirm), color = Color.White, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -341,7 +361,7 @@ fun SeleccionarUbicacionScreen(
                         actualizarDireccion(lat, lng)
                     }
                 },
-                onFueraDeCobertura = { errorMessage = "Solo atendemos en Lima por ahora" },
+                onFueraDeCobertura = { errorMessage = errorOutsideLima },
                 modifier = Modifier.fillMaxSize()
             )
 
@@ -376,14 +396,14 @@ fun SeleccionarUbicacionScreen(
                                         lng = location.longitude
                                         actualizarDireccion(lat, lng)
                                     } else {
-                                        errorMessage = "No se pudo obtener la ubicación, intenta de nuevo"
+                                        errorMessage = errorCouldNotGetLocation
                                     }
                                 }
                                 .addOnFailureListener {
-                                    errorMessage = "Error al obtener ubicación"
+                                    errorMessage = errorGettingLocation
                                 }
                         } catch (e: SecurityException) {
-                            errorMessage = "Activa el permiso de ubicación"
+                            errorMessage = errorLocationPermission
                         }
                     }
                 },
@@ -395,7 +415,7 @@ fun SeleccionarUbicacionScreen(
             ) {
                 Icon(
                     Icons.Default.MyLocation,
-                    contentDescription = "Mi ubicación"
+                    contentDescription = stringResource(R.string.location_my_location)
                 )
 
             }

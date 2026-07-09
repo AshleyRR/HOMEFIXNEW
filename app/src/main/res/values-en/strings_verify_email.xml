@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- EMAIL VERIFICATION - ENGLISH -->
+    <string name="verify_email_title">Verify your email</string>
+    <string name="verify_email_sent_to">We sent a verification email to:</string>
+
+    <!-- Steps -->
+    <string name="verify_email_step_open_email">Open your email inbox</string>
+    <string name="verify_email_step_find_homefix_email">Find the email from HomeFix</string>
+    <string name="verify_email_step_click_verify">Click “Verify email”</string>
+    <string name="verify_email_step_return_and_tap">Return here and tap the button below</string>
+
+    <!-- Buttons -->
+    <string name="verify_email_already_verified_button">I have verified my email ✓</string>
+    <string name="verify_email_resend_button">Resend email</string>
+    <string name="verify_email_cancel_registration">Cancel registration</string>
+
+    <!-- Messages -->
+    <string name="verify_email_could_not_send">The email could not be sent</string>
+    <string name="verify_email_resent_success">Email resent successfully</string>
+    <string name="verify_email_resend_error">Error resending the email</string>
+    <string name="verify_email_not_verified_yet">You have not verified your email yet</string>
+    <string name="verify_email_verification_error">Verification error. Try again</string>
+
+</resources>

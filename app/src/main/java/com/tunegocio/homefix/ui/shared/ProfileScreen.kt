@@ -19,12 +19,20 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener el texto correcto desde los archivos XML según el idioma activo.
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
+
+// NUEVO - MULTIDIOMA:
+// Permite acceder a las claves definidas en strings_profile.xml.
+import com.tunegocio.homefix.R
 import com.google.firebase.firestore.FirebaseFirestore
 import com.tunegocio.homefix.data.CloudinaryUploader
 import com.tunegocio.homefix.data.model.UserModel
@@ -65,6 +73,17 @@ fun ProfileScreen(navController: NavController) {
     val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
     val iconTint = if (isSystemInDarkTheme()) Color.White else Primary
 
+    // NUEVO - MULTIDIOMA:
+    // Los mensajes se obtienen durante la composición mediante stringResource.
+    // Después pueden utilizarse de forma segura dentro de los callbacks de Firebase
+    // sin consultar recursos mediante LocalContext.current.
+    val profileUpdateSuccessMessage =
+        stringResource(R.string.profile_update_success)
+    val profileSaveErrorMessage =
+        stringResource(R.string.profile_save_error)
+    val profilePhotoUploadErrorMessage =
+        stringResource(R.string.profile_photo_upload_error)
+
 
     var user by remember { mutableStateOf<UserModel?>(null) }
     var firstName by remember { mutableStateOf("") }
@@ -76,7 +95,15 @@ fun ProfileScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(true) }
     var isSaving by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    // MODIFICADO - MULTIDIOMA:
+    // Conserva el mensaje visible traducido.
     var successMessage by remember { mutableStateOf("") }
+
+    // NUEVO - MULTIDIOMA:
+    // Evita depender de la palabra "Error" para aplicar el color correspondiente.
+    // No cambia el proceso de guardado; solo permite que el mensaje funcione
+    // correctamente en español, inglés y portugués.
+    var successMessageIsError by remember { mutableStateOf(false) }
 
     var newPhotoUri by remember { mutableStateOf<android.net.Uri?>(null) }
     var isUploadingPhoto by remember { mutableStateOf(false) }
@@ -125,8 +152,22 @@ fun ProfileScreen(navController: NavController) {
             if (photoUrl != null) updates["selfieUrl"] = photoUrl
             if (user?.role == "technician") updates["bio"] = bio.trim()
             db.collection("users").document(uid).update(updates)
-                .addOnSuccessListener { isSaving = false; successMessage = "Perfil actualizado correctamente" }
-                .addOnFailureListener { isSaving = false; successMessage = "Error al guardar" }
+                .addOnSuccessListener {
+                    isSaving = false
+
+                    // MODIFICADO - MULTIDIOMA:
+                    // Usa el mensaje traducido previamente con stringResource.
+                    successMessage = profileUpdateSuccessMessage
+                    successMessageIsError = false
+                }
+                .addOnFailureListener {
+                    isSaving = false
+
+                    // MODIFICADO - MULTIDIOMA:
+                    // Usa el mensaje de error traducido previamente con stringResource.
+                    successMessage = profileSaveErrorMessage
+                    successMessageIsError = true
+                }
         }
         if (newPhotoUri != null) {
             isUploadingPhoto = true
@@ -135,7 +176,14 @@ fun ProfileScreen(navController: NavController) {
                 isUploadingPhoto = false
                 result.fold(
                     onSuccess = { url -> doSave(url) },
-                    onFailure = { isSaving = false; successMessage = "Error al subir la foto" }
+                    onFailure = {
+                        isSaving = false
+
+                        // MODIFICADO - MULTIDIOMA:
+                        // Mantiene la misma lógica y utiliza el mensaje traducido.
+                        successMessage = profilePhotoUploadErrorMessage
+                        successMessageIsError = true
+                    }
                 )
             }
         } else doSave(null)
@@ -159,16 +207,37 @@ fun ProfileScreen(navController: NavController) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
             containerColor = MaterialTheme.colorScheme.surfaceVariant,
-            title = { Text("Cerrar sesión", fontWeight = FontWeight.Bold, color = textColor) },
-            text = { Text("¿Estás seguro que deseas cerrar sesión?", color = textColor) },
+            title = {
+                Text(
+                    // MODIFICADO - MULTIDIOMA:
+                    // Título obtenido desde strings_profile.xml.
+                    text = stringResource(R.string.profile_logout),
+                    fontWeight = FontWeight.Bold,
+                    color = textColor
+                )
+            },
+            text = {
+                Text(
+                    // MODIFICADO - MULTIDIOMA:
+                    // Pregunta obtenida desde strings_profile.xml.
+                    text = stringResource(R.string.profile_logout_question),
+                    color = textColor
+                )
+            },
             confirmButton = {
                 TextButton(onClick = { logout() }, colors = ButtonDefaults.textButtonColors(contentColor = Error)) {
-                    Text("Cerrar sesión", fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = stringResource(R.string.profile_logout),
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Cancelar", color = secondaryText)
+                    Text(
+                        text = stringResource(R.string.profile_cancel),
+                        color = secondaryText
+                    )
                 }
             }
         )
@@ -200,11 +269,32 @@ fun ProfileScreen(navController: NavController) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = MaterialTheme.colorScheme.onBackground)
+                    Icon(
+                        Icons.Default.ArrowBack,
+
+                        // MODIFICADO - MULTIDIOMA:
+                        // Descripción accesible traducida. El botón conserva la misma acción.
+                        contentDescription = stringResource(R.string.profile_back),
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
                 }
-                Text("Mi perfil", style = MaterialTheme.typography.headlineMedium, color = textColor, fontWeight = FontWeight.Bold)
+                Text(
+                    // MODIFICADO - MULTIDIOMA:
+                    // Solo cambia el texto visible; el diseño permanece igual.
+                    text = stringResource(R.string.profile_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = textColor,
+                    fontWeight = FontWeight.Bold
+                )
                 IconButton(onClick = { navController.navigate(Routes.SETTINGS) }) {
-                    Icon(Icons.Default.Settings, contentDescription = "Configuraciones", tint = MaterialTheme.colorScheme.onBackground)
+                    Icon(
+                        Icons.Default.Settings,
+
+                        // MODIFICADO - MULTIDIOMA:
+                        // Descripción accesible traducida. La navegación no cambia.
+                        contentDescription = stringResource(R.string.profile_settings),
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
                 }
             }
 
@@ -216,7 +306,8 @@ fun ProfileScreen(navController: NavController) {
                 if (photoToShow != null) {
                     AsyncImage(
                         model = photoToShow,
-                        contentDescription = "Foto de perfil",
+                        // MODIFICADO - MULTIDIOMA:
+                        contentDescription = stringResource(R.string.profile_photo),
                         modifier = Modifier.size(100.dp).clip(RoundedCornerShape(50.dp)),
                         contentScale = ContentScale.Crop
                     )
@@ -245,7 +336,15 @@ fun ProfileScreen(navController: NavController) {
                         if (isUploadingPhoto) {
                             CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
                         } else {
-                            Icon(Icons.Default.CameraAlt, contentDescription = "Cambiar foto", tint = Color.White, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.Default.CameraAlt,
+
+                                // MODIFICADO - MULTIDIOMA:
+                                // Solo traduce la descripción del icono.
+                                contentDescription = stringResource(R.string.profile_change_photo),
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
 
                         }
                     }
@@ -261,7 +360,13 @@ fun ProfileScreen(navController: NavController) {
                 color = if (u.role == "technician") TechnicianColor.copy(alpha = 0.1f) else ClientColor.copy(alpha = 0.1f)
             ) {
                 Text(
-                    text = if (u.role == "technician") "Técnico" else "Cliente",
+                    // MODIFICADO - MULTIDIOMA:
+                    // El rol almacenado en Firebase no cambia; solo se traduce su nombre visible.
+                    text = if (u.role == "technician") {
+                        stringResource(R.string.profile_role_technician)
+                    } else {
+                        stringResource(R.string.profile_role_client)
+                    },
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelLarge,
                     color = if (u.role == "technician") TechnicianColor else ClientColor,
@@ -271,25 +376,56 @@ fun ProfileScreen(navController: NavController) {
 
             if (u.rating > 0) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text("⭐ ${"%.1f".format(u.rating)} calificación", style = MaterialTheme.typography.bodyMedium, color = secondaryText)
+                Text(
+                    // MODIFICADO - MULTIDIOMA:
+                    // La calificación sigue usando el mismo valor de Firebase.
+                    text = stringResource(R.string.profile_rating_format, u.rating),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = secondaryText
+                )
             }
 
             Spacer(modifier = Modifier.height(28.dp))
 
             // Datos personales
-            Text("Datos personales", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth())
+            Text(
+                text = stringResource(R.string.profile_personal_data),
+                style = MaterialTheme.typography.titleMedium,
+                color = textColor,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.fillMaxWidth()
+            )
             Spacer(modifier = Modifier.height(12.dp))
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                HomefixTextField(value = firstName, onValueChange = { firstName = it }, label = "Nombres", modifier = Modifier.weight(1f))
-                HomefixTextField(value = lastName, onValueChange = { lastName = it }, label = "Apellidos", modifier = Modifier.weight(1f))
+                HomefixTextField(
+                    value = firstName,
+                    onValueChange = { firstName = it },
+
+                    // MODIFICADO - MULTIDIOMA:
+                    label = stringResource(R.string.profile_first_names),
+                    modifier = Modifier.weight(1f)
+                )
+                HomefixTextField(
+                    value = lastName,
+                    onValueChange = { lastName = it },
+
+                    // MODIFICADO - MULTIDIOMA:
+                    label = stringResource(R.string.profile_last_names),
+                    modifier = Modifier.weight(1f)
+                )
             }
             Spacer(modifier = Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = u.email,
                 onValueChange = {},
-                label = { Text("Correo electrónico") },
+                label = {
+                    Text(
+                        // MODIFICADO - MULTIDIOMA:
+                        text = stringResource(R.string.profile_email)
+                    )
+                },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = false,
                 shape = RoundedCornerShape(12.dp),
@@ -301,7 +437,13 @@ fun ProfileScreen(navController: NavController) {
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            HomefixTextField(value = phone, onValueChange = { phone = it }, label = "Número de WhatsApp")
+            HomefixTextField(
+                value = phone,
+                onValueChange = { phone = it },
+
+                // MODIFICADO - MULTIDIOMA:
+                label = stringResource(R.string.profile_whatsapp_number)
+            )
             Spacer(modifier = Modifier.height(12.dp))
 
 // Distrito
@@ -310,8 +452,19 @@ fun ProfileScreen(navController: NavController) {
                     value = selectedDistrict,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Distrito") },
-                    placeholder = { Text("Selecciona tu distrito", color = secondaryText) },
+                    label = {
+                        Text(
+                            // MODIFICADO - MULTIDIOMA:
+                            text = stringResource(R.string.profile_district)
+                        )
+                    },
+                    placeholder = {
+                        Text(
+                            // MODIFICADO - MULTIDIOMA:
+                            text = stringResource(R.string.profile_select_district),
+                            color = secondaryText
+                        )
+                    },
                     leadingIcon = {
                         Icon(
                             Icons.Default.LocationOn,
@@ -352,13 +505,24 @@ fun ProfileScreen(navController: NavController) {
                 HorizontalDivider(color = outlineColor)
                 Spacer(modifier = Modifier.height(16.dp))
 
-                Text("Información profesional", style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.SemiBold, modifier = Modifier.fillMaxWidth())
+                Text(
+                    text = stringResource(R.string.profile_professional_information),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = textColor,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.fillMaxWidth()
+                )
                 Spacer(modifier = Modifier.height(12.dp))
 
                 OutlinedTextField(
                     value = u.email,
                     onValueChange = {},
-                    label = { Text("Correo electrónico") },
+                    label = {
+                        Text(
+                            // MODIFICADO - MULTIDIOMA:
+                            text = stringResource(R.string.profile_email)
+                        )
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     readOnly = true,
                     shape = RoundedCornerShape(12.dp),
@@ -375,7 +539,14 @@ fun ProfileScreen(navController: NavController) {
 
                 if (u.specialties.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text("Especialidades", style = MaterialTheme.typography.bodyMedium, color = textColor, fontWeight = FontWeight.Medium)
+                    Text(
+                        // MODIFICADO - MULTIDIOMA:
+                        // Los nombres guardados de las especialidades se conservan.
+                        text = stringResource(R.string.profile_specialties),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = textColor,
+                        fontWeight = FontWeight.Medium
+                    )
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         u.specialties.take(3).forEach { specialty ->
@@ -395,7 +566,16 @@ fun ProfileScreen(navController: NavController) {
                     Row(modifier = Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Star, contentDescription = null, tint = Warning, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("${calcYearsExp(u)} años de experiencia", style = MaterialTheme.typography.bodyMedium, color = textColor)
+                        Text(
+                            // MODIFICADO - MULTIDIOMA:
+                            // El cálculo de años no cambia; solo cambia el texto que lo acompaña.
+                            text = stringResource(
+                                R.string.profile_years_experience,
+                                calcYearsExp(u)
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = textColor
+                        )
                     }
                 }
             }
@@ -404,13 +584,20 @@ fun ProfileScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(12.dp))
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = if (successMessage.contains("Error")) Error.copy(alpha = 0.1f) else Success.copy(alpha = 0.1f)
+                    // MODIFICADO - MULTIDIOMA:
+                    // Usa el estado booleano y ya no depende del idioma del mensaje.
+                    color = if (successMessageIsError) {
+                        Error.copy(alpha = 0.1f)
+                    } else {
+                        Success.copy(alpha = 0.1f)
+                    }
                 ) {
                     Text(
                         text = successMessage,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (successMessage.contains("Error")) Error else Success
+                        // MODIFICADO - MULTIDIOMA:
+                        color = if (successMessageIsError) Error else Success
                     )
                 }
             }
@@ -418,7 +605,9 @@ fun ProfileScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(24.dp))
 
             HomefixButton(
-                text = "Guardar cambios",
+                // MODIFICADO - MULTIDIOMA:
+                // El botón mantiene la misma función saveProfile().
+                text = stringResource(R.string.profile_save_changes),
                 onClick = { saveProfile() },
                 isLoading = isSaving || isUploadingPhoto,
                 color = MaterialTheme.colorScheme.primary,
@@ -447,7 +636,9 @@ fun ProfileScreen(navController: NavController) {
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(
-                    text = "Cerrar sesión",
+                    // MODIFICADO - MULTIDIOMA:
+                    // El botón mantiene la misma acción y solo traduce el texto.
+                    text = stringResource(R.string.profile_logout),
                     style = MaterialTheme.typography.labelLarge,
                     color = Color.White
                 )

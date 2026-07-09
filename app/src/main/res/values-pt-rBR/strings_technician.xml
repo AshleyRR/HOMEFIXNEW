@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- MÓDULO DO TÉCNICO - PORTUGUÊS DO BRASIL -->
+    <!--
+        MULTIDIOMA:
+        Estas claves cambian únicamente los textos visibles.
+        No modifican estados, especialidades ni valores guardados en Firebase.
+    -->
+
+    <!-- TEXTOS COMUNES Y SERVICIOS -->
+    <string name="technician_service_all">Todos</string>
+    <string name="technician_service_electricity">Eletricidade</string>
+    <string name="technician_service_plumbing">Encanamento</string>
+    <string name="technician_service_painting">Pintura</string>
+    <string name="technician_service_carpentry">Carpintaria</string>
+    <string name="technician_service_glasswork">Vidraçaria</string>
+    <string name="technician_service_gardening">Jardinagem</string>
+    <string name="technician_service_locksmith">Chaveiro</string>
+    <string name="technician_service_masonry">Alvenaria</string>
+    <string name="technician_service_custom_furniture">Móveis sob medida</string>
+    <string name="technician_service_upholstery_cleaning">Limpeza de estofados</string>
+    <string name="technician_service_moving">Mudanças</string>
+    <string name="technician_default_client">Cliente</string>
+    <string name="technician_urgent">Urgente</string>
+    <string name="technician_back">Voltar</string>
+    <string name="technician_cancel">Cancelar</string>
+    <string name="technician_confirm">Confirmar</string>
+    <string name="technician_close">Fechar</string>
+    <string name="technician_profile">Perfil</string>
+    <string name="technician_notifications">Notificações</string>
+    <string name="technician_my_applications">Minhas candidaturas</string>
+
+    <!-- NAVEGACIÓN INFERIOR DEL TÉCNICO -->
+    <string name="technician_nav_requests">Solicitações</string>
+    <string name="technician_nav_activity">Atividade</string>
+    <string name="technician_nav_profile">Perfil</string>
+
+    <!-- INICIO DEL TÉCNICO -->
+    <string name="technician_home_greeting">Olá, %1$s</string>
+    <string name="technician_home_available_status">Você está disponível</string>
+    <string name="technician_home_inactive_status">Você está inativo</string>
+    <string name="technician_home_available">Disponível</string>
+    <string name="technician_home_unavailable">Indisponível</string>
+    <string name="technician_home_receiving_requests">Você está recebendo solicitações de clientes</string>
+    <string name="technician_home_activate_to_receive">Ative sua disponibilidade para receber solicitações</string>
+    <string name="technician_home_gps_active">GPS ativo — solicitações ordenadas por distância</string>
+    <string name="technician_home_no_gps_district">Sem GPS — usando o distrito: %1$s</string>
+    <string name="technician_home_refresh_location">Atualizar localização</string>
+    <string name="technician_home_activate_to_view">Ative sua disponibilidade para ver solicitações</string>
+    <string name="technician_home_filter_district">Filtrar por distrito</string>
+    <string name="technician_home_nearby_count">Perto de você (%1$d)</string>
+    <string name="technician_home_other_districts_count">Outros distritos (%1$d)</string>
+    <string name="technician_home_no_requests">Nenhuma solicitação por enquanto</string>
+    <string name="technician_home_notify_new">Avisaremos quando uma nova solicitação chegar</string>
+    <string name="technician_home_location_unspecified">Localização não informada</string>
+
+    <!-- MI ACTIVIDAD -->
+    <string name="technician_activity_title">Minha atividade</string>
+    <string name="technician_activity_completed_metric">Concluídos</string>
+    <string name="technician_activity_this_month">Este mês</string>
+    <string name="technician_activity_not_continued">Não continuados</string>
+    <string name="technician_activity_reviews">Avaliações</string>
+    <string name="technician_activity_completed_services">Serviços concluídos</string>
+    <string name="technician_activity_empty_title">Nenhuma atividade ainda</string>
+    <string name="technician_activity_empty_body">Seus serviços concluídos aparecerão aqui</string>
+
+    <!-- MIS POSTULACIONES -->
+    <string name="technician_applications_title">Minhas candidaturas</string>
+    <string name="technician_applications_empty_title">Nenhuma candidatura ativa</string>
+    <string name="technician_applications_empty_body">As solicitações em que você marcou “Tenho interesse” aparecerão aqui</string>
+    <string name="technician_status_under_review">Em análise</string>
+    <string name="technician_status_pending">Pendente</string>
+
+    <!-- NOTIFICACIONES Y ERRORES -->
+    <string name="technician_interest_notification_title">Um técnico está interessado!</string>
+    <string name="technician_interest_notification_body">Alguém quer atender sua solicitação de %1$s. Revise para escolher.</string>
+    <string name="technician_error_register_interest">Erro ao registrar interesse</string>
+    <string name="technician_error_verify_request">Erro ao verificar a solicitação</string>
+    <string name="technician_reason_required">Escreva o motivo</string>
+    <string name="technician_cancel_interest_notification_title">Um técnico cancelou o interesse</string>
+    <string name="technician_reason_format">Motivo: %1$s</string>
+    <string name="technician_error_cancel">Erro ao cancelar</string>
+    <string name="technician_completed_notification_title">O técnico terminou o trabalho</string>
+    <string name="technician_completed_notification_body">Você confirma que o serviço de %1$s foi concluído?</string>
+    <string name="technician_error_update">Erro ao atualizar</string>
+    <string name="technician_cannot_continue_notification_title">O técnico não pode continuar</string>
+    <string name="technician_whatsapp_message">Olá, vi sua solicitação no HomeFix e gostaria de ajudar.</string>
+    <string name="technician_whatsapp_not_installed">O WhatsApp não está instalado</string>
+
+    <!-- DIÁLOGOS -->
+    <string name="technician_confirm_interest_title">Confirmar interesse?</string>
+    <string name="technician_confirm_interest_body">Ao confirmar, o cliente verá que você tem interesse em atender esta solicitação e poderá escolher você.</string>
+    <string name="technician_yes_interested">Sim, tenho interesse</string>
+    <string name="technician_cancel_reason_title">Por que deseja cancelar?</string>
+    <string name="technician_reason_notice">O cliente receberá uma notificação com o motivo.</string>
+    <string name="technician_cancel_reason_hint">Ex.: Surgiu um imprevisto, estou longe…</string>
+    <string name="technician_confirm_cancellation">Confirmar cancelamento</string>
+    <string name="technician_mark_completed_title">Marcar como concluído?</string>
+    <string name="technician_mark_completed_body">O cliente será notificado para confirmar que o trabalho foi concluído.</string>
+    <string name="technician_cannot_continue_title">Não consegue continuar?</string>
+    <string name="technician_cannot_continue_hint">Ex.: Surgiu um imprevisto, não consigo chegar…</string>
+
+    <!-- DETALLE DE SOLICITUD -->
+    <string name="technician_photo_enlarged">Foto ampliada</string>
+    <string name="technician_request_detail_title">Detalhes da solicitação</string>
+    <string name="technician_in_progress">Em andamento</string>
+    <string name="technician_description">Descrição</string>
+    <string name="technician_address">Endereço</string>
+    <string name="technician_reference_format">Referência: %1$s</string>
+    <string name="technician_view_google_maps">Ver no Google Maps</string>
+    <string name="technician_photos">Fotos</string>
+    <string name="technician_client">Cliente</string>
+    <string name="technician_contact_whatsapp">Entrar em contato pelo WhatsApp</string>
+    <string name="technician_request_sent">Solicitação enviada</string>
+    <string name="technician_waiting_client_choice">Você está aguardando o cliente escolher você.</string>
+    <string name="technician_cancel_request">Cancelar candidatura</string>
+    <string name="technician_interested">Tenho interesse</string>
+    <string name="technician_not_interested">Não tenho interesse</string>
+    <string name="technician_finished">Concluído</string>
+    <string name="technician_not_continue">Não continuar</string>
+    <string name="technician_waiting_confirmation">Aguardando confirmação</string>
+    <string name="technician_client_confirm_not_continued">O cliente deve confirmar que o processo não continuou.</string>
+    <string name="technician_service_completed">Serviço concluído</string>
+    <string name="technician_finished_on">Concluído em %1$s</string>
+    <string name="technician_client_rating">Avaliação do cliente</string>
+    <string name="technician_client_not_rated">O cliente ainda não avaliou o serviço.</string>
+    <string name="technician_process_not_continued">Processo não continuado</string>
+
+    <!-- PLURALES -->
+    <plurals name="technician_applications_waiting_count">
+        <item quantity="one">%1$d candidatura aguardando resposta</item>
+        <item quantity="other">%1$d candidaturas aguardando resposta</item>
+    </plurals>
+
+</resources>

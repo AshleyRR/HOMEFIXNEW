@@ -21,6 +21,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener los textos de strings_technician.xml según el idioma activo.
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.google.android.gms.location.LocationServices
@@ -29,6 +33,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.tunegocio.homefix.data.LocationUtils
 import com.tunegocio.homefix.data.model.RequestModel
 import com.tunegocio.homefix.navigation.Routes
+
+// NUEVO - MULTIDIOMA:
+// Permite acceder a las claves de recursos del módulo técnico.
+import com.tunegocio.homefix.R
 import com.tunegocio.homefix.ui.theme.*
 import com.tunegocio.homefix.viewmodel.NotificationsViewModel
 import androidx.compose.ui.draw.clip
@@ -38,6 +46,28 @@ import coil.compose.AsyncImage
 import com.tunegocio.homefix.data.local.database.LocalDatabase
 
 
+
+
+// NUEVO - MULTIDIOMA:
+// Traduce únicamente el nombre visible del servicio.
+// Los valores usados por Firebase y los filtros se conservan en español.
+@Composable
+private fun homeTechnicianServiceLabel(serviceType: String): String {
+    return when (serviceType) {
+        "Electricidad" -> stringResource(R.string.technician_service_electricity)
+        "Gasfitería" -> stringResource(R.string.technician_service_plumbing)
+        "Pintura" -> stringResource(R.string.technician_service_painting)
+        "Carpintería" -> stringResource(R.string.technician_service_carpentry)
+        "Vidriería" -> stringResource(R.string.technician_service_glasswork)
+        "Jardinería" -> stringResource(R.string.technician_service_gardening)
+        "Cerrajería" -> stringResource(R.string.technician_service_locksmith)
+        "Albañilería" -> stringResource(R.string.technician_service_masonry)
+        "Muebles a medida" -> stringResource(R.string.technician_service_custom_furniture)
+        "Lavado de tapizados" -> stringResource(R.string.technician_service_upholstery_cleaning)
+        "Mudanzas" -> stringResource(R.string.technician_service_moving)
+        else -> serviceType
+    }
+}
 
 @SuppressLint("MissingPermission")
 @Composable
@@ -197,13 +227,22 @@ fun HomeTechnicianScreen(navController: NavController) {
                     ) {
                         Column {
                             Text(
-                                text = "Hola, ${userName.split(" ").firstOrNull() ?: ""} ",
+                                // MODIFICADO - MULTIDIOMA:
+                                text = stringResource(
+                                    R.string.technician_home_greeting,
+                                    userName.split(" ").firstOrNull() ?: ""
+                                ),
                                 style = MaterialTheme.typography.headlineMedium,
                                 color = textColor,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = if (isActive) "Estás disponible" else "Estás inactivo",
+                                // MODIFICADO - MULTIDIOMA:
+                                text = if (isActive) {
+                                    stringResource(R.string.technician_home_available_status)
+                                } else {
+                                    stringResource(R.string.technician_home_inactive_status)
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = if (isActive) Success else secondaryText
                             )
@@ -217,23 +256,23 @@ fun HomeTechnicianScreen(navController: NavController) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             BadgedBox(badge = { if (noLeidas > 0) Badge { Text(noLeidas.toString()) } }) {
                                 IconButton(onClick = { navController.navigate(Routes.NOTIFICATIONS) }) {
-                                    Icon(Icons.Default.Notifications, contentDescription = "Notificaciones", tint = Primary, modifier = Modifier.size(28.dp))
+                                    Icon(Icons.Default.Notifications, contentDescription = stringResource(R.string.technician_notifications), tint = Primary, modifier = Modifier.size(28.dp))
                                 }
                             }
                             // Nuevo: acceso a "Mis postulaciones" (solicitudes donde ya marcó "Me interesa" y espera respuesta del cliente)
                             IconButton(onClick = { navController.navigate(Routes.MY_APPLICATIONS) }) {
-                                Icon(Icons.Default.PendingActions, contentDescription = "Mis postulaciones", tint = Primary, modifier = Modifier.size(28.dp))
+                                Icon(Icons.Default.PendingActions, contentDescription = stringResource(R.string.technician_my_applications), tint = Primary, modifier = Modifier.size(28.dp))
                             }
                             IconButton(onClick = { navController.navigate(Routes.PROFILE) }) {
                                 if (userPhotoUrl.isNotEmpty()) {
                                     AsyncImage(
                                         model = userPhotoUrl,
-                                        contentDescription = "Perfil",
+                                        contentDescription = stringResource(R.string.technician_profile),
                                         modifier = Modifier.size(36.dp).clip(RoundedCornerShape(18.dp)),
                                         contentScale = ContentScale.Crop
                                     )
                                 } else {
-                                    Icon(Icons.Default.AccountCircle, contentDescription = "Perfil", tint = Primary, modifier = Modifier.size(36.dp))
+                                    Icon(Icons.Default.AccountCircle, contentDescription = stringResource(R.string.technician_profile), tint = Primary, modifier = Modifier.size(36.dp))
                                 }
                             }
                         }
@@ -258,13 +297,23 @@ fun HomeTechnicianScreen(navController: NavController) {
                         ) {
                             Column {
                                 Text(
-                                    text = if (isActive) "Disponible" else "No disponible",
+                                    // MODIFICADO - MULTIDIOMA:
+                                    text = if (isActive) {
+                                        stringResource(R.string.technician_home_available)
+                                    } else {
+                                        stringResource(R.string.technician_home_unavailable)
+                                    },
                                     style = MaterialTheme.typography.titleMedium,
                                     color = if (isActive) Success else textColor,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    text = if (isActive) "Recibes solicitudes de clientes" else "Actívate para recibir solicitudes",
+                                    // MODIFICADO - MULTIDIOMA:
+                                    text = if (isActive) {
+                                        stringResource(R.string.technician_home_receiving_requests)
+                                    } else {
+                                        stringResource(R.string.technician_home_activate_to_receive)
+                                    },
                                     style = MaterialTheme.typography.bodySmall,
                                     color = secondaryText
                                 )
@@ -288,13 +337,21 @@ fun HomeTechnicianScreen(navController: NavController) {
                                     Surface(modifier = Modifier.size(8.dp), shape = RoundedCornerShape(4.dp), color = if (hasGps) Success else Warning) {}
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = if (hasGps) "GPS activo — solicitudes ordenadas por distancia" else "Sin GPS — usando distrito: $userDistrict",
+                                        // MODIFICADO - MULTIDIOMA:
+                                        text = if (hasGps) {
+                                            stringResource(R.string.technician_home_gps_active)
+                                        } else {
+                                            stringResource(
+                                                R.string.technician_home_no_gps_district,
+                                                userDistrict
+                                            )
+                                        },
                                         style = MaterialTheme.typography.labelSmall,
                                         color = if (hasGps) Success else Warning
                                     )
                                 }
                                 IconButton(onClick = { refreshLocation() }, modifier = Modifier.size(32.dp)) {
-                                    Icon(Icons.Default.Refresh, contentDescription = "Actualizar ubicación", tint = Primary, modifier = Modifier.size(18.dp))
+                                    Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.technician_home_refresh_location), tint = Primary, modifier = Modifier.size(18.dp))
                                 }
                             }
                         }
@@ -312,8 +369,8 @@ fun HomeTechnicianScreen(navController: NavController) {
                         Column(modifier = Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(imageVector = Icons.Default.BedtimeOff, contentDescription = null, tint = secondaryText, modifier = Modifier.size(48.dp))
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("Estás inactivo", style = MaterialTheme.typography.titleMedium, color = textColor)
-                            Text("Activa tu disponibilidad para ver solicitudes", style = MaterialTheme.typography.bodyMedium, color = secondaryText)
+                            Text(stringResource(R.string.technician_home_inactive_status), style = MaterialTheme.typography.titleMedium, color = textColor)
+                            Text(stringResource(R.string.technician_home_activate_to_view), style = MaterialTheme.typography.bodyMedium, color = secondaryText)
                         }
                     }
                 }
@@ -321,7 +378,7 @@ fun HomeTechnicianScreen(navController: NavController) {
                 // Filtro por distrito
                 item {
                     Column(modifier = Modifier.padding(horizontal = 20.dp)) {
-                        Text("Filtrar por distrito", style = MaterialTheme.typography.bodyMedium, color = secondaryText, fontWeight = FontWeight.Medium)
+                        Text(stringResource(R.string.technician_home_filter_district), style = MaterialTheme.typography.bodyMedium, color = secondaryText, fontWeight = FontWeight.Medium)
                         Spacer(modifier = Modifier.height(6.dp))
                     }
                     LazyRow(contentPadding = PaddingValues(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -329,7 +386,18 @@ fun HomeTechnicianScreen(navController: NavController) {
                             FilterChip(
                                 selected = selectedDistrictFilter == district,
                                 onClick = { selectedDistrictFilter = district },
-                                label = { Text(district, style = MaterialTheme.typography.labelMedium) },
+                                label = {
+                                    Text(
+                                        // MODIFICADO - MULTIDIOMA:
+                                        // "Todos" continúa como código interno del filtro.
+                                        text = if (district == "Todos") {
+                                            stringResource(R.string.technician_service_all)
+                                        } else {
+                                            district
+                                        },
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                },
                                 colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Primary, selectedLabelColor = Color.White)
                             )
                         }
@@ -348,7 +416,11 @@ fun HomeTechnicianScreen(navController: NavController) {
                             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.LocationOn, contentDescription = null, tint = Success, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Cerca de ti (${nearbyRequests.size})", style = MaterialTheme.typography.titleLarge, color = textColor, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    stringResource(
+                                        R.string.technician_home_nearby_count,
+                                        nearbyRequests.size
+                                    ), style = MaterialTheme.typography.titleLarge, color = textColor, fontWeight = FontWeight.SemiBold)
                             }
                         }
                         items(nearbyRequests) { (request, distance) ->
@@ -370,7 +442,11 @@ fun HomeTechnicianScreen(navController: NavController) {
                             Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Icon(Icons.Default.Map, contentDescription = null, tint = secondaryText, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Otros distritos (${otherRequests.size})", style = MaterialTheme.typography.titleLarge, color = textColor, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    stringResource(
+                                        R.string.technician_home_other_districts_count,
+                                        otherRequests.size
+                                    ), style = MaterialTheme.typography.titleLarge, color = textColor, fontWeight = FontWeight.SemiBold)
                             }
                         }
                         items(otherRequests) { (request, distance) ->
@@ -396,8 +472,8 @@ fun HomeTechnicianScreen(navController: NavController) {
                                 Column(modifier = Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                                     Icon(imageVector = Icons.Default.HourglassBottom, contentDescription = null, tint = secondaryText, modifier = Modifier.size(48.dp))
                                     Spacer(modifier = Modifier.height(8.dp))
-                                    Text("Sin solicitudes por ahora", style = MaterialTheme.typography.titleMedium, color = textColor)
-                                    Text("Te notificaremos cuando llegue una nueva", style = MaterialTheme.typography.bodyMedium, color = secondaryText)
+                                    Text(stringResource(R.string.technician_home_no_requests), style = MaterialTheme.typography.titleMedium, color = textColor)
+                                    Text(stringResource(R.string.technician_home_notify_new), style = MaterialTheme.typography.bodyMedium, color = secondaryText)
                                 }
                             }
                         }
@@ -420,6 +496,10 @@ fun NearbyRequestCard(
     secondaryText: androidx.compose.ui.graphics.Color = TextSecondary,
     cardColor: androidx.compose.ui.graphics.Color = CardBackground
 ) {
+    // MODIFICADO - MULTIDIOMA:
+    // Solo se traduce la etiqueta visible del servicio.
+    val serviceLabel = homeTechnicianServiceLabel(request.serviceType)
+
     Card(
         modifier = modifier.fillMaxWidth().clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
@@ -429,7 +509,7 @@ fun NearbyRequestCard(
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = request.serviceType, style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.SemiBold)
+                    Text(text = serviceLabel, style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.SemiBold)
                     Text(
                         text = request.description.take(80) + if (request.description.length > 80) "..." else "",
                         style = MaterialTheme.typography.bodyMedium,
@@ -438,7 +518,7 @@ fun NearbyRequestCard(
                 }
                 if (request.isUrgent) {
                     Surface(shape = RoundedCornerShape(8.dp), color = Error.copy(alpha = 0.15f)) {
-                        Text("⚡ Urgente", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Error, fontWeight = FontWeight.Medium)
+                        Text("⚡ ${stringResource(R.string.technician_urgent)}", modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall, color = Error, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -448,7 +528,7 @@ fun NearbyRequestCard(
                     Icon(Icons.Default.LocationOn, contentDescription = null, tint = secondaryText, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = if (request.district.isNotEmpty()) request.district else request.address.ifEmpty { "Ubicación no especificada" },
+                        text = if (request.district.isNotEmpty()) request.district else request.address.ifEmpty { stringResource(R.string.technician_home_location_unspecified) },
                         style = MaterialTheme.typography.labelSmall,
                         color = secondaryText
                     )
@@ -470,20 +550,20 @@ fun TechnicianBottomBar(navController: NavController, current: String) {
         NavigationBarItem(
             selected = current == "home",
             onClick = { navController.navigate(Routes.HOME_TECHNICIAN) },
-            icon = { Icon(Icons.Default.Home, contentDescription = "Inicio") },
-            label = { Text("Solicitudes") }
+            icon = { Icon(Icons.Default.Home, contentDescription = stringResource(R.string.technician_nav_requests)) },
+            label = { Text(stringResource(R.string.technician_nav_requests)) }
         )
         NavigationBarItem(
             selected = current == "earnings",
             onClick = { navController.navigate(Routes.EARNINGS) },
-            icon = { Icon(Icons.Default.Star, contentDescription = "Actividad") },
-            label = { Text("Actividad") }
+            icon = { Icon(Icons.Default.Star, contentDescription = stringResource(R.string.technician_nav_activity)) },
+            label = { Text(stringResource(R.string.technician_nav_activity)) }
         )
         NavigationBarItem(
             selected = current == "profile",
             onClick = { navController.navigate(Routes.PROFILE) },
-            icon = { Icon(Icons.Default.Person, contentDescription = "Perfil") },
-            label = { Text("Perfil") }
+            icon = { Icon(Icons.Default.Person, contentDescription = stringResource(R.string.technician_profile)) },
+            label = { Text(stringResource(R.string.technician_nav_profile)) }
         )
     }
 }

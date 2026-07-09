@@ -37,6 +37,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener los textos del archivo strings_login.xml según el idioma activo.
+import androidx.compose.ui.res.stringResource
 import com.tunegocio.homefix.R
 
 import android.content.Context
@@ -49,6 +53,25 @@ fun LoginScreen(navController: NavController) {
 
     val auth = FirebaseAuth.getInstance()
     val db = FirebaseFirestore.getInstance()
+
+    // NUEVO - MULTIDIOMA:
+    // Todos los textos se resuelven durante la composición mediante stringResource.
+    // Luego pueden usarse de forma segura dentro de login(), Retrofit y Firebase
+    // sin consultar recursos desde callbacks asíncronos.
+    val loginEmailRequired = stringResource(R.string.login_email_required)
+    val loginInvalidEmail = stringResource(R.string.login_invalid_email)
+    val loginPasswordRequired = stringResource(R.string.login_password_required)
+    val loginPasswordMinLength = stringResource(R.string.login_password_min_length)
+    val loginVerifyEmail = stringResource(R.string.login_verify_email)
+    val loginProfileError = stringResource(R.string.login_profile_error)
+    val loginAuthenticationError = stringResource(R.string.login_authentication_error)
+    val loginEmailNotFound = stringResource(R.string.login_email_not_found)
+    val loginIncorrectPassword = stringResource(R.string.login_incorrect_password)
+    val loginUserDisabled = stringResource(R.string.login_user_disabled)
+    val loginInvalidCredentials = stringResource(R.string.login_invalid_credentials)
+    val loginTooManyAttempts = stringResource(R.string.login_too_many_attempts)
+    val loginGenericError = stringResource(R.string.login_generic_error)
+    val loginUnknownError = stringResource(R.string.login_unknown_error)
 
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -81,18 +104,23 @@ fun LoginScreen(navController: NavController) {
         var hasError = false
 
         if (email.isBlank()) {
-            emailError = "El correo es obligatorio"
+            // MODIFICADO - MULTIDIOMA:
+            // La validación es la misma; solo cambia el origen del mensaje.
+            emailError = loginEmailRequired
             hasError = true
         } else if (!isValidEmail(email)) {
-            emailError = "Ingresa un correo válido"
+            // MODIFICADO - MULTIDIOMA:
+            emailError = loginInvalidEmail
             hasError = true
         }
 
         if (password.isBlank()) {
-            passwordError = "La contraseña es obligatoria"
+            // MODIFICADO - MULTIDIOMA:
+            passwordError = loginPasswordRequired
             hasError = true
         } else if (password.length < 6) {
-            passwordError = "Mínimo 6 caracteres"
+            // MODIFICADO - MULTIDIOMA:
+            passwordError = loginPasswordMinLength
             hasError = true
         }
 
@@ -123,7 +151,9 @@ fun LoginScreen(navController: NavController) {
                                 // Verificar email confirmado
                                 if (result.user?.isEmailVerified == false) {
                                     isLoading = false
-                                    generalError = "Debes verificar tu email antes de ingresar"
+                                    // MODIFICADO - MULTIDIOMA:
+                                    // Mantiene la misma validación de email confirmado.
+                                    generalError = loginVerifyEmail
                                     auth.signOut()
                                     return@addOnSuccessListener
                                 }
@@ -164,12 +194,14 @@ fun LoginScreen(navController: NavController) {
                                     }
                                     .addOnFailureListener {
                                         isLoading = false
-                                        generalError = "Error al obtener perfil"
+                                        // MODIFICADO - MULTIDIOMA:
+                                        generalError = loginProfileError
                                     }
                             }
                             .addOnFailureListener {
                                 isLoading = false
-                                generalError = "Error al autenticar"
+                                // MODIFICADO - MULTIDIOMA:
+                                generalError = loginAuthenticationError
                             }
 
                     } else {
@@ -182,19 +214,22 @@ fun LoginScreen(navController: NavController) {
                         }
 
                         isLoading = false
+                        // MODIFICADO - MULTIDIOMA:
+                        // Los códigos de Firebase no cambian. Solo los mensajes visibles
+                        // se obtienen de strings_login.xml.
                         when (firebaseError?.error?.message) {
                             "EMAIL_NOT_FOUND" ->
-                                emailError = "No existe una cuenta con ese correo"
+                                emailError = loginEmailNotFound
                             "INVALID_PASSWORD" ->
-                                passwordError = "Contraseña incorrecta"
+                                passwordError = loginIncorrectPassword
                             "USER_DISABLED" ->
-                                generalError = "Esta cuenta ha sido deshabilitada"
+                                generalError = loginUserDisabled
                             "INVALID_LOGIN_CREDENTIALS" ->
-                                generalError = "Credenciales inválidas"
+                                generalError = loginInvalidCredentials
                             "TOO_MANY_ATTEMPTS_TRY_LATER" ->
-                                generalError = "Demasiados intentos, intenta más tarde"
+                                generalError = loginTooManyAttempts
                             else ->
-                                generalError = "Error al iniciar sesión"
+                                generalError = loginGenericError
                         }
                     }
                 }
@@ -202,7 +237,10 @@ fun LoginScreen(navController: NavController) {
                 withContext(Dispatchers.Main) {
                     isLoading = false
                     //generalError = "Sin conexión a internet"
-                    generalError = e.message ?: "Error desconocido"  // ← cambia esto temporalmente
+                    // MODIFICADO - MULTIDIOMA:
+                    // Se conserva el mensaje técnico de la excepción cuando existe.
+                    // Solo el texto de respaldo se obtiene del recurso traducido.
+                    generalError = e.message ?: loginUnknownError
                 }
 
             }
@@ -234,14 +272,17 @@ fun LoginScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Bienvenido a HomeFix",
+                // MODIFICADO - MULTIDIOMA:
+                // Solo cambia el texto visible; la estructura de la pantalla no cambia.
+                text = stringResource(R.string.login_welcome),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
             Text(
-                text = "Inicia sesión para continuar",
+                // MODIFICADO - MULTIDIOMA:
+                text = stringResource(R.string.login_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
                 modifier = Modifier.padding(top = 4.dp)
@@ -255,7 +296,8 @@ fun LoginScreen(navController: NavController) {
                     email = it
                     if (it.isNotBlank()) emailError = ""
                 },
-                label = "Correo electrónico",
+                // MODIFICADO - MULTIDIOMA:
+                label = stringResource(R.string.login_email_label),
                 isError = emailError.isNotEmpty(),
                 errorMessage = emailError,
                 keyboardType = KeyboardType.Email
@@ -268,7 +310,8 @@ fun LoginScreen(navController: NavController) {
                     password = it
                     if (it.isNotBlank()) passwordError = ""
                 },
-                label = "Contraseña",
+                // MODIFICADO - MULTIDIOMA:
+                label = stringResource(R.string.login_password_label),
                 isPassword = true,
                 isError = passwordError.isNotEmpty(),
                 errorMessage = passwordError
@@ -302,7 +345,9 @@ fun LoginScreen(navController: NavController) {
                     onClick = { navController.navigate(Routes.OLVIDE_CONTRASENA) }
                 ) {
                     Text(
-                        text = "¿Olvidaste tu contraseña?",
+                        // MODIFICADO - MULTIDIOMA:
+                        // La navegación hacia recuperación de contraseña permanece igual.
+                        text = stringResource(R.string.login_forgot_password),
                         color = Primary,
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium
@@ -313,7 +358,9 @@ fun LoginScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(16.dp))
 
             HomefixButton(
-                text = "Iniciar sesión",
+                // MODIFICADO - MULTIDIOMA:
+                // El botón conserva login() y toda su lógica.
+                text = stringResource(R.string.login_button),
                 onClick = { login() },
                 isLoading = isLoading
             )
@@ -322,12 +369,15 @@ fun LoginScreen(navController: NavController) {
 
             Row {
                 Text(
-                    text = "¿No tienes cuenta? ",
+                    // MODIFICADO - MULTIDIOMA:
+                    text = stringResource(R.string.login_no_account),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    text = "Regístrate",
+                    // MODIFICADO - MULTIDIOMA:
+                    // La navegación hacia Register permanece igual.
+                    text = stringResource(R.string.login_register),
                     color = Primary,
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.SemiBold,

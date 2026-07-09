@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- =========================================================
+         SHARED MODULE - ENGLISH
+         HistoryScreen, NotificationsScreen and RatingScreen
+         ========================================================= -->
+
+    <!-- History -->
+    <string name="shared_history_title">History</string>
+    <string name="shared_history_subtitle">All your past services</string>
+    <string name="shared_history_filter_all">All</string>
+    <string name="shared_history_filter_completed">Completed</string>
+    <string name="shared_history_filter_not_continued">Not continued</string>
+    <string name="shared_history_empty_title">No history yet</string>
+    <string name="shared_history_empty_description">Your completed services will appear here</string>
+    <string name="shared_history_status_completed">Completed</string>
+    <string name="shared_history_status_not_continued">Not continued</string>
+    <string name="shared_history_status_canceled">Canceled</string>
+    <string name="shared_history_view_detail">View details</string>
+
+    <plurals name="shared_history_services_count">
+        <item quantity="one">%1$d service</item>
+        <item quantity="other">%1$d services</item>
+    </plurals>
+
+    <!-- Visible service labels.
+         Internal Firebase values remain unchanged. -->
+    <string name="shared_service_electricity">Electrical</string>
+    <string name="shared_service_plumbing">Plumbing</string>
+    <string name="shared_service_painting">Painting</string>
+    <string name="shared_service_carpentry">Carpentry</string>
+    <string name="shared_service_glasswork">Glasswork</string>
+    <string name="shared_service_gardening">Gardening</string>
+    <string name="shared_service_locksmith">Locksmith</string>
+    <string name="shared_service_masonry">Masonry</string>
+    <string name="shared_service_custom_furniture">Custom furniture</string>
+    <string name="shared_service_upholstery_cleaning">Upholstery cleaning</string>
+    <string name="shared_service_moving">Moving</string>
+
+    <!-- Notifications -->
+    <string name="shared_notifications_back">Back</string>
+    <string name="shared_notifications_title">Notifications</string>
+    <string name="shared_notifications_empty_title">No notifications</string>
+    <string name="shared_notifications_empty_description">Your alerts will appear here</string>
+
+    <plurals name="shared_notifications_new_count">
+        <item quantity="one">%1$d new</item>
+        <item quantity="other">%1$d new</item>
+    </plurals>
+
+    <!-- Type labels -->
+    <string name="shared_notification_label_new_request">New request</string>
+    <string name="shared_notification_label_interested">Interested technician</string>
+    <string name="shared_notification_label_selected">Selected</string>
+    <string name="shared_notification_label_not_selected">Not selected</string>
+    <string name="shared_notification_label_technician_canceled">Technician canceled</string>
+    <string name="shared_notification_label_client_canceled">Client canceled</string>
+    <string name="shared_notification_label_on_the_way">On the way</string>
+    <string name="shared_notification_label_completed">Completed</string>
+    <string name="shared_notification_label_confirm_work">Confirm work</string>
+    <string name="shared_notification_label_confirm_closure">Confirm closure</string>
+    <string name="shared_notification_label_work_rejected">Work rejected</string>
+    <string name="shared_notification_label_process_closed">Process closed</string>
+    <string name="shared_notification_label_default">Notification</string>
+
+    <!-- Titles translated according to the internal type field -->
+    <string name="shared_notification_title_new_request">New request available</string>
+    <string name="shared_notification_title_interested">A technician is interested!</string>
+    <string name="shared_notification_title_selected">You were selected!</string>
+    <string name="shared_notification_title_not_selected">Request assigned to another technician</string>
+    <string name="shared_notification_title_technician_canceled">The technician canceled the service</string>
+    <string name="shared_notification_title_client_canceled">Request canceled</string>
+    <string name="shared_notification_title_on_the_way">The technician is on the way</string>
+    <string name="shared_notification_title_completed">Service completed</string>
+    <string name="shared_notification_title_confirm_work">The technician finished the work</string>
+    <string name="shared_notification_title_confirm_closure">Confirm process closure</string>
+    <string name="shared_notification_title_work_rejected">Work not confirmed</string>
+    <string name="shared_notification_title_process_closed">Process closed</string>
+
+    <!-- Generic bodies used to translate older notifications stored in Firebase -->
+    <string name="shared_notification_body_new_request">A new service request is available.</string>
+    <string name="shared_notification_body_interested">A technician wants to handle your request. Review it and choose.</string>
+    <string name="shared_notification_body_selected">The client selected your proposal. Review the request.</string>
+    <string name="shared_notification_body_not_selected">The client selected another technician for this request.</string>
+    <string name="shared_notification_body_technician_canceled">The technician indicated that the service cannot continue.</string>
+    <string name="shared_notification_body_client_canceled">The client canceled the request.</string>
+    <string name="shared_notification_body_on_the_way">The technician is heading to the service location.</string>
+    <string name="shared_notification_body_completed">The service was marked as completed.</string>
+    <string name="shared_notification_body_confirm_work">Confirm whether the service was completed.</string>
+    <string name="shared_notification_body_confirm_closure">The technician indicated that the service cannot continue. Review and confirm.</string>
+    <string name="shared_notification_body_work_rejected">The client indicated that the work was not completed.</string>
+    <string name="shared_notification_body_process_closed">The process was confirmed as not continued.</string>
+
+    <!-- Rating -->
+    <string name="shared_rating_select_error">Select a rating</string>
+    <string name="shared_rating_already_rated">You have already rated this service</string>
+    <string name="shared_rating_back_home">Back to home</string>
+    <string name="shared_rating_title">Rate the service</string>
+    <string name="shared_rating_experience_with">How was your experience with %1$s?</string>
+    <string name="shared_rating_your_rating">Your rating</string>
+    <string name="shared_rating_star_description">Star %1$d</string>
+    <string name="shared_rating_very_bad">Very bad 😞</string>
+    <string name="shared_rating_bad">Bad 😕</string>
+    <string name="shared_rating_regular">Average 😐</string>
+    <string name="shared_rating_good">Good 😊</string>
+    <string name="shared_rating_excellent">Excellent 🤩</string>
+    <string name="shared_rating_optional_comment">Comment (optional)</string>
+    <string name="shared_rating_comment_hint">Tell us about your experience…</string>
+    <string name="shared_rating_send">Submit rating</string>
+    <string name="shared_rating_skip">Skip for now</string>
+
+</resources>

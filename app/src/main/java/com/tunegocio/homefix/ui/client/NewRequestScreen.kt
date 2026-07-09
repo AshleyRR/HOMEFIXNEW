@@ -23,6 +23,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener textos y plurales desde strings_client.xml.
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,6 +53,10 @@ import java.util.*
 import com.tunegocio.homefix.viewmodel.UbicacionViewModel
 import com.tunegocio.homefix.viewmodel.SolicitudViewModel
 
+// NUEVO - MULTIDIOMA:
+// Permite acceder a las claves definidas en strings_client.xml.
+import com.tunegocio.homefix.R
+
 private fun getServiceTypeIcon(serviceType: String): ImageVector {
     return when (serviceType) {
         "Electricidad" -> Icons.Default.ElectricalServices
@@ -63,6 +72,26 @@ private fun getServiceTypeIcon(serviceType: String): ImageVector {
         "Mudanzas" -> Icons.Default.LocalShipping
         else -> Icons.Default.Build
     }
+}
+
+// NUEVO - MULTIDIOMA:
+// Traduce únicamente la etiqueta visible del servicio.
+// El valor interno continúa en español para conservar la compatibilidad
+// con Firebase, filtros y especialidades existentes.
+@Composable
+private fun newRequestServiceLabel(serviceType: String): String = when (serviceType) {
+    "Electricidad" -> stringResource(R.string.service_electricity)
+    "Gasfitería" -> stringResource(R.string.service_plumbing)
+    "Pintura" -> stringResource(R.string.service_painting)
+    "Carpintería" -> stringResource(R.string.service_carpentry)
+    "Vidriería" -> stringResource(R.string.service_glasswork)
+    "Jardinería" -> stringResource(R.string.service_gardening)
+    "Cerrajería" -> stringResource(R.string.service_locksmith)
+    "Albañilería" -> stringResource(R.string.service_masonry)
+    "Muebles a medida" -> stringResource(R.string.service_custom_furniture)
+    "Lavado de tapizados" -> stringResource(R.string.service_upholstery_cleaning)
+    "Mudanzas" -> stringResource(R.string.service_moving)
+    else -> serviceType
 }
 
 @SuppressLint("MissingPermission")
@@ -108,7 +137,29 @@ fun NewRequestScreen(
     var clientDistrict by remember { mutableStateOf("") }
     var dropdownExpandido by remember { mutableStateOf(false) }
 
+    // NUEVO - MULTIDIOMA:
+    // Estos mensajes se resuelven durante la composición y luego se reutilizan
+    // dentro de publishRequest() y callbacks de Firebase sin alterar su lógica.
+    val errorSelectService =
+        stringResource(R.string.new_request_error_select_service)
+    val errorOutsideLima =
+        stringResource(R.string.new_request_error_outside_lima)
+    val errorDescriptionMin =
+        stringResource(R.string.new_request_error_description_min)
+    val errorPublish =
+        stringResource(R.string.new_request_error_publish)
 
+    // NUEVO - MULTIDIOMA:
+    // Solo se traducen los textos visibles de la notificación.
+    // Los códigos de tipo y las consultas de Firebase permanecen iguales.
+    val notificationTitle = stringResource(
+        R.string.new_request_notification_title,
+        newRequestServiceLabel(serviceType)
+    )
+    val notificationBody = stringResource(
+        R.string.new_request_notification_body,
+        clientDistrict.ifEmpty { "Lima" }
+    )
 
     val serviceTypes = ALL_SPECIALTIES
 
@@ -220,9 +271,9 @@ fun NewRequestScreen(
     }
 
     fun publishRequest() {
-        if (serviceType.isEmpty()) { errorMessage = "Selecciona el tipo de servicio"; return }
-        if (!estaDentroDeLima(lat, lng)) { errorMessage = "Solo atendemos en Lima por ahora"; return }
-        if (description.length < 20) { errorMessage = "La descripción debe tener al menos 20 caracteres"; return }
+        if (serviceType.isEmpty()) { errorMessage = errorSelectService; return }
+        if (!estaDentroDeLima(lat, lng)) { errorMessage = errorOutsideLima; return }
+        if (description.length < 20) { errorMessage = errorDescriptionMin; return }
 
         isLoading = true
         errorMessage = ""
@@ -256,8 +307,8 @@ fun NewRequestScreen(
                                 val tecId = tecnico.getString("uid") ?: return@forEach
                                 notificationsRepo.crearNotificacion(
                                     userId = tecId,
-                                    titulo = "Nueva solicitud de $serviceType",
-                                    cuerpo = "Un cliente necesita ayuda en ${clientDistrict.ifEmpty { "Lima" }}",
+                                    titulo = notificationTitle,
+                                    cuerpo = notificationBody,
                                     tipo = "nueva_solicitud",
                                     requestId = requestId
                                 )
@@ -272,7 +323,7 @@ fun NewRequestScreen(
                 }
                 .addOnFailureListener {
                     isLoading = false
-                    errorMessage = "Error al publicar la solicitud"
+                    errorMessage = errorPublish
                 }
         }
 
@@ -317,11 +368,11 @@ fun NewRequestScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { navController.popBackStack() }) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Volver", tint = TextPrimary)
+                    Icon(Icons.Default.ArrowBack, contentDescription = stringResource(R.string.client_back), tint = TextPrimary)
                 }
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "Nueva solicitud",
+                    text = stringResource(R.string.new_request_title),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
@@ -332,7 +383,7 @@ fun NewRequestScreen(
             Spacer(modifier = Modifier.height(20.dp))
 
             Text(
-                text = "Tipo de servicio",
+                text = stringResource(R.string.new_request_service_type),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.SemiBold
@@ -343,12 +394,18 @@ fun NewRequestScreen(
                 onExpandedChange = { dropdownExpandido = !dropdownExpandido }
             ) {
                 OutlinedTextField(
-                    value = serviceType,
+                    // MODIFICADO - MULTIDIOMA:
+                    // Se muestra la etiqueta traducida, pero se conserva el valor interno.
+                    value = if (serviceType.isEmpty()) {
+                        ""
+                    } else {
+                        newRequestServiceLabel(serviceType)
+                    },
                     onValueChange = {},
                     readOnly = true,
                     placeholder = {
                         Text(
-                            "Selecciona un servicio...",
+                            stringResource(R.string.new_request_select_service),
                             color = TextHint,
                             fontSize = if (pantallaAncha) 14.sp else 13.sp
                         )
@@ -398,7 +455,7 @@ fun NewRequestScreen(
                                     )
                                     Spacer(modifier = Modifier.width(10.dp))
                                     Text(
-                                        text = tipo,
+                                        text = newRequestServiceLabel(tipo),
                                         color = if (estaSeleccionado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                                         fontWeight = if (estaSeleccionado) FontWeight.SemiBold else FontWeight.Normal,
                                         fontSize = if (pantallaAncha) 14.sp else 13.sp
@@ -430,7 +487,7 @@ fun NewRequestScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Describe el problema",
+                text = stringResource(R.string.new_request_describe_problem),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.SemiBold
@@ -444,7 +501,7 @@ fun NewRequestScreen(
                     .height(if (pantallaAncha) 120.dp else 100.dp),
                 placeholder = {
                     Text(
-                        "Ej: El tomacorriente de la cocina no funciona, hay un corto...",
+                        stringResource(R.string.new_request_description_hint),
                         color = TextHint,
                         fontSize = if (pantallaAncha) 14.sp else 12.sp
                     )
@@ -465,7 +522,7 @@ fun NewRequestScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Foto del problema (opcional)",
+                text = stringResource(R.string.new_request_problem_photo_optional),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.SemiBold
@@ -482,7 +539,7 @@ fun NewRequestScreen(
                         Box(modifier = Modifier.weight(1f)) {
                             AsyncImage(
                                 model = uri,
-                                contentDescription = "Foto ${index + 1}",
+                                contentDescription = stringResource(R.string.new_request_photo_content_description, index + 1),
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(if (pantallaAncha) 160.dp else 130.dp)
@@ -497,7 +554,7 @@ fun NewRequestScreen(
                             ) {
                                 Icon(
                                     Icons.Default.Close,
-                                    contentDescription = "Quitar foto",
+                                    contentDescription = stringResource(R.string.new_request_remove_photo),
                                     tint = Color.White
                                 )
                             }
@@ -524,7 +581,7 @@ fun NewRequestScreen(
                     ) {
                         Icon(Icons.Default.PhotoCamera, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Cámara", fontSize = if (pantallaAncha) 14.sp else 12.sp)
+                        Text(stringResource(R.string.new_request_camera), fontSize = if (pantallaAncha) 14.sp else 12.sp)
                     }
                     OutlinedButton(
                         onClick = { galleryLauncher.launch("image/*") },
@@ -533,12 +590,17 @@ fun NewRequestScreen(
                     ) {
                         Icon(Icons.Default.Image, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(modifier = Modifier.width(6.dp))
-                        Text("Galería", fontSize = if (pantallaAncha) 14.sp else 12.sp)
+                        Text(stringResource(R.string.new_request_gallery), fontSize = if (pantallaAncha) 14.sp else 12.sp)
                     }
                 }
                 // Indicador de cuántas fotos puede agregar
                 Text(
-                    text = "${photoUris.size}/2 fotos agregadas",
+                    // MODIFICADO - MULTIDIOMA:
+                    text = pluralStringResource(
+                        R.plurals.new_request_photos_added,
+                        photoUris.size,
+                        photoUris.size
+                    ),
                     style = MaterialTheme.typography.labelSmall,
                     color = TextSecondary,
                     modifier = Modifier.padding(start = 4.dp, top = 2.dp)
@@ -549,7 +611,7 @@ fun NewRequestScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                text = "Ubicación del servicio",
+                text = stringResource(R.string.new_request_service_location),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.SemiBold
@@ -573,7 +635,7 @@ fun NewRequestScreen(
             ) {
                 Icon(Icons.Default.Map, contentDescription = null, tint = Primary, modifier = Modifier.size(22.dp))
                 Spacer(modifier = Modifier.width(10.dp))
-                Text("Seleccionar ubicación en el mapa", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.new_request_select_location_map), fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -597,7 +659,7 @@ fun NewRequestScreen(
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
-                        text = if (locationLoaded) address else "Mueve el pin para definir la ubicación",
+                        text = if (locationLoaded) address else stringResource(R.string.new_request_move_pin),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (locationLoaded) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         fontSize = 12.sp
@@ -610,11 +672,11 @@ fun NewRequestScreen(
             HomefixTextField(
                 value = reference,
                 onValueChange = { solicitudViewModel.setReference(it) },
-                label = "Referencia (opcional)",
+                label = stringResource(R.string.new_request_reference_optional),
                 singleLine = false
             )
             Text(
-                text = "Ej: Frente al parque, casa de rejas azules",
+                text = stringResource(R.string.new_request_reference_hint),
                 style = MaterialTheme.typography.labelSmall,
                 color = TextSecondary,
                 modifier = Modifier.padding(start = 4.dp, top = 2.dp)
@@ -646,7 +708,7 @@ fun NewRequestScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Urgente",
+                                text = stringResource(R.string.client_urgent),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = if (isUrgent) Error else TextPrimary,
                                 fontWeight = FontWeight.Medium,
@@ -654,7 +716,7 @@ fun NewRequestScreen(
                             )
                         }
                         Text(
-                            text = "Prioridad alta para los técnicos",
+                            text = stringResource(R.string.new_request_high_priority),
                             style = MaterialTheme.typography.bodySmall,
                             color = TextSecondary,
                             fontSize = if (pantallaAncha) 13.sp else 11.sp,
@@ -681,7 +743,7 @@ fun NewRequestScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             HomefixButton(
-                text = "Publicar solicitud",
+                text = stringResource(R.string.new_request_publish),
                 onClick = { publishRequest() },
                 isLoading = isLoading,
                 icon = {

@@ -27,7 +27,16 @@ import com.tunegocio.homefix.ui.client.ClientBottomBar
 import com.tunegocio.homefix.ui.technician.TechnicianBottomBar
 
 import androidx.compose.ui.platform.LocalContext
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener textos y plurales desde strings_shared.xml.
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import com.tunegocio.homefix.data.local.database.LocalDatabase
+
+// NUEVO - MULTIDIOMA:
+// Permite acceder a las claves de recursos del módulo shared.
+import com.tunegocio.homefix.R
 
 @Composable
 fun HistoryScreen(navController: NavController) {
@@ -38,13 +47,21 @@ fun HistoryScreen(navController: NavController) {
 
     var requests by remember { mutableStateOf(listOf<RequestModel>()) }
     var isLoading by remember { mutableStateOf(true) }
-    var selectedFilter by remember { mutableStateOf("Todos") }
+    // MODIFICADO - MULTIDIOMA:
+    // El filtro usa un código estable que no depende del texto traducido.
+    var selectedFilter by remember { mutableStateOf("all") }
     var userRole by remember { mutableStateOf("client") }
 
     val context = LocalContext.current
     val localDb = LocalDatabase(context)
 
-    val filters = listOf("Todos", "Completadas", "No continuadas")
+    // NUEVO - MULTIDIOMA:
+    // Los códigos mantienen la lógica y las etiquetas cambian con el idioma.
+    val filters = listOf(
+        "all" to stringResource(R.string.shared_history_filter_all),
+        "completed" to stringResource(R.string.shared_history_filter_completed),
+        "not_continued" to stringResource(R.string.shared_history_filter_not_continued)
+    )
 
     LaunchedEffect(uid) {
         // Obtener rol
@@ -88,8 +105,8 @@ fun HistoryScreen(navController: NavController) {
     }
 
     val filteredRequests = when (selectedFilter) {
-        "Completadas" -> requests.filter { it.status == "completada" }
-        "No continuadas" -> requests.filter { it.status == "sin_continuar" }
+        "completed" -> requests.filter { it.status == "completada" }
+        "not_continued" -> requests.filter { it.status == "sin_continuar" }
         else -> requests
     }
 
@@ -111,13 +128,15 @@ fun HistoryScreen(navController: NavController) {
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Spacer(modifier = Modifier.height(20.dp))
                 Text(
-                    text = "Historial",
+                    // MODIFICADO - MULTIDIOMA:
+                    text = stringResource(R.string.shared_history_title),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    text = "Todos tus servicios pasados",
+                    // MODIFICADO - MULTIDIOMA:
+                    text = stringResource(R.string.shared_history_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary
                 )
@@ -125,13 +144,14 @@ fun HistoryScreen(navController: NavController) {
 
                 // Filtros
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    filters.forEach { filter ->
+                    filters.forEach { (filterCode, filterLabel) ->
                         FilterChip(
-                            selected = selectedFilter == filter,
-                            onClick = { selectedFilter = filter },
+                            selected = selectedFilter == filterCode,
+                            onClick = { selectedFilter = filterCode },
                             label = {
                                 Text(
-                                    filter,
+                                    // MODIFICADO - MULTIDIOMA:
+                                    text = filterLabel,
                                     style = MaterialTheme.typography.labelMedium
                                 )
                             },
@@ -166,12 +186,14 @@ fun HistoryScreen(navController: NavController) {
                             style = MaterialTheme.typography.headlineLarge
                         )
                         Text(
-                            text = "Sin historial aún",
+                            // MODIFICADO - MULTIDIOMA:
+                            text = stringResource(R.string.shared_history_empty_title),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
-                            text = "Aquí aparecerán tus servicios completados",
+                            // MODIFICADO - MULTIDIOMA:
+                            text = stringResource(R.string.shared_history_empty_description),
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
                         )
@@ -184,7 +206,12 @@ fun HistoryScreen(navController: NavController) {
                 ) {
                     item {
                         Text(
-                            text = "${filteredRequests.size} servicio${if (filteredRequests.size != 1) "s" else ""}",
+                            // MODIFICADO - MULTIDIOMA:
+                            text = pluralStringResource(
+                                R.plurals.shared_history_services_count,
+                                filteredRequests.size,
+                                filteredRequests.size
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
                         )
@@ -213,6 +240,27 @@ fun HistoryScreen(navController: NavController) {
     }
 }
 
+// NUEVO - MULTIDIOMA:
+// Traduce únicamente la etiqueta visible del tipo de servicio.
+// Los valores internos guardados en Firebase permanecen intactos.
+@Composable
+private fun sharedHistoryServiceLabel(serviceType: String): String {
+    return when (serviceType.trim().lowercase(Locale.ROOT)) {
+        "electricidad" -> stringResource(R.string.shared_service_electricity)
+        "gasfitería", "gasfiteria" -> stringResource(R.string.shared_service_plumbing)
+        "pintura" -> stringResource(R.string.shared_service_painting)
+        "carpintería", "carpinteria" -> stringResource(R.string.shared_service_carpentry)
+        "vidriería", "vidrieria" -> stringResource(R.string.shared_service_glasswork)
+        "jardinería", "jardineria" -> stringResource(R.string.shared_service_gardening)
+        "cerrajería", "cerrajeria" -> stringResource(R.string.shared_service_locksmith)
+        "albañilería", "albanileria" -> stringResource(R.string.shared_service_masonry)
+        "muebles a medida" -> stringResource(R.string.shared_service_custom_furniture)
+        "lavado de tapizados" -> stringResource(R.string.shared_service_upholstery_cleaning)
+        "mudanzas" -> stringResource(R.string.shared_service_moving)
+        else -> serviceType
+    }
+}
+
 @Composable
 fun HistoryCard(
     request: RequestModel,
@@ -229,10 +277,12 @@ fun HistoryCard(
         "sin_continuar" -> Warning
         else            -> Error
     }
+    // MODIFICADO - MULTIDIOMA:
+    // El estado interno de Firebase no cambia; solo se traduce la etiqueta visible.
     val statusLabel = when (request.status) {
-        "completada"    -> "Completada"
-        "sin_continuar" -> "No continuada"
-        else            -> "Cancelada"
+        "completada" -> stringResource(R.string.shared_history_status_completed)
+        "sin_continuar" -> stringResource(R.string.shared_history_status_not_continued)
+        else -> stringResource(R.string.shared_history_status_canceled)
     }
     val statusEmoji = when (request.status) {
         "completada"    -> ""
@@ -257,7 +307,8 @@ fun HistoryCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = request.serviceType,
+                        // MODIFICADO - MULTIDIOMA:
+                        text = sharedHistoryServiceLabel(request.serviceType),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onBackground,
                         fontWeight = FontWeight.SemiBold
@@ -311,7 +362,8 @@ fun HistoryCard(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        text = "Ver detalle",
+                        // MODIFICADO - MULTIDIOMA:
+                        text = stringResource(R.string.shared_history_view_detail),
                         style = MaterialTheme.typography.labelSmall,
                         color = Primary,
                         fontWeight = FontWeight.Medium

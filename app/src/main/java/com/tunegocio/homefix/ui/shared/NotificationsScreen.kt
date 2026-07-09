@@ -16,6 +16,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+
+// NUEVO - MULTIDIOMA:
+// Permite obtener textos y plurales desde strings_shared.xml.
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.tunegocio.homefix.data.local.database.LocalDatabase
@@ -23,6 +28,10 @@ import com.tunegocio.homefix.data.model.NotificationModel
 import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.theme.*
 import com.tunegocio.homefix.viewmodel.NotificationsViewModel
+
+// NUEVO - MULTIDIOMA:
+// Permite acceder a las claves del módulo shared.
+import com.tunegocio.homefix.R
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -76,12 +85,14 @@ fun NotificationsScreen(navController: NavController) {
             IconButton(onClick = { navController.popBackStack() }) {
                 Icon(
                     Icons.Default.ArrowBack,
-                    contentDescription = "Volver",
+                    // MODIFICADO - MULTIDIOMA:
+                    contentDescription = stringResource(R.string.shared_notifications_back),
                     tint = textColor
                 )
             }
             Text(
-                text = "Notificaciones",
+                // MODIFICADO - MULTIDIOMA:
+                text = stringResource(R.string.shared_notifications_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = textColor,
                 fontWeight = FontWeight.Bold,
@@ -93,7 +104,12 @@ fun NotificationsScreen(navController: NavController) {
                     color = primaryColor.copy(alpha = 0.12f)
                 ) {
                     Text(
-                        text = "$noLeidas nuevas",
+                        // MODIFICADO - MULTIDIOMA:
+                        text = pluralStringResource(
+                            R.plurals.shared_notifications_new_count,
+                            noLeidas,
+                            noLeidas
+                        ),
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
                         style = MaterialTheme.typography.labelSmall,
                         color = primaryColor,
@@ -130,13 +146,15 @@ fun NotificationsScreen(navController: NavController) {
                         }
                     }
                     Text(
-                        text = "Sin notificaciones",
+                        // MODIFICADO - MULTIDIOMA:
+                        text = stringResource(R.string.shared_notifications_empty_title),
                         style = MaterialTheme.typography.titleMedium,
                         color = textColor,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        text = "Aquí aparecerán tus alertas",
+                        // MODIFICADO - MULTIDIOMA:
+                        text = stringResource(R.string.shared_notifications_empty_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = secondaryText
                     )
@@ -200,7 +218,72 @@ private fun notifStyle(type: String): NotifStyle {
         "confirmar_sin_continuar" -> NotifStyle(Icons.Default.Warning, Error)
         "completado_rechazado" -> NotifStyle(Icons.Default.ThumbDown, Error)
         "sin_continuar_confirmado" -> NotifStyle(Icons.Default.Block, TextSecondary)
+        "cliente_cancelo" -> NotifStyle(Icons.Default.Cancel, Error)
         else -> NotifStyle(Icons.Default.Notifications, TextSecondary)
+    }
+}
+
+// NUEVO - MULTIDIOMA:
+// Traduce la etiqueta corta según el tipo interno de la notificación.
+@Composable
+private fun sharedNotificationLabel(type: String): String {
+    return when (type) {
+        "nueva_solicitud" -> stringResource(R.string.shared_notification_label_new_request)
+        "tecnico_aceptado" -> stringResource(R.string.shared_notification_label_interested)
+        "tecnico_elegido" -> stringResource(R.string.shared_notification_label_selected)
+        "tecnico_rechazado" -> stringResource(R.string.shared_notification_label_not_selected)
+        "tecnico_cancelo" -> stringResource(R.string.shared_notification_label_technician_canceled)
+        "cliente_cancelo" -> stringResource(R.string.shared_notification_label_client_canceled)
+        "en_camino" -> stringResource(R.string.shared_notification_label_on_the_way)
+        "completado" -> stringResource(R.string.shared_notification_label_completed)
+        "confirmar_completado" -> stringResource(R.string.shared_notification_label_confirm_work)
+        "confirmar_sin_continuar" -> stringResource(R.string.shared_notification_label_confirm_closure)
+        "completado_rechazado" -> stringResource(R.string.shared_notification_label_work_rejected)
+        "sin_continuar_confirmado" -> stringResource(R.string.shared_notification_label_process_closed)
+        else -> stringResource(R.string.shared_notification_label_default)
+    }
+}
+
+// NUEVO - MULTIDIOMA:
+// Traduce el título visible según type. No cambia el título guardado en Firebase.
+@Composable
+private fun sharedNotificationTitle(type: String, fallback: String): String {
+    return when (type) {
+        "nueva_solicitud" -> stringResource(R.string.shared_notification_title_new_request)
+        "tecnico_aceptado" -> stringResource(R.string.shared_notification_title_interested)
+        "tecnico_elegido" -> stringResource(R.string.shared_notification_title_selected)
+        "tecnico_rechazado" -> stringResource(R.string.shared_notification_title_not_selected)
+        "tecnico_cancelo" -> stringResource(R.string.shared_notification_title_technician_canceled)
+        "cliente_cancelo" -> stringResource(R.string.shared_notification_title_client_canceled)
+        "en_camino" -> stringResource(R.string.shared_notification_title_on_the_way)
+        "completado" -> stringResource(R.string.shared_notification_title_completed)
+        "confirmar_completado" -> stringResource(R.string.shared_notification_title_confirm_work)
+        "confirmar_sin_continuar" -> stringResource(R.string.shared_notification_title_confirm_closure)
+        "completado_rechazado" -> stringResource(R.string.shared_notification_title_work_rejected)
+        "sin_continuar_confirmado" -> stringResource(R.string.shared_notification_title_process_closed)
+        else -> fallback
+    }
+}
+
+// NUEVO - MULTIDIOMA:
+// Traduce el cuerpo visible según type. Se usa un texto genérico localizado
+// porque las notificaciones antiguas guardaron el cuerpo completo en español.
+@Composable
+private fun sharedNotificationBody(type: String, fallback: String): String {
+    return when (type) {
+        "nueva_solicitud" -> stringResource(R.string.shared_notification_body_new_request)
+        "tecnico_aceptado" -> stringResource(R.string.shared_notification_body_interested)
+        "tecnico_elegido" -> stringResource(R.string.shared_notification_body_selected)
+        "tecnico_rechazado" -> stringResource(R.string.shared_notification_body_not_selected)
+        "tecnico_cancelo" -> stringResource(R.string.shared_notification_body_technician_canceled)
+        "cliente_cancelo" -> stringResource(R.string.shared_notification_body_client_canceled)
+        "en_camino" -> stringResource(R.string.shared_notification_body_on_the_way)
+        "completado" -> stringResource(R.string.shared_notification_body_completed)
+        "confirmar_completado" -> stringResource(R.string.shared_notification_body_confirm_work)
+        "confirmar_sin_continuar" -> stringResource(R.string.shared_notification_body_confirm_closure)
+        "completado_rechazado" -> stringResource(R.string.shared_notification_body_work_rejected)
+        "sin_continuar_confirmado" -> stringResource(R.string.shared_notification_body_process_closed)
+        else -> fallback
     }
 }
 
@@ -221,20 +304,19 @@ fun NotificacionCard(
 
     val style = notifStyle(notificacion.type)
 
-    val etiqueta = when (notificacion.type) {
-        "nueva_solicitud" -> "Nueva solicitud"
-        "tecnico_aceptado" -> "Técnico interesado"
-        "tecnico_elegido" -> "Te eligieron"
-        "tecnico_rechazado" -> "No seleccionado"
-        "tecnico_cancelo" -> "Técnico canceló"
-        "en_camino" -> "En camino"
-        "completado" -> "Completado"
-        "confirmar_completado" -> "Confirmar trabajo"
-        "confirmar_sin_continuar" -> "Confirmar cierre"
-        "completado_rechazado" -> "Trabajo rechazado"
-        "sin_continuar_confirmado" -> "Proceso cerrado"
-        else -> "Notificación"
-    }
+    // NUEVO - MULTIDIOMA:
+    // Los títulos y cuerpos antiguos pueden estar almacenados en Firebase en español.
+    // Se muestran traducidos según el campo interno type, sin modificar Firestore.
+    // Para tipos desconocidos se conserva el texto original como respaldo.
+    val tituloVisible = sharedNotificationTitle(
+        type = notificacion.type,
+        fallback = notificacion.title
+    )
+    val cuerpoVisible = sharedNotificationBody(
+        type = notificacion.type,
+        fallback = notificacion.body
+    )
+    val etiqueta = sharedNotificationLabel(notificacion.type)
 
     Card(
         modifier = Modifier
@@ -286,7 +368,7 @@ fun NotificacionCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = notificacion.title,
+                        text = tituloVisible,
                         style = MaterialTheme.typography.titleSmall,
                         color = textColor,
                         fontWeight = FontWeight.SemiBold,
@@ -306,7 +388,7 @@ fun NotificacionCard(
 
                 // Cuerpo del mensaje
                 Text(
-                    text = notificacion.body,
+                    text = cuerpoVisible,
                     style = MaterialTheme.typography.bodySmall,
                     color = secondaryText,
                     maxLines = 2

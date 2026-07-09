@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- VERIFICACIÓN DE CORREO - ESPAÑOL -->
+    <string name="verify_email_title">Verifica tu correo electrónico</string>
+    <string name="verify_email_sent_to">Te enviamos un correo de verificación a:</string>
+
+    <!-- Pasos -->
+    <string name="verify_email_step_open_email">Abre tu correo electrónico</string>
+    <string name="verify_email_step_find_homefix_email">Busca el correo de HomeFix</string>
+    <string name="verify_email_step_click_verify">Haz clic en “Verificar correo”</string>
+    <string name="verify_email_step_return_and_tap">Vuelve aquí y toca el botón de abajo</string>
+
+    <!-- Botones -->
+    <string name="verify_email_already_verified_button">Ya verifiqué mi correo ✓</string>
+    <string name="verify_email_resend_button">Reenviar correo</string>
+    <string name="verify_email_cancel_registration">Cancelar registro</string>
+
+    <!-- Mensajes -->
+    <string name="verify_email_could_not_send">No se pudo enviar el correo</string>
+    <string name="verify_email_resent_success">Correo reenviado correctamente</string>
+    <string name="verify_email_resend_error">Error al reenviar el correo</string>
+    <string name="verify_email_not_verified_yet">Aún no has verificado tu correo</string>
+    <string name="verify_email_verification_error">Error al verificar, intenta de nuevo</string>
+
+</resources>
