@@ -1,32 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <!-- Login screen -->
-    <string name="login_welcome">Welcome to HomeFix</string>
-    <string name="login_subtitle">Log in to continue</string>
-    <string name="login_email_label">Email address</string>
-    <string name="login_password_label">Password</string>
-    <string name="login_forgot_password">Forgot your password?</string>
-    <string name="login_button">Log in</string>
-    <string name="login_no_account">Don’t have an account? </string>
-    <string name="login_register">Sign up</string>
+    <!-- Pantalla de inicio de sesión -->
+    <string name="login_welcome">Bienvenido a HomeFix</string>
+    <string name="login_subtitle">Inicia sesión para continuar</string>
+    <string name="login_email_label">Correo electrónico</string>
+    <string name="login_password_label">Contraseña</string>
+    <string name="login_forgot_password">¿Olvidaste tu contraseña?</string>
+    <string name="login_button">Iniciar sesión</string>
+    <string name="login_no_account">¿No tienes cuenta? </string>
+    <string name="login_register"> Regístrate</string>
 
-    <!-- Validation -->
-    <string name="login_email_required">Email is required</string>
-    <string name="login_invalid_email">Enter a valid email address</string>
-    <string name="login_password_required">Password is required</string>
-    <string name="login_password_min_length">Minimum 6 characters</string>
+    <!-- Validaciones -->
+    <string name="login_email_required">El correo es obligatorio</string>
+    <string name="login_invalid_email">Ingresa un correo válido</string>
+    <string name="login_password_required">La contraseña es obligatoria</string>
+    <string name="login_password_min_length">Mínimo 6 caracteres</string>
 
-    <!-- Authentication messages -->
-    <string name="login_verify_email">You must verify your email before logging in</string>
-    <string name="login_profile_error">Error loading profile</string>
-    <string name="login_authentication_error">Authentication error</string>
-    <string name="login_email_not_found">No account exists with that email</string>
-    <string name="login_incorrect_password">Incorrect password</string>
-    <string name="login_user_disabled">This account has been disabled</string>
-    <string name="login_invalid_credentials">Invalid credentials</string>
-    <string name="login_too_many_attempts">Too many attempts. Try again later</string>
-    <string name="login_generic_error">Error logging in</string>
-    <string name="login_unknown_error">Unknown error</string>
+    <!-- Mensajes de autenticación -->
+    <string name="login_verify_email">Debes verificar tu correo electrónico antes de ingresar</string>
+    <string name="login_profile_error">Error al obtener el perfil</string>
+    <string name="login_authentication_error">Error al autenticar</string>
+    <string name="login_email_not_found">No existe una cuenta con ese correo</string>
+    <string name="login_incorrect_password">Contraseña incorrecta</string>
+    <string name="login_user_disabled">Esta cuenta ha sido deshabilitada</string>
+    <string name="login_invalid_credentials">Credenciales inválidas</string>
+    <string name="login_too_many_attempts">Demasiados intentos, intenta más tarde</string>
+    <string name="login_generic_error">Error al iniciar sesión</string>
+    <string name="login_unknown_error">Error desconocido</string>
 
 </resources>

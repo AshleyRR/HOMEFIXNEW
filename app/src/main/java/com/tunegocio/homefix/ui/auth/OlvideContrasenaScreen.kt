@@ -33,6 +33,7 @@ import com.tunegocio.homefix.R
 @Composable
 fun OlvideContrasenaScreen(navController: NavController) {
 
+
     val auth = FirebaseAuth.getInstance()
 
     // NUEVO - MULTIDIOMA:
@@ -204,24 +205,6 @@ fun OlvideContrasenaScreen(navController: NavController) {
                     ),
                     onClick = { navController.popBackStack() }
                 )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                TextButton(
-                    onClick = {
-                        // La lógica para limpiar el formulario no cambia.
-                        emailEnviado = false
-                        email = ""
-                    }
-                ) {
-                    Text(
-                        // MODIFICADO - MULTIDIOMA:
-                        text = stringResource(
-                            R.string.forgot_password_resend_other_email
-                        ),
-                        color = TextSecondary
-                    )
-                }
 
             } else {
                 // Formulario

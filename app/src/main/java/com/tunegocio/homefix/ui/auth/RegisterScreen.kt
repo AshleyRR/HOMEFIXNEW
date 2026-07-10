@@ -660,7 +660,7 @@ fun RegisterScreen(navController: NavController) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     // MODIFICADO - MULTIDIOMA:
-                    // El distrito elegido sigue siendo el mismo dato; solo se traduce el placeholder.
+
                     text = if (selectedDistrict.isEmpty()) {
                         stringResource(R.string.register_select_district)
                     } else {
@@ -972,8 +972,11 @@ fun RegisterScreen(navController: NavController) {
                 Checkbox(
                     checked = aceptoTerminos,
                     onCheckedChange = {
-                        aceptoTerminos = it
-                        if (it) terminosError = ""
+                        if (!aceptoTerminos) {
+                            mostrarTerminos = true
+                        } else {
+                            aceptoTerminos = false
+                        }
                     },
                     colors = CheckboxDefaults.colors(
                         checkedColor = Primary,
@@ -995,7 +998,9 @@ fun RegisterScreen(navController: NavController) {
                             style = MaterialTheme.typography.bodyMedium,
                             color = Primary,
                             fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.clickable { mostrarTerminos = true }
+                            modifier = Modifier.clickable {
+                                mostrarTerminos = true
+                            }
                         )
                     }
                     if (terminosError.isNotEmpty()) {

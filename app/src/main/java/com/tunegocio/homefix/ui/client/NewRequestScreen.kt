@@ -164,15 +164,15 @@ fun NewRequestScreen(
     val serviceTypes = ALL_SPECIALTIES
 
     val photoFile = remember { File(context.cacheDir, "photo_${UUID.randomUUID()}.jpg") }
-    val photoUriForCamera = remember {
-        FileProvider.getUriForFile(context, "${context.packageName}.provider", photoFile)
-    }
+    var photoUriForCamera by remember { mutableStateOf<Uri?>(null) }
 
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
         if (success && photoUris.size < 2) {
-            solicitudViewModel.addPhoto(photoUriForCamera)
+            photoUriForCamera?.let { uri ->
+                solicitudViewModel.addPhoto(uri)
+            }
         }
     }
 
@@ -188,7 +188,19 @@ fun NewRequestScreen(
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted -> if (granted) cameraLauncher.launch(photoUriForCamera) }
+    ) { granted ->
+        if (granted) {
+            // Crear archivo nuevo cada vez
+            val nuevoArchivo = File(context.cacheDir, "photo_${UUID.randomUUID()}.jpg")
+            val nuevoUri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                nuevoArchivo
+            )
+            photoUriForCamera = nuevoUri
+            cameraLauncher.launch(nuevoUri)
+        }
+    }
 
     val ubicacionConfirmada by ubicacionViewModel.confirmada.collectAsState()
     val latViewModel by ubicacionViewModel.lat.collectAsState()
@@ -682,54 +694,7 @@ fun NewRequestScreen(
                 modifier = Modifier.padding(start = 4.dp, top = 2.dp)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = if (isUrgent) Error.copy(alpha = 0.08f) else SurfaceVariant
-                )
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                tint = if (isUrgent) Error else TextSecondary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = stringResource(R.string.client_urgent),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = if (isUrgent) Error else TextPrimary,
-                                fontWeight = FontWeight.Medium,
-                                fontSize = if (pantallaAncha) 16.sp else 14.sp
-                            )
-                        }
-                        Text(
-                            text = stringResource(R.string.new_request_high_priority),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = TextSecondary,
-                            fontSize = if (pantallaAncha) 13.sp else 11.sp,
-                            modifier = Modifier.padding(start = 28.dp, top = 4.dp)
-                        )
-                    }
-                    Switch(
-                        checked = isUrgent,
-                        onCheckedChange = { solicitudViewModel.setIsUrgent(it) },
-                        colors = SwitchDefaults.colors(checkedTrackColor = Error)
-                    )
-                }
-            }
+            //Spacer(modifier = Modifier.height(16.dp))
 
             if (errorMessage.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))

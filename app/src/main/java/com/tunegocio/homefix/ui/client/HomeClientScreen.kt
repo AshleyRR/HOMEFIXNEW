@@ -237,27 +237,6 @@ fun HomeClientScreen(navController: NavController) {
             }
 
             item {
-                Spacer(modifier = Modifier.height(4.dp))
-                // Botón ver técnicos
-                OutlinedButton(
-                    onClick = { navController.navigate(Routes.TECHNICIAN_LIST) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Secondary)
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.home_client_view_technicians),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-
-            item {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = stringResource(R.string.home_client_active_requests),

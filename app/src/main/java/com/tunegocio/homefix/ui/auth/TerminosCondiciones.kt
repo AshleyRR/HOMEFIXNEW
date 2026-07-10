@@ -9,6 +9,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import com.tunegocio.homefix.ui.theme.*
 
+
+import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.*
+
+
 // NUEVO - MULTIDIOMA:
 // Permite obtener el título, el contenido legal y los botones desde
 // strings_terms.xml según el idioma activo de la aplicación.
@@ -17,6 +22,9 @@ import androidx.compose.ui.res.stringResource
 // NUEVO - MULTIDIOMA:
 // Permite acceder a las claves declaradas en strings_terms.xml.
 import com.tunegocio.homefix.R
+
+import androidx.compose.runtime.*
+
 
 
 // MODIFICADO - MULTIDIOMA:
@@ -31,6 +39,15 @@ fun DialogoTerminos(
     onAceptar: () -> Unit,
     onCerrar: () -> Unit
 ) {
+    val scrollState = rememberScrollState()
+
+    val llegoAlFinal by remember {
+        derivedStateOf {
+            scrollState.maxValue > 0 &&
+                    scrollState.value >= scrollState.maxValue
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onCerrar,
         title = {
@@ -46,7 +63,7 @@ fun DialogoTerminos(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
             ) {
                 Text(
                     // MODIFICADO - MULTIDIOMA:
@@ -60,13 +77,12 @@ fun DialogoTerminos(
         },
         confirmButton = {
             TextButton(
-                // La función onAceptar se conserva exactamente igual.
+                enabled = llegoAlFinal,
                 onClick = onAceptar
-            ) {
+            ){
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.terms_accept),
-                    color = Primary,
+                    color = if (llegoAlFinal) Primary else TextSecondary,
                     fontWeight = FontWeight.SemiBold
                 )
             }
