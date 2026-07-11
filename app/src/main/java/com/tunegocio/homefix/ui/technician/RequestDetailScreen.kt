@@ -19,9 +19,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener los textos de strings_technician.xml según el idioma activo.
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import coil.compose.AsyncImage
@@ -29,9 +26,6 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.tunegocio.homefix.data.NotificationsRepository
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves de recursos del módulo técnico.
 import com.tunegocio.homefix.R
 import com.tunegocio.homefix.data.model.RequestModel
 import com.tunegocio.homefix.data.model.UserModel
@@ -42,22 +36,16 @@ import com.tunegocio.homefix.data.model.ReviewModel
 import androidx.compose.ui.window.Dialog
 import androidx.compose.foundation.clickable
 
-
 import androidx.compose.material.icons.filled.ThumbUp
 import androidx.compose.material.icons.filled.ThumbDown
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.BorderStroke
 
-
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Block
 
-
-
-
-// NUEVO - MULTIDIOMA:
-// Traduce solamente la etiqueta visible del tipo de servicio.
-// El valor almacenado en Firebase se mantiene sin cambios.
+// Traduce la etiqueta visible del tipo de servicio; el valor guardado en Firebase
+// (req.serviceType) nunca se modifica
 @Composable
 private fun requestDetailServiceLabel(serviceType: String): String {
     return when (serviceType) {
@@ -76,6 +64,8 @@ private fun requestDetailServiceLabel(serviceType: String): String {
     }
 }
 
+// Pantalla de detalle de una solicitud: datos del cliente, dirección, fotos,
+// y todo el flujo de estados del técnico (interesado, aceptado, completado, cancelado)
 @Composable
 fun RequestDetailScreen(
     navController: NavController,
@@ -86,7 +76,7 @@ fun RequestDetailScreen(
     val db = FirebaseFirestore.getInstance()
     val technicianId = auth.currentUser?.uid ?: ""
 
-    // ── Colores dinámicos (igual que EarningsScreen)
+    // Colores dinámicos
     val bgColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -109,20 +99,16 @@ fun RequestDetailScreen(
 
     val notificationsRepo = remember { NotificationsRepository() }
 
-    //VER CALIFICACIONES Y RESEÑAS
+    // Reseña del cliente cuando la solicitud ya está completada
     var review by remember { mutableStateOf<ReviewModel?>(null) }
     var sinContinuarMotivo by remember { mutableStateOf("") }
     var sinContinuarMotivoError by remember { mutableStateOf("") }
 
-    // NUEVO - MULTIDIOMA:
-    // Traduce el servicio solo para mostrarlo al usuario. El valor interno no cambia.
     val currentServiceLabel =
         requestDetailServiceLabel(request?.serviceType ?: "")
 
-    // NUEVO - MULTIDIOMA:
-    // Estos textos se resuelven durante la composición para poder utilizarlos
-    // dentro de callbacks de Firebase, notificaciones e Intents sin consultar
-    // recursos desde procesos asíncronos.
+    // Textos resueltos aquí (en composición) para poder usarlos dentro de
+    // callbacks de Firebase, notificaciones e Intents sin acceder a recursos fuera de @Composable
     val interestNotificationTitle =
         stringResource(R.string.technician_interest_notification_title)
     val interestNotificationBody =
@@ -160,12 +146,14 @@ fun RequestDetailScreen(
     val whatsappNotInstalled =
         stringResource(R.string.technician_whatsapp_not_installed)
 
+    // Escucha en tiempo real la solicitud; si ya está completada, busca su reseña
+    // y carga los datos del cliente asociado
     LaunchedEffect(requestId) {
         db.collection("requests").document(requestId)
             .addSnapshotListener { snapshot, _ ->
                 isLoading = false
                 request = snapshot?.toObject(RequestModel::class.java)
-                //ADICIONAL
+
                 if (request?.status == "completada") {
                     db.collection("reviews")
                         .whereEqualTo("requestId", requestId)
@@ -187,6 +175,8 @@ fun RequestDetailScreen(
             }
     }
 
+    // Registra el interés del técnico; si es el primero en postular,
+    // pasa la solicitud a "en_revision" y notifica al cliente
     fun acceptRequest() {
         actionLoading = true
         val req = request ?: return
@@ -222,6 +212,8 @@ fun RequestDetailScreen(
             }
     }
 
+    // Cancela el interés del técnico (requiere motivo obligatorio);
+    // si ya no queda ningún interesado, la solicitud vuelve a "pendiente"
     fun cancelInterest() {
         if (cancelReason.isBlank()) { cancelReasonError = reasonRequired; return }
         actionLoading = true
@@ -251,6 +243,8 @@ fun RequestDetailScreen(
             .addOnFailureListener { actionLoading = false; errorMessage = errorCancel }
     }
 
+    // Marca el trabajo como terminado por el técnico; queda a la espera de
+    // confirmación del cliente ("pendiente_confirmacion")
     fun solicitarCompletado() {
         actionLoading = true
         val req = request ?: return
@@ -270,13 +264,15 @@ fun RequestDetailScreen(
             .addOnFailureListener { actionLoading = false; errorMessage = errorUpdate }
     }
 
+    // Marca que el técnico no puede continuar (requiere motivo obligatorio);
+    // pasa directo a "sin_continuar" y notifica al cliente
     fun solicitarSinContinuar() {
         if (sinContinuarMotivo.isBlank()) { sinContinuarMotivoError = reasonRequired; return }
         actionLoading = true
         val req = request ?: return
         db.collection("requests").document(requestId)
             .update(mapOf(
-                "status" to "sin_continuar", // ← cambia directo a sin_continuar
+                "status" to "sin_continuar",
                 "updatedAt" to System.currentTimeMillis(),
                 "technicianCanceledAt" to System.currentTimeMillis()
             ))
@@ -296,8 +292,7 @@ fun RequestDetailScreen(
             .addOnFailureListener { actionLoading = false; errorMessage = errorUpdate }
     }
 
-
-
+    // Abre WhatsApp con el número del cliente (agrega prefijo 51 si falta) y un mensaje predefinido
     fun openWhatsApp(phone: String) {
         val number = phone.replace(Regex("[^0-9]"), "")
         val fullNumber = if (number.startsWith("51")) number else "51$number"
@@ -307,6 +302,8 @@ fun RequestDetailScreen(
         catch (e: Exception) { errorMessage = whatsappNotInstalled }
     }
 
+    // Abre Google Maps con las coordenadas de la solicitud; si la app no está instalada,
+    // hace fallback al navegador con la URL web de Maps
     fun openGoogleMaps(lat: Double, lng: Double, address: String) {
         val query = if (lat != 0.0 && lng != 0.0) "$lat,$lng" else Uri.encode(address)
         val uri = Uri.parse("geo:$lat,$lng?q=$query")
@@ -315,7 +312,7 @@ fun RequestDetailScreen(
         catch (e: Exception) { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://maps.google.com/?q=$query"))) }
     }
 
-    // ── Diálogo: confirmar interés
+    // Diálogo: confirmar interés
     if (showConfirmInterestDialog) {
         AlertDialog(
             onDismissRequest = { showConfirmInterestDialog = false },
@@ -331,7 +328,7 @@ fun RequestDetailScreen(
         )
     }
 
-    // ── Diálogo: motivo cancelación
+    // Diálogo: motivo de cancelación
     if (showCancelReasonDialog) {
         AlertDialog(
             onDismissRequest = { showCancelReasonDialog = false; cancelReason = ""; cancelReasonError = "" },
@@ -385,7 +382,7 @@ fun RequestDetailScreen(
         )
     }
 
-    // ── Diálogo: proceso sin continuar
+    // Diálogo: proceso sin continuar
     if (showSinContinuarDialog) {
         AlertDialog(
             onDismissRequest = { showSinContinuarDialog = false; sinContinuarMotivo = ""; sinContinuarMotivoError = "" },
@@ -436,7 +433,6 @@ fun RequestDetailScreen(
         )
     }
 
-    // ── Loading
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize().background(bgColor), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = primaryColor)
@@ -444,12 +440,11 @@ fun RequestDetailScreen(
         return
     }
 
-
     val req = request ?: return
     val yaMarcoInteres = technicianId in req.interestedTechnicians
     var fotoExpandidaUrl by remember { mutableStateOf<String?>(null) }
 
-    // Dialog foto expandida
+    // Diálogo de foto expandida (zoom al tocar una imagen de la solicitud)
     fotoExpandidaUrl?.let { url ->
         Dialog(onDismissRequest = { fotoExpandidaUrl = null }) {
             Box(
@@ -492,15 +487,13 @@ fun RequestDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Badges — tipo servicio, urgente, en proceso
+            // Badges: tipo de servicio, urgente, en proceso
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Surface(shape = RoundedCornerShape(8.dp), color = primaryColor.copy(alpha = 0.1f)) {
                     Text(
-                        // MODIFICADO - MULTIDIOMA:
-                        // La etiqueta visible se traduce; req.serviceType no se modifica.
                         currentServiceLabel,
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                         style = MaterialTheme.typography.labelLarge,
@@ -548,12 +541,11 @@ fun RequestDetailScreen(
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
 
-                    // Descripción
                     Text(stringResource(R.string.technician_description), style = MaterialTheme.typography.labelMedium, color = secondaryText, fontWeight = FontWeight.Medium)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(req.description, style = MaterialTheme.typography.bodyMedium, color = textColor)
 
-                    // Dirección
+                    // Dirección (solo si viene informada)
                     if (req.address.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
@@ -607,7 +599,7 @@ fun RequestDetailScreen(
                         )
                     }
 
-                    // Fotos — hasta 2 con zoom
+                    // Fotos: hasta 2, con zoom al tocar
                     if (req.imageUrls.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(12.dp))
                         HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
@@ -651,7 +643,7 @@ fun RequestDetailScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Cliente
+            // Datos del cliente + botón de contacto por WhatsApp
             client?.let { c ->
                 Text(stringResource(R.string.technician_client), style = MaterialTheme.typography.titleMedium, color = textColor, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))
@@ -717,7 +709,7 @@ fun RequestDetailScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Botones según estado
+            // Botones y tarjetas de estado según el status actual de la solicitud
             when (req.status) {
                 "pendiente", "en_revision" -> {
                     if (yaMarcoInteres) {
@@ -879,7 +871,7 @@ fun RequestDetailScreen(
                 }
 
                 "completada" -> {
-                    // Badge completado con fecha
+                    // Badge de completado con fecha
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
@@ -897,7 +889,6 @@ fun RequestDetailScreen(
                                     ).format(java.util.Date(req.updatedAt))
 
                                 Text(
-                                    // MODIFICADO - MULTIDIOMA:
                                     text = stringResource(
                                         R.string.technician_finished_on,
                                         completedDate
@@ -909,7 +900,7 @@ fun RequestDetailScreen(
                         }
                     }
 
-                    // Calificación del cliente
+                    // Calificación del cliente, si ya calificó
                     review?.let { r ->
                         Spacer(modifier = Modifier.height(12.dp))
                         Card(
@@ -946,6 +937,7 @@ fun RequestDetailScreen(
                             }
                         }
                     } ?: run {
+                        // Si aún no hay reseña, se muestra un aviso de "no calificado"
                         Spacer(modifier = Modifier.height(12.dp))
                         Card(
                             modifier = Modifier.fillMaxWidth(),
@@ -981,4 +973,3 @@ fun RequestDetailScreen(
         }
     }
 }
-

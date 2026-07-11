@@ -13,13 +13,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener los textos de strings_technician.xml según el idioma activo.
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
@@ -27,19 +23,12 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.tunegocio.homefix.data.model.RequestModel
 import com.tunegocio.homefix.data.model.ReviewModel
 import com.tunegocio.homefix.navigation.Routes
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves de recursos del módulo técnico.
 import com.tunegocio.homefix.R
 import com.tunegocio.homefix.ui.theme.*
 import java.text.SimpleDateFormat
 import java.util.*
 
-
-
-// NUEVO - MULTIDIOMA:
-// Traduce únicamente la etiqueta visible del servicio.
-// El valor interno guardado en Firebase se conserva sin cambios.
+// Traduce la etiqueta visible del tipo de servicio; el valor guardado en Firebase no cambia
 @Composable
 private fun earningsServiceLabel(serviceType: String): String {
     return when (serviceType) {
@@ -58,6 +47,7 @@ private fun earningsServiceLabel(serviceType: String): String {
     }
 }
 
+// Devuelve el ícono correspondiente al tipo de servicio
 private fun getServiceTypeIcon(serviceType: String): ImageVector {
     return when (serviceType) {
         "Electricidad" -> Icons.Default.ElectricalServices
@@ -74,6 +64,8 @@ private fun getServiceTypeIcon(serviceType: String): ImageVector {
         else -> Icons.Default.Build
     }
 }
+
+// Pantalla de actividad/ganancias del técnico: métricas, servicios completados y sin continuar
 @Composable
 fun EarningsScreen(navController: NavController) {
 
@@ -94,12 +86,11 @@ fun EarningsScreen(navController: NavController) {
     var userName by remember { mutableStateOf("") }
     var clienteNombresMap by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
-    // NUEVO - MULTIDIOMA:
-    // Se resuelve durante la composición y puede reutilizarse en callbacks de Firebase.
+    // Nombre por defecto cuando el cliente no tiene nombre registrado
     val defaultClientName = stringResource(R.string.technician_default_client)
 
+    // Carga nombre del técnico, servicios completados, sin continuar y reseñas en tiempo real
     LaunchedEffect(uid) {
-        // Nombre del técnico
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
                 userName = doc.getString("name") ?: ""
@@ -115,7 +106,7 @@ fun EarningsScreen(navController: NavController) {
                 }?.sortedByDescending { it.updatedAt } ?: emptyList()
                 isLoading = false
 
-                // Cargar nombres de clientes en una sola consulta
+                // Carga los nombres de clientes en bloques de 10 (límite de whereIn)
                 val clientIds = completedRequests.map { it.clientId }.filter { it.isNotEmpty() }.distinct()
                 if (clientIds.isNotEmpty()) {
                     clientIds.chunked(10).forEach { chunk ->
@@ -141,7 +132,6 @@ fun EarningsScreen(navController: NavController) {
                     it.toObject(RequestModel::class.java)
                 }?.sortedByDescending { it.updatedAt } ?: emptyList()
 
-                // Nombres de clientes sin continuar
                 val clientIds = sinContinuarRequests.map { it.clientId }.filter { it.isNotEmpty() }.distinct()
                 if (clientIds.isNotEmpty()) {
                     clientIds.chunked(10).forEach { chunk ->
@@ -158,7 +148,7 @@ fun EarningsScreen(navController: NavController) {
                 }
             }
 
-        // Reseñas
+        // Reseñas y promedio de calificación
         db.collection("reviews")
             .whereEqualTo("technicianId", uid)
             .addSnapshotListener { snapshot, _ ->
@@ -210,7 +200,6 @@ fun EarningsScreen(navController: NavController) {
                                 color = textColor,
                                 fontWeight = FontWeight.Bold
                             )
-
                         }
                         // Calificación promedio destacada
                         if (averageRating > 0) {
@@ -422,7 +411,7 @@ fun EarningsScreen(navController: NavController) {
     }
 }
 
-// Card unificado para completados y sin continuar
+// Card unificado para servicios completados y sin continuar
 @Composable
 fun ActividadServiceCard(
     request: RequestModel,
@@ -435,8 +424,7 @@ fun ActividadServiceCard(
 ) {
     val color = if (esCompletado) Success else Error
 
-    // MODIFICADO - MULTIDIOMA:
-    // Solo se traduce la etiqueta visible; request.serviceType conserva su valor interno.
+    // Etiqueta visible traducida; request.serviceType conserva su valor interno sin cambios
     val serviceLabel = earningsServiceLabel(request.serviceType)
 
     val fecha = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
@@ -554,6 +542,7 @@ fun ActividadServiceCard(
     }
 }
 
+// Card reutilizable para mostrar una métrica numérica con ícono (completados, mes, reseñas, etc.)
 @Composable
 fun MetricCard(
     value: String,

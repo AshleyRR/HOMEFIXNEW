@@ -20,63 +20,50 @@ import com.tunegocio.homefix.ui.components.HomefixButton
 import com.tunegocio.homefix.ui.components.HomefixTextField
 import com.tunegocio.homefix.ui.components.isValidEmail
 import com.tunegocio.homefix.ui.theme.*
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener los textos de strings_forgot_password.xml
-// según el idioma activo de la aplicación.
 import androidx.compose.ui.res.stringResource
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves definidas en strings_forgot_password.xml.
 import com.tunegocio.homefix.R
 
+/**
+ * Pantalla de "Olvidé mi contraseña".
+ * Permite al usuario ingresar su correo, validarlo y solicitar
+ * a Firebase Authentication el envío de un enlace de recuperación.
+ * Muestra un formulario inicial y, tras el envío exitoso, una vista de confirmación.
+ */
 @Composable
 fun OlvideContrasenaScreen(navController: NavController) {
 
-
     val auth = FirebaseAuth.getInstance()
 
-    // NUEVO - MULTIDIOMA:
-    // Estos mensajes se obtienen durante la composición con stringResource.
-    // Luego pueden usarse de forma segura dentro de los callbacks de Firebase
-    // sin consultar recursos desde addOnFailureListener.
-    val forgotEmailRequired =
-        stringResource(R.string.forgot_password_email_required)
-    val forgotInvalidEmail =
-        stringResource(R.string.forgot_password_invalid_email)
-    val forgotEmailNotFound =
-        stringResource(R.string.forgot_password_email_not_found)
-    val forgotGenericSendError =
-        stringResource(R.string.forgot_password_generic_send_error)
+    // Textos localizados (se leen aquí para poder usarlos dentro de callbacks de Firebase)
+    val forgotEmailRequired = stringResource(R.string.forgot_password_email_required)
+    val forgotInvalidEmail = stringResource(R.string.forgot_password_invalid_email)
+    val forgotEmailNotFound = stringResource(R.string.forgot_password_email_not_found)
+    val forgotGenericSendError = stringResource(R.string.forgot_password_generic_send_error)
 
+    // Estado del formulario
     var email by remember { mutableStateOf("") }
-    var emailError by remember { mutableStateOf("") }
-    var enviando by remember { mutableStateOf(false) }
-    var emailEnviado by remember { mutableStateOf(false) }
-    var mensajeError by remember { mutableStateOf("") }
+    var emailError by remember { mutableStateOf("") }          // error de validación local
+    var enviando by remember { mutableStateOf(false) }         // controla el loading del botón
+    var emailEnviado by remember { mutableStateOf(false) }     // true = mostrar vista de éxito
+    var mensajeError by remember { mutableStateOf("") }        // error devuelto por Firebase
 
+    // Valida el email y dispara el envío del correo de recuperación vía Firebase
     fun enviarRecuperacion() {
         emailError = ""
         mensajeError = ""
 
         if (email.isBlank()) {
-            // MODIFICADO - MULTIDIOMA:
-            // La validación conserva la misma condición.
-            // Solo cambia el origen del mensaje visible.
             emailError = forgotEmailRequired
             return
         }
 
         if (!isValidEmail(email)) {
-            // MODIFICADO - MULTIDIOMA:
-            // La validación del correo no cambia.
             emailError = forgotInvalidEmail
             return
         }
 
         enviando = true
 
-        // La llamada a Firebase Authentication permanece exactamente igual.
         auth.sendPasswordResetEmail(email.trim())
             .addOnSuccessListener {
                 enviando = false
@@ -84,19 +71,11 @@ fun OlvideContrasenaScreen(navController: NavController) {
             }
             .addOnFailureListener { e ->
                 enviando = false
-
-                // MODIFICADO - MULTIDIOMA:
-                // Se conservan las mismas condiciones para interpretar el error.
-                // Únicamente se traducen los mensajes que verá el usuario.
+                // Mapea el error de Firebase a un mensaje localizado
                 mensajeError = when {
-                    e.message?.contains("no user") == true ->
-                        forgotEmailNotFound
-
-                    e.message?.contains("invalid") == true ->
-                        forgotInvalidEmail
-
-                    else ->
-                        forgotGenericSendError
+                    e.message?.contains("no user") == true -> forgotEmailNotFound
+                    e.message?.contains("invalid") == true -> forgotInvalidEmail
+                    else -> forgotGenericSendError
                 }
             }
     }
@@ -114,6 +93,7 @@ fun OlvideContrasenaScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(20.dp))
 
+            // Barra superior: botón de retroceso + título
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
@@ -121,23 +101,13 @@ fun OlvideContrasenaScreen(navController: NavController) {
                 IconButton(onClick = { navController.popBackStack() }) {
                     Icon(
                         Icons.Default.ArrowBack,
-
-                        // MODIFICADO - MULTIDIOMA:
-                        // Solo se traduce la descripción accesible.
-                        // La acción del botón no cambia.
-                        contentDescription = stringResource(
-                            R.string.forgot_password_back
-                        ),
-
+                        contentDescription = stringResource(R.string.forgot_password_back),
                         tint = TextPrimary
                     )
                 }
 
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
-                    text = stringResource(
-                        R.string.forgot_password_screen_title
-                    ),
+                    text = stringResource(R.string.forgot_password_screen_title),
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold
@@ -146,17 +116,15 @@ fun OlvideContrasenaScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(40.dp))
 
+            // Alterna entre formulario y vista de confirmación según emailEnviado
             if (emailEnviado) {
-                // Pantalla de éxito
+                // --- Vista de éxito ---
                 Text(text = "✅", fontSize = 64.sp)
 
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
-                    text = stringResource(
-                        R.string.forgot_password_email_sent_title
-                    ),
+                    text = stringResource(R.string.forgot_password_email_sent_title),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
@@ -166,10 +134,7 @@ fun OlvideContrasenaScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
-                    text = stringResource(
-                        R.string.forgot_password_email_sent_description
-                    ),
+                    text = stringResource(R.string.forgot_password_email_sent_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary,
                     textAlign = TextAlign.Center
@@ -177,17 +142,14 @@ fun OlvideContrasenaScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Chip con el correo al que se envió el enlace
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = Primary.copy(alpha = 0.08f)
                 ) {
                     Text(
-                        // El correo continúa mostrando el dato escrito por el usuario.
                         text = email,
-                        modifier = Modifier.padding(
-                            horizontal = 16.dp,
-                            vertical = 8.dp
-                        ),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.titleMedium,
                         color = Primary,
                         fontWeight = FontWeight.SemiBold,
@@ -198,25 +160,18 @@ fun OlvideContrasenaScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(32.dp))
 
                 HomefixButton(
-                    // MODIFICADO - MULTIDIOMA:
-                    // El botón conserva la misma navegación.
-                    text = stringResource(
-                        R.string.forgot_password_back_to_login
-                    ),
+                    text = stringResource(R.string.forgot_password_back_to_login),
                     onClick = { navController.popBackStack() }
                 )
 
             } else {
-                // Formulario
+                // --- Formulario ---
                 Text(text = "🔐", fontSize = 52.sp)
 
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
-                    text = stringResource(
-                        R.string.forgot_password_question
-                    ),
+                    text = stringResource(R.string.forgot_password_question),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold,
@@ -226,10 +181,7 @@ fun OlvideContrasenaScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
-                    text = stringResource(
-                        R.string.forgot_password_instructions
-                    ),
+                    text = stringResource(R.string.forgot_password_instructions),
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary,
                     textAlign = TextAlign.Center
@@ -238,10 +190,7 @@ fun OlvideContrasenaScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
-                    text = stringResource(
-                        R.string.forgot_password_requirements_reminder
-                    ),
+                    text = stringResource(R.string.forgot_password_requirements_reminder),
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary,
                     textAlign = TextAlign.Center
@@ -249,6 +198,7 @@ fun OlvideContrasenaScreen(navController: NavController) {
 
                 Spacer(modifier = Modifier.height(32.dp))
 
+                // Campo de correo (limpia errores previos al escribir)
                 HomefixTextField(
                     value = email,
                     onValueChange = {
@@ -256,17 +206,13 @@ fun OlvideContrasenaScreen(navController: NavController) {
                         if (it.isNotBlank()) emailError = ""
                         mensajeError = ""
                     },
-
-                    // MODIFICADO - MULTIDIOMA:
-                    label = stringResource(
-                        R.string.forgot_password_email_label
-                    ),
-
+                    label = stringResource(R.string.forgot_password_email_label),
                     isError = emailError.isNotEmpty(),
                     errorMessage = emailError,
                     keyboardType = KeyboardType.Email
                 )
 
+                // Error devuelto por Firebase (distinto del error de validación local)
                 if (mensajeError.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -281,11 +227,7 @@ fun OlvideContrasenaScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(24.dp))
 
                 HomefixButton(
-                    // MODIFICADO - MULTIDIOMA:
-                    // La función enviarRecuperacion() permanece igual.
-                    text = stringResource(
-                        R.string.forgot_password_send_link
-                    ),
+                    text = stringResource(R.string.forgot_password_send_link),
                     onClick = { enviarRecuperacion() },
                     isLoading = enviando
                 )

@@ -21,9 +21,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener los textos de strings_technician.xml según el idioma activo.
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -33,9 +30,6 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.tunegocio.homefix.data.LocationUtils
 import com.tunegocio.homefix.data.model.RequestModel
 import com.tunegocio.homefix.navigation.Routes
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves de recursos del módulo técnico.
 import com.tunegocio.homefix.R
 import com.tunegocio.homefix.ui.theme.*
 import com.tunegocio.homefix.viewmodel.NotificationsViewModel
@@ -45,12 +39,7 @@ import coil.compose.AsyncImage
 
 import com.tunegocio.homefix.data.local.database.LocalDatabase
 
-
-
-
-// NUEVO - MULTIDIOMA:
-// Traduce únicamente el nombre visible del servicio.
-// Los valores usados por Firebase y los filtros se conservan en español.
+// Traduce el nombre visible del servicio; el valor interno (Firebase/filtros) no cambia
 @Composable
 private fun homeTechnicianServiceLabel(serviceType: String): String {
     return when (serviceType) {
@@ -69,6 +58,7 @@ private fun homeTechnicianServiceLabel(serviceType: String): String {
     }
 }
 
+// Pantalla principal del técnico: estado de disponibilidad, ubicación y solicitudes cercanas/otras
 @SuppressLint("MissingPermission")
 @Composable
 fun HomeTechnicianScreen(navController: NavController) {
@@ -79,7 +69,6 @@ fun HomeTechnicianScreen(navController: NavController) {
     val uid = auth.currentUser?.uid ?: ""
     val localDb = LocalDatabase(context)
 
-    // Colores dinámicos
     val bgColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
     val surfaceColor = MaterialTheme.colorScheme.surface
@@ -101,6 +90,7 @@ fun HomeTechnicianScreen(navController: NavController) {
     val notificationsViewModel: NotificationsViewModel = viewModel()
     val noLeidas by notificationsViewModel.noLeidas.collectAsState()
 
+    // Pide permisos de ubicación; si obtiene GPS lo guarda en Firestore, si no usa coordenadas del distrito
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -124,6 +114,7 @@ fun HomeTechnicianScreen(navController: NavController) {
         }
     }
 
+    // Carga el perfil del técnico y escucha en tiempo real las solicitudes pendientes, respaldándolas en SQLite
     LaunchedEffect(uid) {
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
@@ -152,8 +143,7 @@ fun HomeTechnicianScreen(navController: NavController) {
                 isLoading = false
                 allRequests = snapshot?.documents?.mapNotNull { it.toObject(RequestModel::class.java) } ?: emptyList()
 
-
-                // Guardar solicitudes pendientes en SQLite local
+                // Guarda las solicitudes pendientes en SQLite local
                 allRequests.forEach { request ->
                     localDb.guardarSolicitud(
                         requestId = request.requestId,
@@ -176,6 +166,7 @@ fun HomeTechnicianScreen(navController: NavController) {
             }
     }
 
+    // Cambia disponibilidad del técnico, pide ubicación si se activa, y sincroniza el flag en Firestore
     fun toggleActive(newValue: Boolean) {
         isActive = newValue
         if (newValue) {
@@ -186,15 +177,18 @@ fun HomeTechnicianScreen(navController: NavController) {
         db.collection("users").document(uid).update(mapOf("isActive" to newValue))
     }
 
+    // Vuelve a pedir la ubicación actual del técnico
     fun refreshLocation() {
         locationPermissionLauncher.launch(
             arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
         )
     }
 
+    // Filtra solicitudes según las especialidades del técnico (si no tiene, muestra todas)
     val specialtyFilteredRequests = if (techSpecialties.isEmpty()) allRequests
     else allRequests.filter { request -> techSpecialties.any { it.equals(request.serviceType, ignoreCase = true) } }
 
+    // Calcula distancia (haversine) entre técnico y cada solicitud, si hay coordenadas válidas
     val requestsWithDistance = specialtyFilteredRequests.map { request ->
         val distance = if (techLat != 0.0 && techLng != 0.0 && request.lat != 0.0 && request.lng != 0.0)
             LocationUtils.haversineDistance(techLat, techLng, request.lat, request.lng)
@@ -202,9 +196,11 @@ fun HomeTechnicianScreen(navController: NavController) {
         Pair(request, distance)
     }
 
+    // Aplica el filtro de distrito seleccionado
     val filteredRequests = if (selectedDistrictFilter == "Todos") requestsWithDistance
     else requestsWithDistance.filter { (request, _) -> request.district == selectedDistrictFilter }
 
+    // Separa solicitudes cercanas (<=10km) del resto, ordenadas por distancia
     val nearbyRequests = filteredRequests.filter { (_, d) -> d != null && d <= 10.0 }.sortedBy { (_, d) -> d }
     val otherRequests = filteredRequests.filter { (_, d) -> d == null || d > 10.0 }.sortedBy { (_, d) -> d ?: Double.MAX_VALUE }
     val availableDistricts = listOf("Todos") + allRequests.map { it.district }.filter { it.isNotEmpty() }.distinct().sorted()
@@ -227,7 +223,6 @@ fun HomeTechnicianScreen(navController: NavController) {
                     ) {
                         Column {
                             Text(
-                                // MODIFICADO - MULTIDIOMA:
                                 text = stringResource(
                                     R.string.technician_home_greeting,
                                     userName.split(" ").firstOrNull() ?: ""
@@ -237,7 +232,6 @@ fun HomeTechnicianScreen(navController: NavController) {
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                // MODIFICADO - MULTIDIOMA:
                                 text = if (isActive) {
                                     stringResource(R.string.technician_home_available_status)
                                 } else {
@@ -259,7 +253,7 @@ fun HomeTechnicianScreen(navController: NavController) {
                                     Icon(Icons.Default.Notifications, contentDescription = stringResource(R.string.technician_notifications), tint = Primary, modifier = Modifier.size(28.dp))
                                 }
                             }
-                            // Nuevo: acceso a "Mis postulaciones" (solicitudes donde ya marcó "Me interesa" y espera respuesta del cliente)
+                            // Acceso a "Mis postulaciones" (solicitudes donde ya marcó "Me interesa" y espera respuesta del cliente)
                             IconButton(onClick = { navController.navigate(Routes.MY_APPLICATIONS) }) {
                                 Icon(Icons.Default.PendingActions, contentDescription = stringResource(R.string.technician_my_applications), tint = Primary, modifier = Modifier.size(28.dp))
                             }
@@ -279,7 +273,6 @@ fun HomeTechnicianScreen(navController: NavController) {
                     }
                 }
             }
-
             // Toggle disponibilidad
             item {
                 Card(
@@ -297,7 +290,6 @@ fun HomeTechnicianScreen(navController: NavController) {
                         ) {
                             Column {
                                 Text(
-                                    // MODIFICADO - MULTIDIOMA:
                                     text = if (isActive) {
                                         stringResource(R.string.technician_home_available)
                                     } else {
@@ -308,7 +300,6 @@ fun HomeTechnicianScreen(navController: NavController) {
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
-                                    // MODIFICADO - MULTIDIOMA:
                                     text = if (isActive) {
                                         stringResource(R.string.technician_home_receiving_requests)
                                     } else {
@@ -337,7 +328,6 @@ fun HomeTechnicianScreen(navController: NavController) {
                                     Surface(modifier = Modifier.size(8.dp), shape = RoundedCornerShape(4.dp), color = if (hasGps) Success else Warning) {}
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        // MODIFICADO - MULTIDIOMA:
                                         text = if (hasGps) {
                                             stringResource(R.string.technician_home_gps_active)
                                         } else {
@@ -375,7 +365,7 @@ fun HomeTechnicianScreen(navController: NavController) {
                     }
                 }
             } else {
-                // Filtro por distrito
+                // Filtro por distrito ("Todos" es el valor interno del filtro; solo su etiqueta se traduce)
                 item {
                     Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                         Text(stringResource(R.string.technician_home_filter_district), style = MaterialTheme.typography.bodyMedium, color = secondaryText, fontWeight = FontWeight.Medium)
@@ -388,8 +378,6 @@ fun HomeTechnicianScreen(navController: NavController) {
                                 onClick = { selectedDistrictFilter = district },
                                 label = {
                                     Text(
-                                        // MODIFICADO - MULTIDIOMA:
-                                        // "Todos" continúa como código interno del filtro.
                                         text = if (district == "Todos") {
                                             stringResource(R.string.technician_service_all)
                                         } else {
@@ -486,6 +474,7 @@ fun HomeTechnicianScreen(navController: NavController) {
     }
 }
 
+// Tarjeta de una solicitud: muestra servicio, descripción, distrito/dirección, urgencia y distancia
 @Composable
 fun NearbyRequestCard(
     request: RequestModel,
@@ -496,8 +485,6 @@ fun NearbyRequestCard(
     secondaryText: androidx.compose.ui.graphics.Color = TextSecondary,
     cardColor: androidx.compose.ui.graphics.Color = CardBackground
 ) {
-    // MODIFICADO - MULTIDIOMA:
-    // Solo se traduce la etiqueta visible del servicio.
     val serviceLabel = homeTechnicianServiceLabel(request.serviceType)
 
     Card(
@@ -543,6 +530,7 @@ fun NearbyRequestCard(
     }
 }
 
+// Barra de navegación inferior del técnico: Solicitudes, Actividad y Perfil
 @Composable
 fun TechnicianBottomBar(navController: NavController, current: String) {
     val surfaceColor = MaterialTheme.colorScheme.surface

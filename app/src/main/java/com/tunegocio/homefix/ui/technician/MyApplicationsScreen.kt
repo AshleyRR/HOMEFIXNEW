@@ -15,9 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener textos y plurales de strings_technician.xml.
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.navigation.NavController
@@ -25,16 +22,11 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.tunegocio.homefix.data.model.RequestModel
 import com.tunegocio.homefix.navigation.Routes
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a los recursos del módulo técnico.
 import com.tunegocio.homefix.R
 import com.tunegocio.homefix.ui.theme.*
 
-
-// NUEVO - MULTIDIOMA:
-// Traduce solo la etiqueta visible del servicio.
-// Los valores internos usados por Firebase permanecen sin cambios.
+// Traduce la etiqueta visible del tipo de servicio; el valor interno
+// (usado para filtrar/guardar en Firebase) nunca se modifica
 @Composable
 private fun applicationsServiceLabel(serviceType: String): String {
     return when (serviceType) {
@@ -53,6 +45,7 @@ private fun applicationsServiceLabel(serviceType: String): String {
     }
 }
 
+// Mapea el tipo de servicio a su ícono; si no hay coincidencia usa uno genérico
 private fun getServiceTypeIcon(serviceType: String): ImageVector {
     return when (serviceType) {
         "Electricidad" -> Icons.Default.ElectricalServices
@@ -70,6 +63,8 @@ private fun getServiceTypeIcon(serviceType: String): ImageVector {
     }
 }
 
+// Muestra al técnico logueado las postulaciones activas (pendientes/en revisión)
+// a solicitudes donde aparece dentro de "interestedTechnicians"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MyApplicationsScreen(navController: NavController) {
@@ -87,11 +82,11 @@ fun MyApplicationsScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(true) }
     var clienteNombresMap by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
 
-    // NUEVO - MULTIDIOMA:
-    // Se obtiene en composición para reutilizarlo de forma segura en Firebase.
+    // Nombre por defecto si el cliente no tiene "name" en Firestore
     val defaultClientName = stringResource(R.string.technician_default_client)
 
     LaunchedEffect(uid) {
+        // Escucha en tiempo real las solicitudes donde el técnico está interesado
         db.collection("requests")
             .whereArrayContains("interestedTechnicians", uid)
             .addSnapshotListener { snapshot, _ ->
@@ -99,11 +94,12 @@ fun MyApplicationsScreen(navController: NavController) {
                 val all = snapshot?.documents?.mapNotNull {
                     it.toObject(RequestModel::class.java)
                 } ?: emptyList()
+                // Solo se muestran las que siguen activas (pendiente o en revisión)
                 applications = all
                     .filter { it.status == "pendiente" || it.status == "en_revision" }
                     .sortedByDescending { it.createdAt }
 
-                // Cargar nombres de clientes
+                // Carga los nombres de clientes en lotes de 10 (límite de whereIn)
                 val clientIds = applications.map { it.clientId }.filter { it.isNotEmpty() }.distinct()
                 if (clientIds.isNotEmpty()) {
                     clientIds.chunked(10).forEach { chunk ->
@@ -193,8 +189,6 @@ fun MyApplicationsScreen(navController: NavController) {
                     ) {
                         item {
                             Text(
-                                // MODIFICADO - MULTIDIOMA:
-                                // Se usa pluralStringResource sin cambiar el conteo.
                                 pluralStringResource(
                                     R.plurals.technician_applications_waiting_count,
                                     applications.size,
@@ -223,6 +217,7 @@ fun MyApplicationsScreen(navController: NavController) {
     }
 }
 
+// Tarjeta de una postulación: servicio, cliente, distrito, fecha, estado y urgencia
 @Composable
 fun PostulacionCard(
     request: RequestModel,
@@ -233,8 +228,6 @@ fun PostulacionCard(
     onClick: () -> Unit
 ) {
     val statusColor = if (request.status == "en_revision") Info else Warning
-    // MODIFICADO - MULTIDIOMA:
-    // El código interno del estado no cambia; solo se traduce su etiqueta.
     val statusLabel = if (request.status == "en_revision") {
         stringResource(R.string.technician_status_under_review)
     } else {
@@ -257,7 +250,7 @@ fun PostulacionCard(
             modifier = Modifier.padding(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Ícono por especialidad
+            // Ícono según la especialidad del servicio
             Surface(
                 modifier = Modifier.size(44.dp),
                 shape = RoundedCornerShape(12.dp),
@@ -323,6 +316,7 @@ fun PostulacionCard(
                     color = secondaryText
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+                // Chip de estado (pendiente / en revisión)
                 Surface(
                     shape = RoundedCornerShape(6.dp),
                     color = statusColor.copy(alpha = 0.12f)
@@ -335,6 +329,7 @@ fun PostulacionCard(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
+                // Chip adicional de "urgente"
                 if (request.isUrgent) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Surface(

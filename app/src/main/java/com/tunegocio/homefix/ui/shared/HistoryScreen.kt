@@ -12,32 +12,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import com.tunegocio.homefix.data.local.database.LocalDatabase
 import com.tunegocio.homefix.data.model.RequestModel
 import com.tunegocio.homefix.navigation.Routes
+import com.tunegocio.homefix.ui.client.ClientBottomBar
+import com.tunegocio.homefix.ui.technician.TechnicianBottomBar
 import com.tunegocio.homefix.ui.theme.*
+import com.tunegocio.homefix.R
 import java.text.SimpleDateFormat
 import java.util.*
 
-import com.tunegocio.homefix.ui.client.ClientBottomBar
-import com.tunegocio.homefix.ui.technician.TechnicianBottomBar
-
-import androidx.compose.ui.platform.LocalContext
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener textos y plurales desde strings_shared.xml.
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.pluralStringResource
-import com.tunegocio.homefix.data.local.database.LocalDatabase
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves de recursos del módulo shared.
-import com.tunegocio.homefix.R
-
+// Muestra el historial de solicitudes (completadas, canceladas o sin continuar)
+// filtrado por estado, y guarda una copia local en SQLite
 @Composable
 fun HistoryScreen(navController: NavController) {
 
@@ -47,16 +41,15 @@ fun HistoryScreen(navController: NavController) {
 
     var requests by remember { mutableStateOf(listOf<RequestModel>()) }
     var isLoading by remember { mutableStateOf(true) }
-    // MODIFICADO - MULTIDIOMA:
-    // El filtro usa un código estable que no depende del texto traducido.
+
+    // Código interno del filtro (no cambia con el idioma, solo su etiqueta)
     var selectedFilter by remember { mutableStateOf("all") }
     var userRole by remember { mutableStateOf("client") }
 
     val context = LocalContext.current
     val localDb = LocalDatabase(context)
 
-    // NUEVO - MULTIDIOMA:
-    // Los códigos mantienen la lógica y las etiquetas cambian con el idioma.
+    // Cada filtro combina su código estable con la etiqueta ya traducida
     val filters = listOf(
         "all" to stringResource(R.string.shared_history_filter_all),
         "completed" to stringResource(R.string.shared_history_filter_completed),
@@ -64,15 +57,15 @@ fun HistoryScreen(navController: NavController) {
     )
 
     LaunchedEffect(uid) {
-        // Obtener rol
+        // Obtiene el rol del usuario para saber qué campo usar al filtrar
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
                 userRole = doc.getString("role") ?: "client"
             }
 
-        // Campo a filtrar según rol
         val field = if (userRole == "client") "clientId" else "technicianId"
 
+        // Escucha en tiempo real las solicitudes del usuario y las guarda en SQLite
         db.collection("requests")
             .whereEqualTo(field, uid)
             .addSnapshotListener { snapshot, _ ->
@@ -83,8 +76,6 @@ fun HistoryScreen(navController: NavController) {
                     it.status == "completada" || it.status == "cancelada" || it.status == "sin_continuar"
                 }?.sortedByDescending { it.createdAt } ?: emptyList()
 
-
-                // Guardar historial en SQLite local
                 requests.forEach { request ->
                     localDb.guardarHistorial(
                         requestId = request.requestId,
@@ -100,7 +91,6 @@ fun HistoryScreen(navController: NavController) {
                         completadoEn = request.updatedAt
                     )
                 }
-
             }
     }
 
@@ -128,21 +118,19 @@ fun HistoryScreen(navController: NavController) {
             Column(modifier = Modifier.padding(horizontal = 20.dp)) {
                 Spacer(modifier = Modifier.height(20.dp))
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.shared_history_title),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground,
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.shared_history_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = TextSecondary
                 )
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Filtros
+                // Chips de filtro (todos / completados / sin continuar)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     filters.forEach { (filterCode, filterLabel) ->
                         FilterChip(
@@ -150,7 +138,6 @@ fun HistoryScreen(navController: NavController) {
                             onClick = { selectedFilter = filterCode },
                             label = {
                                 Text(
-                                    // MODIFICADO - MULTIDIOMA:
                                     text = filterLabel,
                                     style = MaterialTheme.typography.labelMedium
                                 )
@@ -173,6 +160,7 @@ fun HistoryScreen(navController: NavController) {
                     CircularProgressIndicator(color = Primary)
                 }
             } else if (filteredRequests.isEmpty()) {
+                // Estado vacío: no hay solicitudes para el filtro seleccionado
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
@@ -186,13 +174,11 @@ fun HistoryScreen(navController: NavController) {
                             style = MaterialTheme.typography.headlineLarge
                         )
                         Text(
-                            // MODIFICADO - MULTIDIOMA:
                             text = stringResource(R.string.shared_history_empty_title),
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
-                            // MODIFICADO - MULTIDIOMA:
                             text = stringResource(R.string.shared_history_empty_description),
                             style = MaterialTheme.typography.bodyMedium,
                             color = TextSecondary
@@ -206,7 +192,6 @@ fun HistoryScreen(navController: NavController) {
                 ) {
                     item {
                         Text(
-                            // MODIFICADO - MULTIDIOMA:
                             text = pluralStringResource(
                                 R.plurals.shared_history_services_count,
                                 filteredRequests.size,
@@ -221,6 +206,7 @@ fun HistoryScreen(navController: NavController) {
                             request = request,
                             userRole = userRole,
                             onClick = {
+                                // Cliente ve el seguimiento; técnico ve el detalle
                                 if (userRole == "client") {
                                     navController.navigate(
                                         Routes.requestTracking(request.requestId)
@@ -240,9 +226,8 @@ fun HistoryScreen(navController: NavController) {
     }
 }
 
-// NUEVO - MULTIDIOMA:
-// Traduce únicamente la etiqueta visible del tipo de servicio.
-// Los valores internos guardados en Firebase permanecen intactos.
+// Traduce solo la etiqueta visible del tipo de servicio;
+// el valor guardado en Firebase se mantiene igual
 @Composable
 private fun sharedHistoryServiceLabel(serviceType: String): String {
     return when (serviceType.trim().lowercase(Locale.ROOT)) {
@@ -261,6 +246,8 @@ private fun sharedHistoryServiceLabel(serviceType: String): String {
     }
 }
 
+// Tarjeta individual del historial: servicio, estado y fecha;
+// navega al detalle correspondiente al tocarla
 @Composable
 fun HistoryCard(
     request: RequestModel,
@@ -270,15 +257,12 @@ fun HistoryCard(
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     val date = dateFormat.format(Date(request.createdAt))
 
-
-
     val statusColor = when (request.status) {
         "completada"    -> Success
         "sin_continuar" -> Warning
         else            -> Error
     }
-    // MODIFICADO - MULTIDIOMA:
-    // El estado interno de Firebase no cambia; solo se traduce la etiqueta visible.
+    // El valor interno del estado no cambia; solo se traduce la etiqueta visible
     val statusLabel = when (request.status) {
         "completada" -> stringResource(R.string.shared_history_status_completed)
         "sin_continuar" -> stringResource(R.string.shared_history_status_not_continued)
@@ -289,7 +273,6 @@ fun HistoryCard(
         "sin_continuar" -> ""
         else            -> ""
     }
-
 
     Card(
         modifier = Modifier
@@ -307,7 +290,6 @@ fun HistoryCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        // MODIFICADO - MULTIDIOMA:
                         text = sharedHistoryServiceLabel(request.serviceType),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onBackground,
@@ -320,6 +302,7 @@ fun HistoryCard(
                         color = TextSecondary
                     )
                 }
+                // Badge de estado con color según el resultado de la solicitud
                 Surface(
                     shape = RoundedCornerShape(8.dp),
                     color = statusColor.copy(alpha = 0.12f)
@@ -362,7 +345,6 @@ fun HistoryCard(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        // MODIFICADO - MULTIDIOMA:
                         text = stringResource(R.string.shared_history_view_detail),
                         style = MaterialTheme.typography.labelSmall,
                         color = Primary,

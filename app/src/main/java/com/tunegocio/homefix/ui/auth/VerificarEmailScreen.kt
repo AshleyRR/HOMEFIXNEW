@@ -8,77 +8,55 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import com.tunegocio.homefix.R
 import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.components.HomefixButton
 import com.tunegocio.homefix.ui.theme.*
 import kotlinx.coroutines.delay
 
-// NUEVO - MULTIDIOMA:
-// Permite obtener los textos de strings_verify_email.xml
-// según el idioma activo de la aplicación.
-import androidx.compose.ui.res.stringResource
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves definidas en strings_verify_email.xml.
-import com.tunegocio.homefix.R
-
+// Pantalla de verificación de email tras el registro
 @Composable
 fun VerificarEmailScreen(navController: NavController) {
 
     val auth = FirebaseAuth.getInstance()
     val usuario = auth.currentUser
 
-    // NUEVO - MULTIDIOMA:
-    // Estos mensajes se obtienen durante la composición con stringResource.
-    // Luego pueden usarse de forma segura dentro de LaunchedEffect y callbacks
-    // de Firebase sin consultar recursos desde procesos asíncronos.
-    val verifyEmailCouldNotSend =
-        stringResource(R.string.verify_email_could_not_send)
-
-    val verifyEmailResentSuccess =
-        stringResource(R.string.verify_email_resent_success)
-
-    val verifyEmailResendError =
-        stringResource(R.string.verify_email_resend_error)
-
-    val verifyEmailNotVerifiedYet =
-        stringResource(R.string.verify_email_not_verified_yet)
-
-    val verifyEmailVerificationError =
-        stringResource(R.string.verify_email_verification_error)
+    // Textos localizados: se leen aquí para poder usarlos luego dentro de
+    // LaunchedEffect y callbacks de Firebase
+    val verifyEmailCouldNotSend = stringResource(R.string.verify_email_could_not_send)
+    val verifyEmailResentSuccess = stringResource(R.string.verify_email_resent_success)
+    val verifyEmailResendError = stringResource(R.string.verify_email_resend_error)
+    val verifyEmailNotVerifiedYet = stringResource(R.string.verify_email_not_verified_yet)
+    val verifyEmailVerificationError = stringResource(R.string.verify_email_verification_error)
 
     var enviando by remember { mutableStateOf(false) }
     var mensajeError by remember { mutableStateOf("") }
     var mensajeExito by remember { mutableStateOf("") }
     var verificando by remember { mutableStateOf(false) }
 
-    // Enviar email de verificación automáticamente al entrar
+    // Envía el email de verificación automáticamente al entrar a la pantalla
     LaunchedEffect(Unit) {
         try {
-            // La operación de Firebase permanece exactamente igual.
             usuario?.sendEmailVerification()
         } catch (e: Exception) {
-            // MODIFICADO - MULTIDIOMA:
-            // Solo se cambia el origen del mensaje visible.
             mensajeError = verifyEmailCouldNotSend
         }
     }
 
-    // Verificar cada 3 segundos si ya confirmó el email
+    // Revisa cada 3 segundos si el usuario ya verificó su correo
     LaunchedEffect(Unit) {
         while (true) {
             delay(3000)
 
-            // La recarga del usuario y la navegación no cambian.
             usuario?.reload()?.addOnSuccessListener {
                 if (auth.currentUser?.isEmailVerified == true) {
-                    // Email verificado — ir al login
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.VERIFICAR_EMAIL) { inclusive = true }
                     }
@@ -87,31 +65,27 @@ fun VerificarEmailScreen(navController: NavController) {
         }
     }
 
+    // Reenvía el correo de verificación de forma manual
     fun reenviarEmail() {
         enviando = true
         mensajeError = ""
         mensajeExito = ""
 
-        // La función sendEmailVerification() mantiene el mismo comportamiento.
         usuario?.sendEmailVerification()
             ?.addOnSuccessListener {
                 enviando = false
-
-                // MODIFICADO - MULTIDIOMA:
                 mensajeExito = verifyEmailResentSuccess
             }
             ?.addOnFailureListener {
                 enviando = false
-
-                // MODIFICADO - MULTIDIOMA:
                 mensajeError = verifyEmailResendError
             }
     }
 
+    // Comprueba manualmente (botón) si el email ya fue verificado
     fun verificarManualmente() {
         verificando = true
 
-        // La verificación manual con Firebase permanece igual.
         usuario?.reload()?.addOnSuccessListener {
             verificando = false
 
@@ -120,19 +94,16 @@ fun VerificarEmailScreen(navController: NavController) {
                     popUpTo(Routes.VERIFICAR_EMAIL) { inclusive = true }
                 }
             } else {
-                // MODIFICADO - MULTIDIOMA:
                 mensajeError = verifyEmailNotVerifiedYet
             }
         }?.addOnFailureListener {
             verificando = false
-
-            // MODIFICADO - MULTIDIOMA:
             mensajeError = verifyEmailVerificationError
         }
     }
 
+    // Cancela el registro: elimina el usuario, cierra sesión y vuelve a Register
     fun cancelarRegistro() {
-        // La eliminación del usuario, cierre de sesión y navegación no cambian.
         auth.currentUser?.delete()
         auth.signOut()
 
@@ -158,7 +129,6 @@ fun VerificarEmailScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                // MODIFICADO - MULTIDIOMA:
                 text = stringResource(R.string.verify_email_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -169,7 +139,6 @@ fun VerificarEmailScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(10.dp))
 
             Text(
-                // MODIFICADO - MULTIDIOMA:
                 text = stringResource(R.string.verify_email_sent_to),
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
@@ -183,7 +152,7 @@ fun VerificarEmailScreen(navController: NavController) {
                 color = Primary.copy(alpha = 0.08f)
             ) {
                 Text(
-                    // El correo continúa mostrando el dato real del usuario.
+                    // Correo real del usuario, no requiere traducción
                     text = usuario?.email ?: "",
                     modifier = Modifier.padding(
                         horizontal = 16.dp,
@@ -198,7 +167,7 @@ fun VerificarEmailScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Pasos para el usuario
+            // Tarjeta con los pasos a seguir para verificar el correo
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
@@ -209,45 +178,35 @@ fun VerificarEmailScreen(navController: NavController) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     PasoVerificacion(
                         numero = "1",
-
-                        // MODIFICADO - MULTIDIOMA:
-                        texto = stringResource(
-                            R.string.verify_email_step_open_email
-                        )
+                        texto = stringResource(R.string.verify_email_step_open_email)
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
                     PasoVerificacion(
                         numero = "2",
-                        texto = stringResource(
-                            R.string.verify_email_step_find_homefix_email
-                        )
+                        texto = stringResource(R.string.verify_email_step_find_homefix_email)
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
                     PasoVerificacion(
                         numero = "3",
-                        texto = stringResource(
-                            R.string.verify_email_step_click_verify
-                        )
+                        texto = stringResource(R.string.verify_email_step_click_verify)
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
 
                     PasoVerificacion(
                         numero = "4",
-                        texto = stringResource(
-                            R.string.verify_email_step_return_and_tap
-                        )
+                        texto = stringResource(R.string.verify_email_step_return_and_tap)
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Mensajes
+            // Mensaje de éxito (ej. al reenviar el correo)
             if (mensajeExito.isNotEmpty()) {
                 Surface(
                     shape = RoundedCornerShape(8.dp),
@@ -268,6 +227,7 @@ fun VerificarEmailScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
+            // Mensaje de error (fallas al enviar o verificar)
             if (mensajeError.isNotEmpty()) {
                 Text(
                     text = mensajeError,
@@ -279,20 +239,16 @@ fun VerificarEmailScreen(navController: NavController) {
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
-            // Botón principal
+            // Botón principal: verifica manualmente si ya se confirmó el email
             HomefixButton(
-                // MODIFICADO - MULTIDIOMA:
-                // La función verificarManualmente() permanece igual.
-                text = stringResource(
-                    R.string.verify_email_already_verified_button
-                ),
+                text = stringResource(R.string.verify_email_already_verified_button),
                 onClick = { verificarManualmente() },
                 isLoading = verificando
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Reenviar email
+            // Botón para reenviar el email de verificación
             OutlinedButton(
                 onClick = { reenviarEmail() },
                 modifier = Modifier
@@ -309,10 +265,7 @@ fun VerificarEmailScreen(navController: NavController) {
                     )
                 } else {
                     Text(
-                        // MODIFICADO - MULTIDIOMA:
-                        text = stringResource(
-                            R.string.verify_email_resend_button
-                        ),
+                        text = stringResource(R.string.verify_email_resend_button),
                         color = Primary
                     )
                 }
@@ -320,14 +273,10 @@ fun VerificarEmailScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Cancelar registro
+            // Botón para cancelar el registro (elimina el usuario y cierra sesión)
             TextButton(onClick = { cancelarRegistro() }) {
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
-                    // La acción cancelarRegistro() no cambia.
-                    text = stringResource(
-                        R.string.verify_email_cancel_registration
-                    ),
+                    text = stringResource(R.string.verify_email_cancel_registration),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
@@ -336,14 +285,15 @@ fun VerificarEmailScreen(navController: NavController) {
     }
 }
 
+// Muestra un paso individual dentro de la lista de instrucciones (número + texto).
+// El texto ya llega traducido desde VerificarEmailScreen, no necesita stringResource aquí.
 @Composable
 fun PasoVerificacion(
     numero: String,
     texto: String
 ) {
-    // Este componente no necesita stringResource directamente,
-    // porque recibe el texto ya traducido desde VerificarEmailScreen.
     Row(verticalAlignment = Alignment.CenterVertically) {
+        // Círculo con el número del paso
         Surface(
             modifier = Modifier.size(26.dp),
             shape = RoundedCornerShape(13.dp),

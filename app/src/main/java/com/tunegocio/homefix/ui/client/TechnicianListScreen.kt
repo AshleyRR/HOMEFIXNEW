@@ -20,9 +20,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener textos y plurales desde strings_client.xml.
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -33,18 +30,13 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.tunegocio.homefix.data.model.UserModel
 import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.theme.*
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves del módulo cliente.
 import com.tunegocio.homefix.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.net.URL
 
-// NUEVO - MULTIDIOMA:
-// Traduce solo la etiqueta visible de cada especialidad.
-// Los valores internos permanecen en español para no afectar Firebase,
-// filtros ni los datos existentes.
+// Traduce solo la etiqueta visible de cada especialidad; el valor interno se
+// mantiene en español para no afectar Firebase, filtros ni datos existentes
 @Composable
 private fun technicianServiceLabel(serviceType: String): String = when (serviceType) {
     "Todos" -> stringResource(R.string.service_all)
@@ -62,6 +54,8 @@ private fun technicianServiceLabel(serviceType: String): String = when (serviceT
     else -> serviceType
 }
 
+// Pantalla que lista los técnicos disponibles, permite filtrarlos por especialidad
+// y contactarlos por WhatsApp
 @Composable
 fun TechnicianListScreen(navController: NavController) {
 
@@ -76,8 +70,8 @@ fun TechnicianListScreen(navController: NavController) {
     var expanded by remember { mutableStateOf(false) }
     var selectedTechnicianUid by remember { mutableStateOf<String?>(null) }
 
-    var completedCountMap by remember { mutableStateOf(mapOf<String, Int>()) } //PARA EL CONTEO DE TRABAJOS
-    var clientDistrict by remember { mutableStateOf("") } //PARA UBICACION
+    var completedCountMap by remember { mutableStateOf(mapOf<String, Int>()) } // conteo de trabajos completados por técnico
+    var clientDistrict by remember { mutableStateOf("") } // distrito del cliente, para agrupar técnicos cercanos
 
     val filters = listOf(
         "Todos",
@@ -95,7 +89,7 @@ fun TechnicianListScreen(navController: NavController) {
     )
 
     LaunchedEffect(Unit) {
-        // ── NUEVO: obtener distrito del cliente ──
+        // Obtiene el distrito del cliente para luego agrupar técnicos "cercanos"
         val auth = FirebaseAuth.getInstance()
         val clientUid = auth.currentUser?.uid ?: ""
 
@@ -103,7 +97,7 @@ fun TechnicianListScreen(navController: NavController) {
             .addOnSuccessListener { doc ->
                 clientDistrict = doc.getString("district") ?: ""
             }
-        // ────────────────────────────────────────
+
         db.collection("users")
             .whereEqualTo("role", "technician")
             .whereEqualTo("isActive", true)
@@ -140,10 +134,8 @@ fun TechnicianListScreen(navController: NavController) {
         }
     }
 
+    // Abre WhatsApp con el número del técnico y el mensaje ya traducido
     fun openWhatsApp(phone: String, message: String) {
-        // MODIFICADO - MULTIDIOMA:
-        // Recibe el mensaje ya traducido desde la interfaz.
-        // La apertura de WhatsApp permanece igual.
         val number = phone.replace(Regex("[^0-9]"), "")
         val fullNumber = if (number.startsWith("51")) number else "51$number"
         val uri = Uri.parse("https://wa.me/$fullNumber?text=${Uri.encode(message)}")
@@ -264,7 +256,6 @@ fun TechnicianListScreen(navController: NavController) {
                             )
                         }
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            // Botón limpiar filtro
                             if (selectedFilter != "Todos") {
                                 IconButton(
                                     onClick = { selectedFilter = "Todos" },
@@ -339,7 +330,6 @@ fun TechnicianListScreen(navController: NavController) {
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-
             Spacer(modifier = Modifier.height(12.dp))
 
             if (isLoading) {
@@ -399,7 +389,7 @@ fun TechnicianListScreen(navController: NavController) {
                             color = TextSecondary
                         )
                     }
-                    // Técnicos del mismo distrito
+                    // Técnicos del mismo distrito que el cliente
                     if (filteredTechnicians.any { it.district == clientDistrict }) {
                         item {
                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -419,8 +409,6 @@ fun TechnicianListScreen(navController: NavController) {
                             }
                         }
                         items(filteredTechnicians.filter { it.district == clientDistrict }) { tech ->
-                            // NUEVO - MULTIDIOMA:
-                            // El mensaje se traduce aquí y se envía sin cambiar la lógica.
                             val whatsappMessage = stringResource(
                                 R.string.technicians_whatsapp_message,
                                 tech.name
@@ -460,7 +448,6 @@ fun TechnicianListScreen(navController: NavController) {
                             }
                         }
                         items(filteredTechnicians.filter { it.district != clientDistrict }) { tech ->
-                            // NUEVO - MULTIDIOMA:
                             val whatsappMessage = stringResource(
                                 R.string.technicians_whatsapp_message,
                                 tech.name
@@ -490,6 +477,8 @@ fun TechnicianListScreen(navController: NavController) {
     }
 }
 
+// Tarjeta con la información de un técnico (foto, rating, especialidades);
+// permite seleccionarlo (para expandir detalles) o contactarlo por WhatsApp
 @Composable
 fun TechnicianCard(
     technician: UserModel,
@@ -559,7 +548,6 @@ fun TechnicianCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        //se agrego el nombre y apellido
                         text = "${technician.name} ${technician.lastName}".trim(),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onBackground,
@@ -619,7 +607,6 @@ fun TechnicianCard(
                 }
             }
 
-
             if (technician.specialties.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(10.dp))
 
@@ -673,9 +660,8 @@ fun TechnicianCard(
                 ) {
                     Column(
                         modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp) //ANTES ERA 6.DP
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Trabajos completados NUEVO
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 Icons.Default.CheckCircle,
@@ -700,7 +686,6 @@ fun TechnicianCard(
                             )
                         }
 
-                        // Descripción profesional
                         if (technician.bio.isNotBlank()) {
                             Text(
                                 text = stringResource(R.string.technicians_bio_format, technician.bio),

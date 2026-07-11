@@ -15,9 +15,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener textos desde strings_shared.xml.
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
@@ -28,12 +25,10 @@ import com.tunegocio.homefix.data.model.UserModel
 import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.components.HomefixButton
 import com.tunegocio.homefix.ui.theme.*
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves de recursos del módulo shared.
 import com.tunegocio.homefix.R
 import java.util.UUID
 
+// Pantalla donde el cliente califica al técnico luego de finalizar un servicio
 @Composable
 fun RatingScreen(
     navController: NavController,
@@ -43,9 +38,7 @@ fun RatingScreen(
     val db = FirebaseFirestore.getInstance()
     val uid = auth.currentUser?.uid ?: ""
 
-    // NUEVO - MULTIDIOMA:
-    // El mensaje se resuelve durante la composición y puede usarse
-    // dentro de submitRating() sin consultar recursos en callbacks.
+    // Mensaje de error a mostrar si el usuario intenta enviar sin seleccionar estrellas
     val selectRatingError =
         stringResource(R.string.shared_rating_select_error)
 
@@ -57,6 +50,7 @@ fun RatingScreen(
     var starsError by remember { mutableStateOf("") }
     var isAlreadyRated by remember { mutableStateOf(false) }
 
+    // Al entrar a la pantalla: trae la solicitud, su técnico y valida si ya existe una reseña previa
     LaunchedEffect(requestId) {
         db.collection("requests").document(requestId).get()
             .addOnSuccessListener { doc ->
@@ -71,7 +65,7 @@ fun RatingScreen(
                 }
             }
 
-        // Verificar si ya calificó
+        // Evita permitir una segunda reseña sobre la misma solicitud
         db.collection("reviews")
             .whereEqualTo("requestId", requestId)
             .whereEqualTo("clientId", uid)
@@ -81,6 +75,7 @@ fun RatingScreen(
             }
     }
 
+    // Valida, crea la reseña en Firestore y recalcula el promedio de estrellas del técnico
     fun submitRating() {
         if (selectedStars == 0) {
             starsError = selectRatingError
@@ -102,9 +97,9 @@ fun RatingScreen(
 
         db.collection("reviews").document(reviewId).set(review)
             .addOnSuccessListener {
-                // Actualizar promedio del técnico
                 val techId = request?.technicianId ?: ""
                 if (techId.isNotEmpty()) {
+                    // Recalcula el promedio del técnico con todas sus reseñas
                     db.collection("reviews")
                         .whereEqualTo("technicianId", techId)
                         .get()
@@ -143,12 +138,11 @@ fun RatingScreen(
             Spacer(modifier = Modifier.height(40.dp))
 
             if (isAlreadyRated) {
-                // Ya calificó
+                // Ya calificó: se muestra un mensaje en vez del formulario
                 Spacer(modifier = Modifier.height(60.dp))
                 Text(text = "", fontSize = 64.sp)
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.shared_rating_already_rated),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -157,7 +151,6 @@ fun RatingScreen(
                 )
                 Spacer(modifier = Modifier.height(24.dp))
                 HomefixButton(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.shared_rating_back_home),
                     onClick = {
                         navController.navigate(Routes.HOME_CLIENT) {
@@ -169,7 +162,6 @@ fun RatingScreen(
                 Text(text = "⭐", fontSize = 52.sp)
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.shared_rating_title),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -180,7 +172,6 @@ fun RatingScreen(
                 technician?.let { tech ->
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        // MODIFICADO - MULTIDIOMA:
                         text = stringResource(
                             R.string.shared_rating_experience_with,
                             tech.name
@@ -193,7 +184,7 @@ fun RatingScreen(
 
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // Tarjeta del técnico
+                // Tarjeta con datos del técnico (avatar con inicial, nombre y especialidades)
                 technician?.let { tech ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
@@ -239,9 +230,8 @@ fun RatingScreen(
                     Spacer(modifier = Modifier.height(24.dp))
                 }
 
-                // Selector de estrellas
+                // Selector de estrellas: al tocar una se actualiza la calificación seleccionada
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.shared_rating_your_rating),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -261,7 +251,6 @@ fun RatingScreen(
                                 Icons.Default.Star
                             else
                                 Icons.Default.StarBorder,
-                            // MODIFICADO - MULTIDIOMA:
                             contentDescription = stringResource(
                                 R.string.shared_rating_star_description,
                                 star
@@ -278,11 +267,10 @@ fun RatingScreen(
                     Spacer(modifier = Modifier.weight(1f))
                 }
 
-                // Texto descriptivo según estrellas
+                // Texto y color descriptivos según la cantidad de estrellas elegidas
                 if (selectedStars > 0) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        // MODIFICADO - MULTIDIOMA:
                         text = when (selectedStars) {
                             1 -> stringResource(R.string.shared_rating_very_bad)
                             2 -> stringResource(R.string.shared_rating_bad)
@@ -312,9 +300,8 @@ fun RatingScreen(
 
                 Spacer(modifier = Modifier.height(20.dp))
 
-                // Comentario opcional
+                // Campo de comentario opcional, limitado a 300 caracteres
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.shared_rating_optional_comment),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -330,7 +317,6 @@ fun RatingScreen(
                         .height(110.dp),
                     placeholder = {
                         Text(
-                            // MODIFICADO - MULTIDIOMA:
                             text = stringResource(
                                 R.string.shared_rating_comment_hint
                             ),
@@ -353,7 +339,6 @@ fun RatingScreen(
                 Spacer(modifier = Modifier.height(24.dp))
 
                 HomefixButton(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.shared_rating_send),
                     onClick = { submitRating() },
                     isLoading = isLoading
@@ -361,6 +346,7 @@ fun RatingScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                // Permite omitir la calificación y volver directo a home
                 TextButton(
                     onClick = {
                         navController.navigate(Routes.HOME_CLIENT) {
@@ -369,7 +355,6 @@ fun RatingScreen(
                     }
                 ) {
                     Text(
-                        // MODIFICADO - MULTIDIOMA:
                         text = stringResource(R.string.shared_rating_skip),
                         color = TextSecondary,
                         style = MaterialTheme.typography.bodyMedium
