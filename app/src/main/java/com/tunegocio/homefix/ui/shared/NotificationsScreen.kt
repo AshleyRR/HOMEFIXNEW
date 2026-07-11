@@ -16,9 +16,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener textos y plurales desde strings_shared.xml.
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -28,13 +25,11 @@ import com.tunegocio.homefix.data.model.NotificationModel
 import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.theme.*
 import com.tunegocio.homefix.viewmodel.NotificationsViewModel
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves del módulo shared.
 import com.tunegocio.homefix.R
 import java.text.SimpleDateFormat
 import java.util.*
 
+// Lista las notificaciones, las marca como leídas tras un delay y las persiste en SQLite
 @Composable
 fun NotificationsScreen(navController: NavController) {
 
@@ -49,13 +44,13 @@ fun NotificationsScreen(navController: NavController) {
     val secondaryText = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
     val primaryColor = MaterialTheme.colorScheme.primary
 
-    // Marcar como leídas y guardar en SQLite
+    // Marca todas como leídas después de un breve delay de lectura
     LaunchedEffect(Unit) {
         kotlinx.coroutines.delay(2000)
         viewModel.marcarTodasComoLeidas()
     }
 
-    // Guardar notificaciones en SQLite cuando llegan
+    // Guarda cada notificación nueva en SQLite local
     LaunchedEffect(notificaciones) {
         notificaciones.forEach { notif ->
             localDb.guardarNotificacion(
@@ -65,7 +60,6 @@ fun NotificationsScreen(navController: NavController) {
                 tipo = notif.type,
                 requestId = notif.requestId
             )
-
         }
     }
 
@@ -85,13 +79,11 @@ fun NotificationsScreen(navController: NavController) {
             IconButton(onClick = { navController.popBackStack() }) {
                 Icon(
                     Icons.Default.ArrowBack,
-                    // MODIFICADO - MULTIDIOMA:
                     contentDescription = stringResource(R.string.shared_notifications_back),
                     tint = textColor
                 )
             }
             Text(
-                // MODIFICADO - MULTIDIOMA:
                 text = stringResource(R.string.shared_notifications_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = textColor,
@@ -104,7 +96,6 @@ fun NotificationsScreen(navController: NavController) {
                     color = primaryColor.copy(alpha = 0.12f)
                 ) {
                     Text(
-                        // MODIFICADO - MULTIDIOMA:
                         text = pluralStringResource(
                             R.plurals.shared_notifications_new_count,
                             noLeidas,
@@ -146,14 +137,12 @@ fun NotificationsScreen(navController: NavController) {
                         }
                     }
                     Text(
-                        // MODIFICADO - MULTIDIOMA:
                         text = stringResource(R.string.shared_notifications_empty_title),
                         style = MaterialTheme.typography.titleMedium,
                         color = textColor,
                         fontWeight = FontWeight.Medium
                     )
                     Text(
-                        // MODIFICADO - MULTIDIOMA:
                         text = stringResource(R.string.shared_notifications_empty_description),
                         style = MaterialTheme.typography.bodyMedium,
                         color = secondaryText
@@ -170,6 +159,7 @@ fun NotificationsScreen(navController: NavController) {
                     NotificacionCard(
                         notificacion = notificacion,
                         onClick = {
+                            // Cada tipo de notificación navega a una pantalla distinta
                             if (notificacion.requestId.isNotEmpty()) {
                                 when (notificacion.type) {
                                     "tecnico_aceptado",
@@ -198,7 +188,7 @@ fun NotificationsScreen(navController: NavController) {
     }
 }
 
-// Datos del ícono y color según tipo de notificación
+// Ícono y color asociados a cada tipo de notificación
 private data class NotifStyle(
     val icon: ImageVector,
     val color: androidx.compose.ui.graphics.Color
@@ -223,8 +213,7 @@ private fun notifStyle(type: String): NotifStyle {
     }
 }
 
-// NUEVO - MULTIDIOMA:
-// Traduce la etiqueta corta según el tipo interno de la notificación.
+// Etiqueta corta traducida según el tipo interno de notificación
 @Composable
 private fun sharedNotificationLabel(type: String): String {
     return when (type) {
@@ -244,8 +233,7 @@ private fun sharedNotificationLabel(type: String): String {
     }
 }
 
-// NUEVO - MULTIDIOMA:
-// Traduce el título visible según type. No cambia el título guardado en Firebase.
+// Título visible traducido; no modifica el título guardado en Firebase
 @Composable
 private fun sharedNotificationTitle(type: String, fallback: String): String {
     return when (type) {
@@ -265,9 +253,8 @@ private fun sharedNotificationTitle(type: String, fallback: String): String {
     }
 }
 
-// NUEVO - MULTIDIOMA:
-// Traduce el cuerpo visible según type. Se usa un texto genérico localizado
-// porque las notificaciones antiguas guardaron el cuerpo completo en español.
+// Cuerpo visible traducido; notificaciones antiguas guardaron el texto en español,
+// así que para tipos conocidos se muestra la versión localizada en vez del original
 @Composable
 private fun sharedNotificationBody(type: String, fallback: String): String {
     return when (type) {
@@ -287,6 +274,8 @@ private fun sharedNotificationBody(type: String, fallback: String): String {
     }
 }
 
+// Tarjeta de una notificación: ícono/color por tipo, título/cuerpo/etiqueta traducidos
+// y resaltado visual si aún no fue leída
 @Composable
 fun NotificacionCard(
     notificacion: NotificationModel,
@@ -304,10 +293,8 @@ fun NotificacionCard(
 
     val style = notifStyle(notificacion.type)
 
-    // NUEVO - MULTIDIOMA:
-    // Los títulos y cuerpos antiguos pueden estar almacenados en Firebase en español.
-    // Se muestran traducidos según el campo interno type, sin modificar Firestore.
-    // Para tipos desconocidos se conserva el texto original como respaldo.
+    // Para tipos conocidos se traduce título/cuerpo; para tipos desconocidos
+    // se conserva el texto original guardado en Firebase como respaldo
     val tituloVisible = sharedNotificationTitle(
         type = notificacion.type,
         fallback = notificacion.title

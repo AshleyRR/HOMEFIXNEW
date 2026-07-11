@@ -1,6 +1,10 @@
 package com.tunegocio.homefix.ui.client
 
+import android.annotation.SuppressLint
+import android.content.Intent
 import android.location.Geocoder
+import android.location.LocationManager
+import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -16,22 +20,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener los textos de strings_client.xml según el idioma activo.
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.google.android.gms.location.LocationServices
+import com.tunegocio.homefix.R
 import com.tunegocio.homefix.ui.components.MapaUbicacion
 import com.tunegocio.homefix.ui.components.estaDentroDeLima
 import com.tunegocio.homefix.ui.theme.*
 import com.tunegocio.homefix.viewmodel.UbicacionViewModel
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves del módulo cliente.
-import com.tunegocio.homefix.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -41,16 +40,8 @@ import org.json.JSONArray
 import java.net.URL
 import java.net.URLEncoder
 import java.util.*
-import android.annotation.SuppressLint
 
-import android.content.Intent
-import android.location.LocationManager
-import android.provider.Settings
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
-import com.google.android.gms.location.LocationServices
-
-
+// Pantalla para seleccionar una ubicación en el mapa, buscar direcciones y confirmar la elegida
 @SuppressLint("MissingPermission")
 @Composable
 fun SeleccionarUbicacionScreen(
@@ -75,21 +66,15 @@ fun SeleccionarUbicacionScreen(
     var errorMessage by remember { mutableStateOf("") }
     var mostrarDialogoGps by remember { mutableStateOf(false) }
 
-    // NUEVO - MULTIDIOMA:
-    // Mensajes resueltos durante la composición para utilizarlos después
-    // en callbacks de ubicación sin alterar su funcionamiento.
-    val errorOutsideLima =
-        stringResource(R.string.location_error_outside_lima)
-    val errorCouldNotGetLocation =
-        stringResource(R.string.location_error_could_not_get)
-    val errorGettingLocation =
-        stringResource(R.string.location_error_getting)
-    val errorLocationPermission =
-        stringResource(R.string.location_error_permission)
+    val errorOutsideLima = stringResource(R.string.location_error_outside_lima)
+    val errorCouldNotGetLocation = stringResource(R.string.location_error_could_not_get)
+    val errorGettingLocation = stringResource(R.string.location_error_getting)
+    val errorLocationPermission = stringResource(R.string.location_error_permission)
 
     val bgColor = MaterialTheme.colorScheme.background
     val textColor = MaterialTheme.colorScheme.onBackground
 
+    // Convierte coordenadas en una dirección legible usando Geocoder
     fun actualizarDireccion(latitude: Double, longitude: Double) {
         try {
             val geocoder = Geocoder(context, Locale("es", "PE"))
@@ -106,6 +91,7 @@ fun SeleccionarUbicacionScreen(
         }
     }
 
+    // Busca sugerencias de direcciones dentro de Lima usando la API de Nominatim
     fun buscarSugerencias(query: String) {
         jobBusqueda?.cancel()
         if (query.length < 3) {
@@ -150,6 +136,7 @@ fun SeleccionarUbicacionScreen(
         }
     }
 
+    // Aplica la dirección elegida de las sugerencias y actualiza el estado del mapa
     fun seleccionarSugerencia(resultado: android.location.Address) {
         lat = resultado.latitude
         lng = resultado.longitude
@@ -160,7 +147,7 @@ fun SeleccionarUbicacionScreen(
         busqueda = resultado.featureName ?: address
     }
 
-    // Diálogo para activar GPS
+    // Diálogo para activar el GPS cuando está desactivado
     if (mostrarDialogoGps) {
         AlertDialog(
             onDismissRequest = { mostrarDialogoGps = false },
@@ -188,7 +175,6 @@ fun SeleccionarUbicacionScreen(
                 Button(
                     onClick = {
                         mostrarDialogoGps = false
-                        // Abre configuración de ubicación del celular
                         context.startActivity(
                             Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
                         )
@@ -344,7 +330,7 @@ fun SeleccionarUbicacionScreen(
             }
         }
     ) { paddingValues ->
-        // Mapa respeta el espacio del header y footer
+        // El mapa respeta el espacio del header y footer
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -367,7 +353,7 @@ fun SeleccionarUbicacionScreen(
 
             FloatingActionButton(
                 onClick = {
-                    // Verificar si el GPS está activo antes de obtener ubicación
+                    // Verifica si el GPS/red está activo antes de intentar obtener ubicación
                     val locationManager = context.getSystemService(
                         android.content.Context.LOCATION_SERVICE
                     ) as LocationManager
@@ -376,10 +362,8 @@ fun SeleccionarUbicacionScreen(
                     val redActiva = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
 
                     if (!gpsActivo && !redActiva) {
-                        // GPS desactivado — mostrar diálogo
                         mostrarDialogoGps = true
                     } else {
-                        // GPS activo — obtener ubicación
                         try {
                             val fusedLocation = LocationServices
                                 .getFusedLocationProviderClient(context)
@@ -417,9 +401,7 @@ fun SeleccionarUbicacionScreen(
                     Icons.Default.MyLocation,
                     contentDescription = stringResource(R.string.location_my_location)
                 )
-
             }
-
         }
     }
 }

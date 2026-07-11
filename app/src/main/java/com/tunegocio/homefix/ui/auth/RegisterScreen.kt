@@ -7,11 +7,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-
-
-
-
-
 import android.Manifest
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -57,13 +52,10 @@ import kotlinx.coroutines.launch
 
 import androidx.compose.foundation.Image
 import androidx.compose.ui.res.painterResource
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener los textos de strings_register.xml según el idioma activo.
 import androidx.compose.ui.res.stringResource
 import com.tunegocio.homefix.R
 
-
+// Lista fija de distritos de Lima usados en el selector de distrito del formulario
 val LIMA_DISTRICTS = listOf(
     "Ancón", "Ate", "Barranco", "Breña", "Carabayllo",
     "Cercado de Lima", "Chaclacayo", "Chorrillos", "Cieneguilla",
@@ -79,6 +71,7 @@ val LIMA_DISTRICTS = listOf(
     "Villa El Salvador", "Villa María del Triunfo"
 )
 
+// Pantalla principal de registro de usuario (cliente o técnico)
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun RegisterScreen(navController: NavController) {
@@ -88,10 +81,9 @@ fun RegisterScreen(navController: NavController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // NUEVO - MULTIDIOMA:
-    // Estos mensajes se resuelven durante la composición y luego se reutilizan
-    // dentro de register(), Retrofit, Firebase y Cloudinary. De esta forma no se
-    // consulta LocalContext.current desde callbacks asíncronos.
+    // Textos localizados: se resuelven aquí para poder usarlos dentro de
+    // callbacks asíncronos (register(), Retrofit, Firebase, Cloudinary)
+    // sin depender de LocalContext.current en ese momento.
     val registerFirstNameRequired = stringResource(R.string.register_first_name_required)
     val registerMinimumTwoCharacters = stringResource(R.string.register_minimum_two_characters)
     val registerLastNameRequired = stringResource(R.string.register_last_name_required)
@@ -120,7 +112,7 @@ fun RegisterScreen(navController: NavController) {
     val registerGenericError = stringResource(R.string.register_generic_error)
     val registerGenericRetryError = stringResource(R.string.register_generic_retry_error)
 
-    // Campos comunes
+    // Campos comunes del formulario
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -131,25 +123,25 @@ fun RegisterScreen(navController: NavController) {
     var selectedDistrict by remember { mutableStateOf("") }
     var showDistrictDialog by remember { mutableStateOf(false) }
 
-    // Selfie — ambos roles
+    // Selfie — usada por ambos roles
     var selfieUri by remember { mutableStateOf<android.net.Uri?>(null) }
 
-    // Campos solo técnico
+    // Campos exclusivos del rol técnico
     var dni by remember { mutableStateOf("") }
     var yearsExp by remember { mutableStateOf("") }
     var selectedSpecialties by remember { mutableStateOf(listOf<String>()) }
     var showSpecialtyDialog by remember { mutableStateOf(false) }
 
-    // Términos y mayoría de edad
+    // Aceptación de términos y mayoría de edad
     var aceptoTerminos by remember { mutableStateOf(false) }
     var esMayorDeEdad by remember { mutableStateOf(false) }
     var mostrarTerminos by remember { mutableStateOf(false) }
 
-    // Estado general
+    // Estado general de carga y error del formulario
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
 
-    // Errores por campo
+    // Mensajes de error individuales por campo
     var firstNameError by remember { mutableStateOf("") }
     var lastNameError by remember { mutableStateOf("") }
     var emailError by remember { mutableStateOf("") }
@@ -164,13 +156,14 @@ fun RegisterScreen(navController: NavController) {
     var terminosError by remember { mutableStateOf("") }
     var edadError by remember { mutableStateOf("") }
 
-    // Archivo temporal para selfie
+    // Archivo temporal donde se guarda la foto tomada con la cámara
     val selfieFile = remember { File(context.cacheDir, "selfie_${UUID.randomUUID()}.jpg") }
+    // Uri segura (FileProvider) para que la cámara pueda escribir en el archivo temporal
     val selfieUriForCamera = remember {
         FileProvider.getUriForFile(context, "${context.packageName}.provider", selfieFile)
     }
 
-    // Launcher cámara
+    // Launcher que abre la cámara y recibe el resultado de la foto tomada
     val selfieLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
@@ -180,14 +173,14 @@ fun RegisterScreen(navController: NavController) {
         }
     }
 
-    // Launcher permiso cámara
+    // Launcher que solicita el permiso de cámara antes de abrirla
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) selfieLauncher.launch(selfieUriForCamera)
     }
 
-    // Diálogo distrito
+    // Diálogo de selección de distrito
     if (showDistrictDialog) {
         DistrictPickerDialog(
             districts = LIMA_DISTRICTS,
@@ -201,7 +194,7 @@ fun RegisterScreen(navController: NavController) {
         )
     }
 
-    // Diálogo especialidades
+    // Diálogo de selección de especialidades (solo técnico)
     if (showSpecialtyDialog) {
         SpecialtyPickerDialog(
             allSpecialties = ALL_SPECIALTIES,
@@ -216,7 +209,7 @@ fun RegisterScreen(navController: NavController) {
         )
     }
 
-    // Diálogo términos y condiciones
+    // Diálogo de términos y condiciones
     if (mostrarTerminos) {
         DialogoTerminos(
             onAceptar = {
@@ -228,8 +221,8 @@ fun RegisterScreen(navController: NavController) {
         )
     }
 
+    // Valida el formulario completo y ejecuta el registro del usuario
     fun register() {
-        // Limpiar errores
         firstNameError = ""; lastNameError = ""; emailError = ""
         passwordError = ""; confirmPasswordError = ""; phoneError = ""
         districtError = ""; selfieError = ""; roleError = ""
@@ -238,9 +231,7 @@ fun RegisterScreen(navController: NavController) {
 
         var hasError = false
 
-        // MODIFICADO - MULTIDIOMA:
-        // Las validaciones conservan exactamente las mismas condiciones.
-        // Solo los mensajes visibles provienen de strings_register.xml.
+        // Nombre
         if (firstName.isBlank()) {
             firstNameError = registerFirstNameRequired
             hasError = true
@@ -249,6 +240,7 @@ fun RegisterScreen(navController: NavController) {
             hasError = true
         }
 
+        // Apellido
         if (lastName.isBlank()) {
             lastNameError = registerLastNameRequired
             hasError = true
@@ -257,6 +249,7 @@ fun RegisterScreen(navController: NavController) {
             hasError = true
         }
 
+        // Email
         if (email.isBlank()) {
             emailError = registerEmailRequired
             hasError = true
@@ -265,6 +258,7 @@ fun RegisterScreen(navController: NavController) {
             hasError = true
         }
 
+        // Contraseña (longitud, mayúscula, número)
         if (password.isBlank()) {
             passwordError = registerPasswordRequired
             hasError = true
@@ -282,6 +276,7 @@ fun RegisterScreen(navController: NavController) {
             }
         }
 
+        // Confirmación de contraseña
         if (confirmPassword.isBlank()) {
             confirmPasswordError = registerConfirmPasswordRequired
             hasError = true
@@ -290,6 +285,7 @@ fun RegisterScreen(navController: NavController) {
             hasError = true
         }
 
+        // Teléfono
         if (phone.isBlank()) {
             phoneError = registerPhoneRequired
             hasError = true
@@ -298,21 +294,25 @@ fun RegisterScreen(navController: NavController) {
             hasError = true
         }
 
+        // Distrito
         if (selectedDistrict.isEmpty()) {
             districtError = registerDistrictRequired
             hasError = true
         }
 
+        // Rol
         if (selectedRole.isEmpty()) {
             roleError = registerRoleRequired
             hasError = true
         }
 
+        // Selfie
         if (selfieUri == null) {
             selfieError = registerPhotoRequired
             hasError = true
         }
 
+        // Validaciones extra solo para técnico (DNI y especialidades)
         if (selectedRole == "technician") {
             if (dni.isBlank()) {
                 dniError = registerDniRequired
@@ -327,11 +327,11 @@ fun RegisterScreen(navController: NavController) {
             }
         }
 
+        // Términos y mayoría de edad
         if (!aceptoTerminos) {
             terminosError = registerTermsRequired
             hasError = true
         }
-
         if (!esMayorDeEdad) {
             edadError = registerAdultRequired
             hasError = true
@@ -340,6 +340,7 @@ fun RegisterScreen(navController: NavController) {
         if (hasError) return
         isLoading = true
 
+        // Corrutina en segundo plano: crea el usuario vía API REST
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val response = RetrofitClient.apiService.register(
@@ -356,10 +357,11 @@ fun RegisterScreen(navController: NavController) {
                         val registerData = response.body()
                         val uid = registerData?.localId ?: ""
 
-                        // Autenticar en Firebase SDK
+                        // Autentica al usuario recién creado en el SDK de Firebase
                         auth.signInWithEmailAndPassword(email.trim(), password)
                             .addOnSuccessListener { authResult ->
 
+                                // Guarda los datos del usuario en Firestore (con la URL de la selfie ya subida)
                                 fun saveUser(selfieUrl: String) {
                                     val user = UserModel(
                                         uid = uid,
@@ -386,13 +388,11 @@ fun RegisterScreen(navController: NavController) {
                                         }
                                         .addOnFailureListener {
                                             isLoading = false
-
-                                            // MODIFICADO - MULTIDIOMA:
-                                            // La operación de Firestore no cambia; solo el mensaje.
                                             errorMessage = registerSaveDataError
                                         }
                                 }
 
+                                // Si hay selfie, se sube a Cloudinary antes de guardar el usuario
                                 if (selfieUri != null) {
                                     scope.launch {
                                         val uploadResult = CloudinaryUploader.uploadImage(
@@ -404,29 +404,23 @@ fun RegisterScreen(navController: NavController) {
                                             onSuccess = { url: String -> saveUser(url) },
                                             onFailure = { _: Throwable ->
                                                 isLoading = false
-
-                                                // MODIFICADO - MULTIDIOMA:
-                                                // La carga a Cloudinary no cambia; solo el mensaje.
                                                 errorMessage = registerPhotoUploadError
                                             }
                                         )
                                     }
                                 } else {
+                                    // Sin selfie: guarda el usuario directamente sin URL de foto
                                     saveUser("")
                                 }
                             }
                             .addOnFailureListener {
                                 isLoading = false
-
-                                // MODIFICADO - MULTIDIOMA:
-                                // Firebase Authentication conserva el mismo flujo.
                                 errorMessage = registerAuthenticationError
                             }
 
                     } else {
                         isLoading = false
-                        // MODIFICADO - MULTIDIOMA:
-                        // Los códigos HTTP y la lógica de Retrofit permanecen iguales.
+                        // 400 asume que el email ya existe; otro código, error genérico
                         when {
                             response.code() == 400 ->
                                 emailError = registerEmailAlreadyExists
@@ -436,6 +430,7 @@ fun RegisterScreen(navController: NavController) {
                     }
                 }
             } catch (e: Exception) {
+                // Captura cualquier excepción (ej. sin conexión)
                 withContext(Dispatchers.Main) {
                     isLoading = false
                     errorMessage = e.message ?: registerGenericError
@@ -444,6 +439,7 @@ fun RegisterScreen(navController: NavController) {
         }
     }
 
+    // Contenedor raíz de toda la pantalla
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -458,18 +454,14 @@ fun RegisterScreen(navController: NavController) {
         ) {
             Spacer(modifier = Modifier.height(40.dp))
 
-            // MULTIDIOMA:
-            // Desde este punto se sustituyen únicamente textos visibles por recursos XML.
-            // No se modifican botones, colores, iconos, estados ni navegación.
+            // Título y subtítulo
             Text(
-                // MODIFICADO - MULTIDIOMA:
                 text = stringResource(R.string.register_title),
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.onBackground,
                 fontWeight = FontWeight.Bold
             )
             Text(
-                // MODIFICADO - MULTIDIOMA:
                 text = stringResource(R.string.register_subtitle),
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextSecondary,
@@ -478,9 +470,8 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // Selección de rol
+            // Selección de rol (cliente o técnico)
             Text(
-                // MODIFICADO - MULTIDIOMA:
                 text = stringResource(R.string.register_role_question),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -491,11 +482,9 @@ fun RegisterScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                // roleCode identifica el rol de forma estable, independiente del texto traducido
                 RoleCard(
-                    // NUEVO - MULTIDIOMA:
-                    // roleCode mantiene la lógica de la imagen sin depender del título traducido.
                     roleCode = "client",
-                    // MODIFICADO - MULTIDIOMA:
                     title = stringResource(R.string.register_role_client),
                     description = stringResource(R.string.register_role_client_description),
                     emoji = "",
@@ -505,10 +494,7 @@ fun RegisterScreen(navController: NavController) {
                     onClick = { selectedRole = "client"; roleError = "" }
                 )
                 RoleCard(
-                    // NUEVO - MULTIDIOMA:
-                    // roleCode mantiene la lógica de la imagen sin depender del título traducido.
                     roleCode = "technician",
-                    // MODIFICADO - MULTIDIOMA:
                     title = stringResource(R.string.register_role_technician),
                     description = stringResource(R.string.register_role_technician_description),
                     emoji = "",
@@ -532,7 +518,7 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Nombres y Apellidos
+            // Nombres y apellidos
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -543,7 +529,6 @@ fun RegisterScreen(navController: NavController) {
                         firstName = it
                         if (it.isNotBlank()) firstNameError = ""
                     },
-                    // MODIFICADO - MULTIDIOMA:
                     label = stringResource(R.string.register_first_names),
                     modifier = Modifier.weight(1f),
                     isError = firstNameError.isNotEmpty(),
@@ -555,7 +540,6 @@ fun RegisterScreen(navController: NavController) {
                         lastName = it
                         if (it.isNotBlank()) lastNameError = ""
                     },
-                    // MODIFICADO - MULTIDIOMA:
                     label = stringResource(R.string.register_last_names),
                     modifier = Modifier.weight(1f),
                     isError = lastNameError.isNotEmpty(),
@@ -571,7 +555,6 @@ fun RegisterScreen(navController: NavController) {
                     email = it
                     if (it.isNotBlank()) emailError = ""
                 },
-                // MODIFICADO - MULTIDIOMA:
                 label = stringResource(R.string.register_email),
                 isError = emailError.isNotEmpty(),
                 errorMessage = emailError,
@@ -587,7 +570,6 @@ fun RegisterScreen(navController: NavController) {
                     if (it.isNotBlank()) passwordError = ""
                     confirmPasswordError = ""
                 },
-                // MODIFICADO - MULTIDIOMA:
                 label = stringResource(R.string.register_password),
                 isPassword = true,
                 isError = passwordError.isNotEmpty(),
@@ -603,7 +585,6 @@ fun RegisterScreen(navController: NavController) {
                     confirmPassword = it
                     if (it.isNotBlank()) confirmPasswordError = ""
                 },
-                // MODIFICADO - MULTIDIOMA:
                 label = stringResource(R.string.register_confirm_password),
                 isPassword = true,
                 isError = confirmPasswordError.isNotEmpty(),
@@ -611,7 +592,7 @@ fun RegisterScreen(navController: NavController) {
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Teléfono
+            // Teléfono (solo dígitos, máximo 9)
             HomefixTextField(
                 value = phone,
                 onValueChange = {
@@ -620,7 +601,6 @@ fun RegisterScreen(navController: NavController) {
                         if (it.isNotBlank()) phoneError = ""
                     }
                 },
-                // MODIFICADO - MULTIDIOMA:
                 label = stringResource(R.string.register_phone_number),
                 isError = phoneError.isNotEmpty(),
                 errorMessage = phoneError,
@@ -630,7 +610,6 @@ fun RegisterScreen(navController: NavController) {
 
             // Distrito
             Text(
-                // MODIFICADO - MULTIDIOMA:
                 text = stringResource(R.string.register_district),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -659,8 +638,6 @@ fun RegisterScreen(navController: NavController) {
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
-
                     text = if (selectedDistrict.isEmpty()) {
                         stringResource(R.string.register_select_district)
                     } else {
@@ -688,11 +665,10 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Foto de perfil
+            // Foto de perfil (selfie)
             HorizontalDivider(color = CardBorder)
             Spacer(modifier = Modifier.height(16.dp))
             Text(
-                // MODIFICADO - MULTIDIOMA:
                 text = stringResource(R.string.register_profile_photo),
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground,
@@ -700,7 +676,6 @@ fun RegisterScreen(navController: NavController) {
                 modifier = Modifier.fillMaxWidth()
             )
             Text(
-                // MODIFICADO - MULTIDIOMA:
                 text = stringResource(R.string.register_profile_photo_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = TextSecondary,
@@ -708,6 +683,7 @@ fun RegisterScreen(navController: NavController) {
             )
             Spacer(modifier = Modifier.height(12.dp))
 
+            // Si ya hay selfie, muestra miniatura circular con botón para quitarla
             if (selfieUri != null) {
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -715,7 +691,6 @@ fun RegisterScreen(navController: NavController) {
                 ) {
                     AsyncImage(
                         model = selfieUri,
-                        // MODIFICADO - MULTIDIOMA:
                         contentDescription = stringResource(R.string.register_selfie),
                         modifier = Modifier
                             .size(110.dp)
@@ -736,7 +711,6 @@ fun RegisterScreen(navController: NavController) {
                         ) {
                             Icon(
                                 Icons.Default.Close,
-                                // MODIFICADO - MULTIDIOMA:
                                 contentDescription = stringResource(R.string.register_retake_selfie),
                                 tint = Color.White,
                                 modifier = Modifier.size(14.dp)
@@ -746,7 +720,6 @@ fun RegisterScreen(navController: NavController) {
                 }
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.register_take_another_photo),
                     style = MaterialTheme.typography.labelSmall,
                     color = TextSecondary,
@@ -754,6 +727,7 @@ fun RegisterScreen(navController: NavController) {
                     textAlign = TextAlign.Center
                 )
             } else {
+                // Sin selfie: botón para abrir la cámara
                 OutlinedButton(
                     onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
                     modifier = Modifier
@@ -774,10 +748,7 @@ fun RegisterScreen(navController: NavController) {
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        // MODIFICADO - MULTIDIOMA:
-                        text = stringResource(R.string.register_take_selfie_now)
-                    )
+                    Text(text = stringResource(R.string.register_take_selfie_now))
                 }
                 if (selfieError.isNotEmpty()) {
                     Text(
@@ -791,14 +762,13 @@ fun RegisterScreen(navController: NavController) {
                 }
             }
 
-            // Campos solo para técnico
+            // Campos exclusivos del rol técnico
             if (selectedRole == "technician") {
                 Spacer(modifier = Modifier.height(20.dp))
                 HorizontalDivider(color = CardBorder)
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.register_technician_data),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -807,7 +777,7 @@ fun RegisterScreen(navController: NavController) {
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // DNI
+                // DNI (solo dígitos, máximo 8)
                 HomefixTextField(
                     value = dni,
                     onValueChange = {
@@ -816,7 +786,6 @@ fun RegisterScreen(navController: NavController) {
                             if (it.isNotBlank()) dniError = ""
                         }
                     },
-                    // MODIFICADO - MULTIDIOMA:
                     label = stringResource(R.string.register_dni),
                     isError = dniError.isNotEmpty(),
                     errorMessage = dniError,
@@ -824,7 +793,7 @@ fun RegisterScreen(navController: NavController) {
                 )
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Años de experiencia
+                // Años de experiencia (solo dígitos, máximo 2)
                 HomefixTextField(
                     value = yearsExp,
                     onValueChange = {
@@ -832,7 +801,6 @@ fun RegisterScreen(navController: NavController) {
                             yearsExp = it
                         }
                     },
-                    // MODIFICADO - MULTIDIOMA:
                     label = stringResource(R.string.register_years_experience),
                     keyboardType = KeyboardType.Number
                 )
@@ -840,7 +808,6 @@ fun RegisterScreen(navController: NavController) {
 
                 // Especialidades
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(
                         R.string.register_specialties_max,
                         MAX_SPECIALTIES
@@ -873,8 +840,6 @@ fun RegisterScreen(navController: NavController) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        // MODIFICADO - MULTIDIOMA:
-                        // Mantiene el mismo conteo y solo traduce el texto visible.
                         text = if (selectedSpecialties.isEmpty()) {
                             stringResource(R.string.register_select_specialties)
                         } else if (selectedSpecialties.size == 1) {
@@ -907,7 +872,7 @@ fun RegisterScreen(navController: NavController) {
                     )
                 }
 
-                // Cards de especialidades seleccionadas
+                // Chips de especialidades seleccionadas (removibles)
                 if (selectedSpecialties.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     FlowRow(
@@ -932,7 +897,6 @@ fun RegisterScreen(navController: NavController) {
                                     Spacer(modifier = Modifier.width(4.dp))
                                     Icon(
                                         Icons.Default.Close,
-                                        // MODIFICADO - MULTIDIOMA:
                                         contentDescription = stringResource(R.string.register_remove),
                                         tint = TechnicianColor,
                                         modifier = Modifier
@@ -948,7 +912,7 @@ fun RegisterScreen(navController: NavController) {
                 }
             }
 
-            // Error general
+            // Error general del formulario (ej. errores del servidor)
             if (errorMessage.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -959,12 +923,11 @@ fun RegisterScreen(navController: NavController) {
                 )
             }
 
-            // Términos y mayoría de edad
+            // Checkboxes: términos y mayoría de edad
             Spacer(modifier = Modifier.height(16.dp))
             HorizontalDivider(color = CardBorder)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Checkbox — Términos y condiciones
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Top
@@ -972,6 +935,7 @@ fun RegisterScreen(navController: NavController) {
                 Checkbox(
                     checked = aceptoTerminos,
                     onCheckedChange = {
+                        // Si aún no aceptó, abre el diálogo de términos; si ya aceptó, lo desmarca
                         if (!aceptoTerminos) {
                             mostrarTerminos = true
                         } else {
@@ -987,13 +951,11 @@ fun RegisterScreen(navController: NavController) {
                 Column(modifier = Modifier.padding(top = 12.dp)) {
                     Row {
                         Text(
-                            // MODIFICADO - MULTIDIOMA:
                             text = stringResource(R.string.register_terms_prefix),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onBackground
                         )
                         Text(
-                            // MODIFICADO - MULTIDIOMA:
                             text = stringResource(R.string.register_terms_and_conditions),
                             style = MaterialTheme.typography.bodyMedium,
                             color = Primary,
@@ -1016,7 +978,6 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Checkbox — Mayor de edad
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.Top
@@ -1035,7 +996,6 @@ fun RegisterScreen(navController: NavController) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Column(modifier = Modifier.padding(top = 12.dp)) {
                     Text(
-                        // MODIFICADO - MULTIDIOMA:
                         text = stringResource(R.string.register_adult_confirmation),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onBackground
@@ -1053,9 +1013,8 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // Botón principal: valida y dispara el registro
             HomefixButton(
-                // MODIFICADO - MULTIDIOMA:
-                // El botón mantiene la misma función register().
                 text = stringResource(R.string.register_create_account_button),
                 onClick = { register() },
                 isLoading = isLoading
@@ -1063,15 +1022,14 @@ fun RegisterScreen(navController: NavController) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Enlace hacia la pantalla de login
             Row {
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.register_already_have_account),
                     color = TextSecondary,
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.register_login),
                     color = Primary,
                     style = MaterialTheme.typography.bodyMedium,
@@ -1086,6 +1044,7 @@ fun RegisterScreen(navController: NavController) {
     }
 }
 
+// Diálogo para buscar y seleccionar un distrito de la lista de Lima
 @Composable
 fun DistrictPickerDialog(
     districts: List<String>,
@@ -1096,7 +1055,7 @@ fun DistrictPickerDialog(
     var searchQuery by remember { mutableStateOf("") }
     val filtered = districts.filter { it.contains(searchQuery, ignoreCase = true) }
 
-    // ← Colores dinámicos
+    // Colores dinámicos según el tema (soporte para dark mode)
     val onSurface = MaterialTheme.colorScheme.onSurface
     val outline = MaterialTheme.colorScheme.outline
 
@@ -1105,10 +1064,9 @@ fun DistrictPickerDialog(
         title = {
             Column {
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.register_select_district),
                     fontWeight = FontWeight.Bold,
-                    color = onSurface // ← antes sin color (heredaba negro)
+                    color = onSurface
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
@@ -1116,7 +1074,6 @@ fun DistrictPickerDialog(
                     onValueChange = { searchQuery = it },
                     placeholder = {
                         Text(
-                            // MODIFICADO - MULTIDIOMA:
                             text = stringResource(R.string.register_search_district),
                             color = onSurface.copy(alpha = 0.5f)
                         )
@@ -1129,7 +1086,7 @@ fun DistrictPickerDialog(
                             Icons.Default.Search,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
-                            tint = onSurface // ← ícono blanco en dark mode
+                            tint = onSurface
                         )
                     },
                     colors = OutlinedTextFieldDefaults.colors(
@@ -1147,7 +1104,6 @@ fun DistrictPickerDialog(
             Column {
                 if (filtered.isEmpty()) {
                     Text(
-                        // MODIFICADO - MULTIDIOMA:
                         text = stringResource(R.string.register_district_not_found),
                         style = MaterialTheme.typography.bodyMedium,
                         color = onSurface.copy(alpha = 0.5f),
@@ -1171,7 +1127,7 @@ fun DistrictPickerDialog(
                             Text(
                                 text = district,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = if (isSelected) Primary else onSurface, // ← era TextPrimary (hardcodeado)
+                                color = if (isSelected) Primary else onSurface,
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
                             )
                             if (isSelected) {
@@ -1190,7 +1146,6 @@ fun DistrictPickerDialog(
         confirmButton = {
             TextButton(onClick = onDismiss) {
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.register_cancel),
                     color = onSurface.copy(alpha = 0.5f)
                 )
@@ -1198,6 +1153,8 @@ fun DistrictPickerDialog(
         }
     )
 }
+
+// Diálogo para seleccionar hasta un máximo de especialidades (solo técnicos)
 @Composable
 fun SpecialtyPickerDialog(
     allSpecialties: List<String>,
@@ -1206,6 +1163,7 @@ fun SpecialtyPickerDialog(
     onDismiss: () -> Unit,
     onConfirm: (List<String>) -> Unit
 ) {
+    // Selección temporal: no se confirma hasta pulsar "Confirmar"
     var tempSelected by remember { mutableStateOf(selectedSpecialties) }
 
     AlertDialog(
@@ -1213,12 +1171,10 @@ fun SpecialtyPickerDialog(
         title = {
             Column {
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.register_select_your_specialties),
                     fontWeight = FontWeight.Bold
                 )
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(
                         R.string.register_specialty_selection_status,
                         maxSelection,
@@ -1233,6 +1189,7 @@ fun SpecialtyPickerDialog(
             Column {
                 allSpecialties.forEach { specialty ->
                     val isSelected = tempSelected.contains(specialty)
+                    // Deshabilita la opción si ya se llegó al máximo y no está seleccionada
                     val isDisabled = !isSelected && tempSelected.size >= maxSelection
                     Row(
                         modifier = Modifier
@@ -1269,7 +1226,6 @@ fun SpecialtyPickerDialog(
                 enabled = tempSelected.isNotEmpty()
             ) {
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.register_confirm),
                     color = if (tempSelected.isNotEmpty()) Primary else TextSecondary,
                     fontWeight = FontWeight.SemiBold
@@ -1279,7 +1235,6 @@ fun SpecialtyPickerDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.register_cancel),
                     color = TextSecondary
                 )
@@ -1288,11 +1243,10 @@ fun SpecialtyPickerDialog(
     )
 }
 
+// Tarjeta seleccionable para elegir el rol (cliente o técnico) en el registro
 @Composable
 fun RoleCard(
-    // NUEVO - MULTIDIOMA:
-    // Código estable usado únicamente para elegir la imagen correcta.
-    // Evita comparar contra un título que cambia según el idioma.
+    // Código estable para elegir la imagen correcta, sin depender del título traducido
     roleCode: String,
     title: String,
     description: String,
@@ -1316,11 +1270,9 @@ fun RoleCard(
             modifier = Modifier.padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-
+            // Imagen ilustrativa del rol, según roleCode
             Image(
                 painter = painterResource(
-                    // MODIFICADO - MULTIDIOMA:
-                    // La imagen depende del código estable, no del texto traducido.
                     id = if (roleCode == "client") {
                         R.drawable.registro_cliente
                     } else {
@@ -1333,7 +1285,6 @@ fun RoleCard(
                     .height(100.dp),
                 contentScale = ContentScale.Fit
             )
-
 
             Spacer(modifier = Modifier.height(4.dp))
             Text(

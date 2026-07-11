@@ -23,25 +23,16 @@ import com.tunegocio.homefix.data.model.RequestModel
 import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.theme.*
 import com.tunegocio.homefix.viewmodel.NotificationsViewModel
-
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import coil.compose.AsyncImage
-
 import androidx.compose.ui.platform.LocalContext
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener textos y plurales desde strings_client.xml.
 import androidx.compose.ui.res.stringResource
 import com.tunegocio.homefix.data.local.database.LocalDatabase
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves definidas en strings_client.xml.
 import com.tunegocio.homefix.R
-// NUEVO - MULTIDIOMA:
-// Traduce únicamente la etiqueta visible del tipo de servicio.
-// El valor interno guardado en Firebase se mantiene en español para no
-// afectar filtros, consultas ni solicitudes existentes.
+
+// Traduce la etiqueta visible del tipo de servicio. El valor guardado en
+// Firebase se mantiene igual (en español) para no afectar filtros ni consultas.
 @Composable
 private fun clientServiceLabel(serviceType: String): String = when (serviceType) {
     "Electricidad" -> stringResource(R.string.service_electricity)
@@ -58,8 +49,8 @@ private fun clientServiceLabel(serviceType: String): String = when (serviceType)
     else -> serviceType
 }
 
-// NUEVO - MULTIDIOMA:
-// Traduce únicamente el estado visible. El código interno del estado no cambia.
+// Traduce la etiqueta visible del estado de la solicitud. El código interno
+// del estado (usado en comparaciones y lógica) no cambia.
 @Composable
 private fun clientStatusLabel(status: String): String = when (status) {
     "pendiente" -> stringResource(R.string.status_pending)
@@ -72,6 +63,8 @@ private fun clientStatusLabel(status: String): String = when (status) {
     else -> status
 }
 
+// Pantalla principal (Home) del cliente: saludo, botón de nueva solicitud
+// y lista de solicitudes activas en tiempo real
 @Composable
 fun HomeClientScreen(navController: NavController) {
 
@@ -84,14 +77,14 @@ fun HomeClientScreen(navController: NavController) {
     var isLoading by remember { mutableStateOf(true) }
     var userPhotoUrl by remember { mutableStateOf("") }
 
-    // ViewModel para mostrar badge de notificaciones no leídas
+    // ViewModel para el badge de notificaciones no leídas
     val notificationsViewModel: NotificationsViewModel = viewModel()
     val noLeidas by notificationsViewModel.noLeidas.collectAsState()
 
     val context = LocalContext.current
     val localDb = LocalDatabase(context)
 
-    // Cargar datos del usuario
+    // Carga los datos del usuario y escucha sus solicitudes en tiempo real
     LaunchedEffect(uid) {
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc ->
@@ -99,7 +92,6 @@ fun HomeClientScreen(navController: NavController) {
                 userPhotoUrl = doc.getString("selfieUrl") ?: ""
             }
 
-        // Escuchar solicitudes en tiempo real
         db.collection("requests")
             .whereEqualTo("clientId", uid)
             .addSnapshotListener { snapshot, _ ->
@@ -113,7 +105,7 @@ fun HomeClientScreen(navController: NavController) {
                     }
                     ?: emptyList()
 
-                // Guardar solicitudes en SQLite local
+                // Guarda cada solicitud en la base de datos local (SQLite)
                 requests.forEach { request ->
                     localDb.guardarSolicitud(
                         requestId = request.requestId,
@@ -149,7 +141,7 @@ fun HomeClientScreen(navController: NavController) {
         ) {
             item {
                 Spacer(modifier = Modifier.height(20.dp))
-                // Header
+                // Encabezado: saludo + íconos de notificaciones y perfil
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -157,7 +149,6 @@ fun HomeClientScreen(navController: NavController) {
                 ) {
                     Column {
                         Text(
-                            // MODIFICADO - MULTIDIOMA:
                             text = stringResource(
                                 R.string.home_client_greeting,
                                 userName.split(" ").firstOrNull() ?: ""
@@ -172,9 +163,8 @@ fun HomeClientScreen(navController: NavController) {
                             color = TextSecondary
                         )
                     }
-                    // Íconos de notificaciones y perfil en el header
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        // Ícono notificaciones con badge de no leídas
+                        // Notificaciones con badge de mensajes no leídos
                         BadgedBox(
                             badge = {
                                 if (noLeidas > 0) {
@@ -216,7 +206,7 @@ fun HomeClientScreen(navController: NavController) {
 
             item {
                 Spacer(modifier = Modifier.height(4.dp))
-                // Botón nueva solicitud
+                // Botón para crear una nueva solicitud
                 Button(
                     onClick = { navController.navigate(Routes.NEW_REQUEST) },
                     modifier = Modifier
@@ -260,6 +250,7 @@ fun HomeClientScreen(navController: NavController) {
             } else if (requests.isEmpty()) {
                 item { EmptyRequestsCard() }
             } else {
+                // Excluye completadas y canceladas de la lista de activas
                 items(requests.filter {
                     it.status != "completada" && it.status != "cancelada"
                 }) { request ->
@@ -277,6 +268,7 @@ fun HomeClientScreen(navController: NavController) {
     }
 }
 
+// Tarjeta que se muestra cuando el cliente no tiene solicitudes activas
 @Composable
 fun EmptyRequestsCard() {
     Card(
@@ -307,6 +299,7 @@ fun EmptyRequestsCard() {
     }
 }
 
+// Tarjeta individual de una solicitud: servicio, descripción, urgencia y estado
 @Composable
 fun RequestStatusCard(request: RequestModel, onClick: () -> Unit) {
     val statusColor = when (request.status) {
@@ -316,8 +309,6 @@ fun RequestStatusCard(request: RequestModel, onClick: () -> Unit) {
         "en_camino" -> Secondary
         else -> TextSecondary
     }
-    // MODIFICADO - MULTIDIOMA:
-    // Se traduce solo la etiqueta visible del estado.
     val statusLabel = clientStatusLabel(request.status)
 
     Card(
@@ -334,7 +325,6 @@ fun RequestStatusCard(request: RequestModel, onClick: () -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = clientServiceLabel(request.serviceType),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onBackground,
@@ -371,6 +361,7 @@ fun RequestStatusCard(request: RequestModel, onClick: () -> Unit) {
     }
 }
 
+// Barra de navegación inferior del cliente (home, técnicos, historial, perfil)
 @Composable
 fun ClientBottomBar(navController: NavController, current: String) {
     NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {

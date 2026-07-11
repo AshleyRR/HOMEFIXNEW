@@ -23,9 +23,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener textos y plurales desde strings_client.xml.
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,17 +43,13 @@ import com.tunegocio.homefix.ui.components.HomefixTextField
 import com.tunegocio.homefix.ui.components.estaDentroDeLima
 import com.tunegocio.homefix.ui.theme.*
 import kotlinx.coroutines.launch
-
 import java.io.File
 import java.util.*
-
 import com.tunegocio.homefix.viewmodel.UbicacionViewModel
 import com.tunegocio.homefix.viewmodel.SolicitudViewModel
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves definidas en strings_client.xml.
 import com.tunegocio.homefix.R
 
+// Devuelve el ícono correspondiente al tipo de servicio; si no coincide, retorna uno genérico (Build)
 private fun getServiceTypeIcon(serviceType: String): ImageVector {
     return when (serviceType) {
         "Electricidad" -> Icons.Default.ElectricalServices
@@ -74,10 +67,8 @@ private fun getServiceTypeIcon(serviceType: String): ImageVector {
     }
 }
 
-// NUEVO - MULTIDIOMA:
-// Traduce únicamente la etiqueta visible del servicio.
-// El valor interno continúa en español para conservar la compatibilidad
-// con Firebase, filtros y especialidades existentes.
+// Traduce solo la etiqueta visible del servicio; el valor interno se mantiene en
+// español para conservar compatibilidad con Firebase, filtros y especialidades
 @Composable
 private fun newRequestServiceLabel(serviceType: String): String = when (serviceType) {
     "Electricidad" -> stringResource(R.string.service_electricity)
@@ -94,6 +85,8 @@ private fun newRequestServiceLabel(serviceType: String): String = when (serviceT
     else -> serviceType
 }
 
+// Pantalla para que el cliente cree una nueva solicitud: tipo de servicio, descripción,
+// fotos, ubicación y referencia, y la publicación final en Firebase
 @SuppressLint("MissingPermission")
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
@@ -114,12 +107,6 @@ fun NewRequestScreen(
     val configuracion = LocalConfiguration.current
     val pantallaAncha = configuracion.screenWidthDp >= 360
 
-    /*var serviceType by remember { mutableStateOf("") }
-    var description by remember { mutableStateOf("") }
-    var reference by remember { mutableStateOf("") }
-    var isUrgent by remember { mutableStateOf(false) }
-    var photoUris by remember { mutableStateOf<List<Uri>>(emptyList()) }*/
-
     val serviceType by solicitudViewModel.serviceType.collectAsState()
     val description by solicitudViewModel.description.collectAsState()
     val reference by solicitudViewModel.reference.collectAsState()
@@ -137,21 +124,15 @@ fun NewRequestScreen(
     var clientDistrict by remember { mutableStateOf("") }
     var dropdownExpandido by remember { mutableStateOf(false) }
 
-    // NUEVO - MULTIDIOMA:
-    // Estos mensajes se resuelven durante la composición y luego se reutilizan
-    // dentro de publishRequest() y callbacks de Firebase sin alterar su lógica.
-    val errorSelectService =
-        stringResource(R.string.new_request_error_select_service)
-    val errorOutsideLima =
-        stringResource(R.string.new_request_error_outside_lima)
-    val errorDescriptionMin =
-        stringResource(R.string.new_request_error_description_min)
-    val errorPublish =
-        stringResource(R.string.new_request_error_publish)
+    // Textos localizados: se leen aquí para reutilizarlos dentro de publishRequest()
+    // y de los callbacks de Firebase sin depender de LocalContext.current en ese momento
+    val errorSelectService = stringResource(R.string.new_request_error_select_service)
+    val errorOutsideLima = stringResource(R.string.new_request_error_outside_lima)
+    val errorDescriptionMin = stringResource(R.string.new_request_error_description_min)
+    val errorPublish = stringResource(R.string.new_request_error_publish)
 
-    // NUEVO - MULTIDIOMA:
-    // Solo se traducen los textos visibles de la notificación.
-    // Los códigos de tipo y las consultas de Firebase permanecen iguales.
+    // Solo se traduce el texto visible de la notificación; los códigos de tipo
+    // y las consultas de Firebase no cambian
     val notificationTitle = stringResource(
         R.string.new_request_notification_title,
         newRequestServiceLabel(serviceType)
@@ -166,6 +147,7 @@ fun NewRequestScreen(
     val photoFile = remember { File(context.cacheDir, "photo_${UUID.randomUUID()}.jpg") }
     var photoUriForCamera by remember { mutableStateOf<Uri?>(null) }
 
+    // Al tomar una foto: si fue exitosa y no se superó el límite de 2, la agrega al ViewModel
     val cameraLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.TakePicture()
     ) { success ->
@@ -176,6 +158,7 @@ fun NewRequestScreen(
         }
     }
 
+    // Al elegir una imagen de la galería: si no se superó el límite de 2, la agrega
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
@@ -186,11 +169,11 @@ fun NewRequestScreen(
         }
     }
 
+    // Al conceder el permiso de cámara: crea un archivo temporal nuevo y lanza la cámara
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted) {
-            // Crear archivo nuevo cada vez
             val nuevoArchivo = File(context.cacheDir, "photo_${UUID.randomUUID()}.jpg")
             val nuevoUri = FileProvider.getUriForFile(
                 context,
@@ -207,7 +190,8 @@ fun NewRequestScreen(
     val lngViewModel by ubicacionViewModel.lng.collectAsState()
     val addressViewModel by ubicacionViewModel.address.collectAsState()
 
-    // Cuando vuelve de la pantalla de ubicación actualiza los datos
+    // Sincroniza los datos de ubicación locales con el ViewModel al volver
+    // de la pantalla de selección de ubicación en el mapa
     LaunchedEffect(ubicacionConfirmada) {
         if (ubicacionConfirmada) {
             lat = latViewModel
@@ -218,6 +202,8 @@ fun NewRequestScreen(
         }
     }
 
+    // Convierte coordenadas en una dirección legible vía Geocoder y actualiza el
+    // distrito del cliente si se logra obtener; si falla, muestra las coordenadas crudas
     fun actualizarDireccion(latitude: Double, longitude: Double) {
         try {
             val geocoder = Geocoder(context, Locale("es", "PE"))
@@ -234,7 +220,8 @@ fun NewRequestScreen(
         }
     }
 
-
+    // Al conceder permisos de ubicación: pide la posición actual de alta precisión
+    // (una sola vez) y actualiza la dirección con actualizarDireccion()
     val locationPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -267,11 +254,12 @@ fun NewRequestScreen(
         }
     }
 
+    // Al entrar a la pantalla: obtiene el distrito guardado del usuario y, si aún
+    // no hay ubicación cargada (ej. desde el mapa), solicita permisos de GPS
     LaunchedEffect(Unit) {
         db.collection("users").document(uid).get()
             .addOnSuccessListener { doc -> clientDistrict = doc.getString("district") ?: "" }
 
-        // Solo pedir GPS si no hay ubicación ya confirmada del mapa
         if (!locationLoaded) {
             locationPermissionLauncher.launch(
                 arrayOf(
@@ -282,6 +270,8 @@ fun NewRequestScreen(
         }
     }
 
+    // Valida el formulario (servicio, ubicación dentro de Lima, descripción) y,
+    // si es correcto, sube las fotos (si hay) y guarda la solicitud en Firestore
     fun publishRequest() {
         if (serviceType.isEmpty()) { errorMessage = errorSelectService; return }
         if (!estaDentroDeLima(lat, lng)) { errorMessage = errorOutsideLima; return }
@@ -290,6 +280,8 @@ fun NewRequestScreen(
         isLoading = true
         errorMessage = ""
 
+        // Arma el RequestModel, lo guarda en Firestore, notifica a los técnicos con
+        // la especialidad correspondiente y limpia el formulario al finalizar
         fun saveRequest(imageUrl: String) {
             val requestId = UUID.randomUUID().toString()
             val request = RequestModel(
@@ -326,7 +318,6 @@ fun NewRequestScreen(
                                 )
                             }
                         }
-                    // limpiar el formulario
                     solicitudViewModel.limpiar()
                     isLoading = false
                     navController.navigate(Routes.HOME_CLIENT) {
@@ -359,8 +350,6 @@ fun NewRequestScreen(
             saveRequest("")
         }
     }
-
-
 
     Box(
         modifier = Modifier
@@ -406,8 +395,7 @@ fun NewRequestScreen(
                 onExpandedChange = { dropdownExpandido = !dropdownExpandido }
             ) {
                 OutlinedTextField(
-                    // MODIFICADO - MULTIDIOMA:
-                    // Se muestra la etiqueta traducida, pero se conserva el valor interno.
+                    // Muestra la etiqueta traducida, pero conserva el valor interno sin traducir
                     value = if (serviceType.isEmpty()) {
                         ""
                     } else {
@@ -541,7 +529,7 @@ fun NewRequestScreen(
             )
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Fotos seleccionadas
+            // Fotos ya seleccionadas
             if (photoUris.isNotEmpty()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -572,7 +560,7 @@ fun NewRequestScreen(
                             }
                         }
                     }
-                    // Espacio vacío si solo hay 1 foto
+                    // Espacio vacío si solo hay 1 foto, para mantener el layout
                     if (photoUris.size == 1) {
                         Spacer(modifier = Modifier.weight(1f))
                     }
@@ -580,7 +568,7 @@ fun NewRequestScreen(
             }
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botones agregar foto — solo si hay menos de 2
+            // Botones para agregar foto — solo visibles si hay menos de 2
             if (photoUris.size < 2) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -605,9 +593,8 @@ fun NewRequestScreen(
                         Text(stringResource(R.string.new_request_gallery), fontSize = if (pantallaAncha) 14.sp else 12.sp)
                     }
                 }
-                // Indicador de cuántas fotos puede agregar
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
+                    // Usa plurales para "0/1/2 fotos agregadas" según el idioma
                     text = pluralStringResource(
                         R.plurals.new_request_photos_added,
                         photoUris.size,
@@ -619,7 +606,6 @@ fun NewRequestScreen(
                 )
             }
 
-
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
@@ -629,8 +615,6 @@ fun NewRequestScreen(
                 fontWeight = FontWeight.SemiBold
             )
             Spacer(modifier = Modifier.height(8.dp))
-
-
             Spacer(modifier = Modifier.height(12.dp))
 
             Button(
@@ -693,8 +677,6 @@ fun NewRequestScreen(
                 color = TextSecondary,
                 modifier = Modifier.padding(start = 4.dp, top = 2.dp)
             )
-
-            //Spacer(modifier = Modifier.height(16.dp))
 
             if (errorMessage.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))

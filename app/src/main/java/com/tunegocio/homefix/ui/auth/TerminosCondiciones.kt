@@ -4,43 +4,24 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import com.tunegocio.homefix.R
 import com.tunegocio.homefix.ui.theme.*
 
-
-import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.*
-
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener el título, el contenido legal y los botones desde
-// strings_terms.xml según el idioma activo de la aplicación.
-import androidx.compose.ui.res.stringResource
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves declaradas en strings_terms.xml.
-import com.tunegocio.homefix.R
-
-import androidx.compose.runtime.*
-
-
-
-// MODIFICADO - MULTIDIOMA:
-// El texto legal ya no se mantiene como una constante escrita directamente
-// en Kotlin. Ahora se encuentra en los archivos strings_terms.xml de
-// español, inglés y portugués.
-//
-// No se modifica la aceptación de términos, el cierre del diálogo,
-// los botones ni la lógica utilizada por RegisterScreen.kt.
+// Diálogo de Términos y Condiciones
 @Composable
 fun DialogoTerminos(
     onAceptar: () -> Unit,
     onCerrar: () -> Unit
 ) {
+    // Controla la posición del scroll dentro del texto legal
     val scrollState = rememberScrollState()
 
+    // true cuando el usuario llega al final del texto; habilita el botón de aceptar
     val llegoAlFinal by remember {
         derivedStateOf {
             scrollState.maxValue > 0 &&
@@ -52,23 +33,19 @@ fun DialogoTerminos(
         onDismissRequest = onCerrar,
         title = {
             Text(
-                // MODIFICADO - MULTIDIOMA:
-                // Título obtenido desde el XML del idioma activo.
                 text = stringResource(R.string.terms_title),
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onBackground
             )
         },
         text = {
+            // Contenido legal con scroll vertical
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(scrollState)
             ) {
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
-                    // El contenido legal completo se obtiene desde strings_terms.xml.
-                    // El desplazamiento vertical y el diseño permanecen iguales.
                     text = stringResource(R.string.terms_full_text),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground
@@ -76,10 +53,11 @@ fun DialogoTerminos(
             }
         },
         confirmButton = {
+            // Habilitado solo cuando se terminó de leer el texto
             TextButton(
                 enabled = llegoAlFinal,
                 onClick = onAceptar
-            ){
+            ) {
                 Text(
                     text = stringResource(R.string.terms_accept),
                     color = if (llegoAlFinal) Primary else TextSecondary,
@@ -89,11 +67,9 @@ fun DialogoTerminos(
         },
         dismissButton = {
             TextButton(
-                // La función onCerrar se conserva exactamente igual.
                 onClick = onCerrar
             ) {
                 Text(
-                    // MODIFICADO - MULTIDIOMA:
                     text = stringResource(R.string.terms_close),
                     color = TextSecondary
                 )

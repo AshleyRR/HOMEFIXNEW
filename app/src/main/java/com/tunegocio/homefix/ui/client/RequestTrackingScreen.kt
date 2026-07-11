@@ -18,9 +18,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener textos y plurales desde strings_client.xml.
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -39,9 +36,6 @@ import com.tunegocio.homefix.data.model.UserModel
 import com.tunegocio.homefix.navigation.Routes
 import com.tunegocio.homefix.ui.components.HomefixButton
 import com.tunegocio.homefix.ui.theme.*
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves del módulo cliente.
 import com.tunegocio.homefix.R
 import java.util.UUID
 
@@ -50,10 +44,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.BorderStroke
 
-// NUEVO - MULTIDIOMA:
-// Traduce únicamente la etiqueta visible del servicio o especialidad.
-// El valor interno permanece sin cambios para conservar la compatibilidad
-// con Firebase, filtros y solicitudes existentes.
+// Traduce la etiqueta visible del tipo de servicio manteniendo el valor interno intacto
 @Composable
 private fun trackingServiceLabel(serviceType: String): String = when (serviceType) {
     "Electricidad" -> stringResource(R.string.service_electricity)
@@ -70,9 +61,7 @@ private fun trackingServiceLabel(serviceType: String): String = when (serviceTyp
     else -> serviceType
 }
 
-// NUEVO - MULTIDIOMA:
-// Genera una lista visible de especialidades traducidas sin modificar
-// los valores originales almacenados en el perfil del técnico.
+// Traduce la lista de especialidades del técnico para mostrarla en pantalla
 @Composable
 private fun trackingSpecialtiesLabel(specialties: List<String>): String {
     val labels = mapOf(
@@ -94,6 +83,7 @@ private fun trackingSpecialtiesLabel(specialties: List<String>): String {
     }
 }
 
+// Pantalla principal de seguimiento de una solicitud del cliente
 @Composable
 fun RequestTrackingScreen(
     navController: NavController,
@@ -131,9 +121,6 @@ fun RequestTrackingScreen(
     var ratingLoading by remember { mutableStateOf(false) }
     var starsError by remember { mutableStateOf("") }
 
-    // NUEVO - MULTIDIOMA:
-    // Estos textos se resuelven durante la composición para poder usarlos
-    // después dentro de callbacks de Firebase y funciones locales.
     val currentServiceLabel =
         trackingServiceLabel(request?.serviceType ?: "")
 
@@ -192,7 +179,7 @@ fun RequestTrackingScreen(
     val selectRatingError =
         stringResource(R.string.tracking_select_rating_error)
 
-    // Escucha en tiempo real
+    // Escucha en tiempo real los cambios de la solicitud, técnicos interesados y técnico asignado
     LaunchedEffect(requestId) {
         db.collection("requests").document(requestId)
             .addSnapshotListener { snapshot, _ ->
@@ -250,11 +237,11 @@ fun RequestTrackingScreen(
             }
     }
 
+    // Cancela la solicitud y notifica a los técnicos interesados y al asignado
     fun cancelRequest() {
         db.collection("requests").document(requestId)
             .update(mapOf("status" to "cancelada", "updatedAt" to System.currentTimeMillis()))
             .addOnSuccessListener {
-                // Notificar a todos los técnicos interesados
                 tecnicosInteresados.forEach { tecnico ->
                     notificationsRepo.crearNotificacion(
                         userId = tecnico.uid,
@@ -264,7 +251,6 @@ fun RequestTrackingScreen(
                         requestId = requestId
                     )
                 }
-                // Notificar también al técnico asignado si ya había uno
                 val techId = request?.technicianId ?: ""
                 if (techId.isNotEmpty()) {
                     notificationsRepo.crearNotificacion(
@@ -281,6 +267,7 @@ fun RequestTrackingScreen(
             }
     }
 
+    // Abre WhatsApp con el número del técnico y un mensaje predefinido
     fun openWhatsApp(phone: String) {
         val number = phone.replace(Regex("[^0-9]"), "")
         val fullNumber = if (number.startsWith("51")) number else "51$number"
@@ -289,6 +276,7 @@ fun RequestTrackingScreen(
         try { context.startActivity(Intent(Intent.ACTION_VIEW, uri)) } catch (e: Exception) { }
     }
 
+    // Asigna el técnico elegido a la solicitud y notifica a los involucrados
     fun elegirTecnico(tecnicoElegidoId: String) {
         eligiendoTecnicoId = tecnicoElegidoId
         db.collection("requests").document(requestId)
@@ -315,7 +303,7 @@ fun RequestTrackingScreen(
             .addOnFailureListener { eligiendoTecnicoId = "" }
     }
 
-    // Cliente confirma que el trabajo fue completado → abre ventana flotante para  calificación
+    // Marca la solicitud como completada y abre el modal de calificación
     fun confirmarCompletado() {
         db.collection("requests").document(requestId)
             .update(mapOf("status" to "completada", "updatedAt" to System.currentTimeMillis()))
@@ -325,7 +313,7 @@ fun RequestTrackingScreen(
             }
     }
 
-    // Cliente rechaza que el trabajo fue completado → notifica al técnico
+    // Rechaza el aviso de completado y notifica al técnico
     fun rechazarCompletado() {
         db.collection("requests").document(requestId)
             .update(mapOf("status" to "aceptada", "updatedAt" to System.currentTimeMillis()))
@@ -343,28 +331,7 @@ fun RequestTrackingScreen(
             }
     }
 
-    // Cliente confirma proceso sin continuar
-    /*fun confirmarSinContinuar() {
-        db.collection("requests").document(requestId)
-            .update(mapOf("status" to "sin_continuar", "updatedAt" to System.currentTimeMillis()))
-            .addOnSuccessListener {
-                request?.technicianId?.let { techId ->
-                    notificationsRepo.crearNotificacion(
-                        userId = techId,
-                        titulo = notContinuedNotificationTitle,
-                        cuerpo = notContinuedNotificationBody,
-                        tipo = "sin_continuar_confirmado",
-                        requestId = requestId
-                    )
-                }
-                showConfirmarSinContinuarDialog = false
-                navController.navigate(Routes.HISTORY) {
-                    popUpTo(Routes.HOME_CLIENT) { inclusive = false }
-                }
-            }
-    }*/
-
-    // Enviar calificación y redirigir al historial
+    // Guarda la calificación del cliente, actualiza el promedio del técnico y notifica
     fun submitRating() {
         if (selectedStars == 0) { starsError = selectRatingError; return }
         ratingLoading = true
@@ -381,7 +348,6 @@ fun RequestTrackingScreen(
         )
         db.collection("reviews").document(reviewId).set(review)
             .addOnSuccessListener {
-                // Actualizar promedio del técnico
                 if (techId.isNotEmpty()) {
                     db.collection("reviews").whereEqualTo("technicianId", techId).get()
                         .addOnSuccessListener { snapshot ->
@@ -389,7 +355,6 @@ fun RequestTrackingScreen(
                             val average = reviews.map { it.stars }.average().toFloat()
                             db.collection("users").document(techId).update("rating", average)
                         }
-                    // Notificar al técnico que fue calificado
                     notificationsRepo.crearNotificacion(
                         userId = techId,
                         titulo = ratedNotificationTitle,
@@ -405,7 +370,7 @@ fun RequestTrackingScreen(
             .addOnFailureListener { ratingLoading = false }
     }
 
-    // ── Diálogo cancelar solicitud
+    // Diálogo de confirmación para cancelar la solicitud
     if (showCancelDialog) {
         AlertDialog(
             onDismissRequest = { showCancelDialog = false },
@@ -420,7 +385,7 @@ fun RequestTrackingScreen(
         )
     }
 
-    // ── Diálogo: confirmar trabajo completado
+    // Diálogo para confirmar que el trabajo fue completado
     if (showConfirmarCompletadoDialog) {
         AlertDialog(
             onDismissRequest = { /* no cerrar tocando afuera */ },
@@ -440,7 +405,7 @@ fun RequestTrackingScreen(
         )
     }
 
-    // ── Diálogo: rechazar completado
+    // Diálogo para rechazar el aviso de completado
     if (showRechazarCompletadoDialog) {
         AlertDialog(
             onDismissRequest = { showRechazarCompletadoDialog = false },
@@ -455,7 +420,7 @@ fun RequestTrackingScreen(
         )
     }
 
-    // ── Diálogo: confirmar sin continuar
+    // Diálogo: confirmar sin continuar
     /*if (showConfirmarSinContinuarDialog) {
         AlertDialog(
             onDismissRequest = { /* no cerrar tocando afuera */ },
@@ -475,7 +440,7 @@ fun RequestTrackingScreen(
         )
     }*/
 
-    // Modal calificación
+    // Modal para calificar el servicio recibido
     if (showRatingModal) {
         Dialog(onDismissRequest = { /* no cerrar sin calificar */ }) {
             Card(
@@ -495,7 +460,6 @@ fun RequestTrackingScreen(
                     }
                     Spacer(modifier = Modifier.height(20.dp))
 
-                    // Estrellas
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         (1..5).forEach { star ->
                             Icon(
@@ -529,7 +493,6 @@ fun RequestTrackingScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Comentario
                     OutlinedTextField(
                         value = ratingComment,
                         onValueChange = { if (it.length <= 300) ratingComment = it },
@@ -559,7 +522,7 @@ fun RequestTrackingScreen(
         }
     }
 
-    // Dialog foto expandida con zoom
+    // Diálogo con foto expandida y zoom
     fotoExpandidaUrl?.let { url ->
         Dialog(onDismissRequest = { fotoExpandidaUrl = null }) {
             Box(
@@ -572,7 +535,7 @@ fun RequestTrackingScreen(
                     contentDescription = stringResource(R.string.client_photos),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp)), // Bordes curvos
+                        .clip(RoundedCornerShape(20.dp)),
                     contentScale = ContentScale.FillWidth
                 )
 
@@ -592,7 +555,7 @@ fun RequestTrackingScreen(
         }
     }
 
-    // Loading
+    // Indicador de carga mientras se obtiene la solicitud
     if (isLoading) {
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
             CircularProgressIndicator(color = Primary)
@@ -602,7 +565,7 @@ fun RequestTrackingScreen(
 
     val req = request ?: return
 
-    // Mostrar diálogos automáticamente cuando el status cambia
+    // Abre automáticamente el diálogo correspondiente según el estado de la solicitud
     LaunchedEffect(req.status) {
         when (req.status) {
             "pendiente_confirmacion"  -> showConfirmarCompletadoDialog = true
@@ -700,7 +663,6 @@ fun RequestTrackingScreen(
                             color = Primary.copy(alpha = 0.1f)
                         ) {
                             Text(
-                                // MODIFICADO - MULTIDIOMA:
                                 trackingServiceLabel(req.serviceType),
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
                                 style = MaterialTheme.typography.labelLarge,
@@ -892,7 +854,6 @@ fun RequestTrackingScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 if (reviewExistente != null) {
-                    // Ya calificó — mostrar la calificación dada
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -947,7 +908,6 @@ fun RequestTrackingScreen(
                         }
                     }
                 } else {
-                    // No ha calificado — mostrar botón
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
@@ -997,7 +957,6 @@ fun RequestTrackingScreen(
                         Text(stringResource(R.string.tracking_process_not_continued), style = MaterialTheme.typography.titleMedium, color = Error, fontWeight = FontWeight.SemiBold)
                         Text(stringResource(R.string.tracking_technician_could_not_continue), style = MaterialTheme.typography.bodyMedium, color = TextSecondary, textAlign = TextAlign.Center)
 
-                        // Fecha en que el técnico marcó que no podía continuar
                         if (req.technicianCanceledAt > 0) {
                             Spacer(modifier = Modifier.height(10.dp))
                             Text(
@@ -1012,7 +971,6 @@ fun RequestTrackingScreen(
                                 color = TextSecondary
                             )
                         }
-                        // Fecha en que el cliente confirmó (updatedAt se actualiza en confirmarSinContinuar())
                         Text(
                             stringResource(
                                 R.string.tracking_confirmed_date,
@@ -1037,6 +995,7 @@ fun RequestTrackingScreen(
 // Componentes auxiliares
 // ─────────────────────────────────────────────────────────────
 
+// Tarjeta de un técnico interesado con su info y botón para elegirlo
 @Composable
 fun TecnicoInteresadoCard(
     tecnico: UserModel,
@@ -1057,7 +1016,6 @@ fun TecnicoInteresadoCard(
             // Header — foto + nombre + rating
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
 
-                // Foto de perfil real o inicial
                 if (tecnico.selfieUrl.isNotEmpty()) {
                     AsyncImage(
                         model = tecnico.selfieUrl,
@@ -1094,7 +1052,6 @@ fun TecnicoInteresadoCard(
                         fontWeight = FontWeight.SemiBold
                     )
 
-                    // Rating
                     if (tecnico.rating > 0) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             (1..5).forEach { star ->
@@ -1120,7 +1077,6 @@ fun TecnicoInteresadoCard(
                         )
                     }
 
-                    // Distrito
                     if (tecnico.district.isNotEmpty()) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
@@ -1144,7 +1100,6 @@ fun TecnicoInteresadoCard(
             HorizontalDivider(color = CardBorder)
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Todas las especialidades
             if (tecnico.specialties.isNotEmpty()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Build, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
@@ -1159,7 +1114,6 @@ fun TecnicoInteresadoCard(
                 Spacer(modifier = Modifier.height(6.dp))
             }
 
-            // Años de experiencia
             if (tecnico.yearsExp > 0) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.WorkHistory, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
@@ -1178,7 +1132,6 @@ fun TecnicoInteresadoCard(
                 Spacer(modifier = Modifier.height(6.dp))
             }
 
-            // Trabajos realizados
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Success, modifier = Modifier.size(14.dp))
                 Spacer(modifier = Modifier.width(6.dp))
@@ -1198,7 +1151,6 @@ fun TecnicoInteresadoCard(
                 )
             }
 
-            // Bio con "Ver más"
             if (tecnico.bio.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
@@ -1240,6 +1192,7 @@ fun TecnicoInteresadoCard(
     }
 }
 
+// Tarjeta con la información del técnico ya asignado y botón de WhatsApp
 @Composable
 fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
     Card(
@@ -1251,7 +1204,6 @@ fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
 
-                // Foto de perfil real o inicial
                 if (technician.selfieUrl.isNotEmpty()) {
                     AsyncImage(
                         model = technician.selfieUrl,
@@ -1319,7 +1271,6 @@ fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
             HorizontalDivider(color = CardBorder)
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Todas las especialidades
             if (technician.specialties.isNotEmpty()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.Build, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
@@ -1334,7 +1285,6 @@ fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
                 Spacer(modifier = Modifier.height(6.dp))
             }
 
-            // Años de experiencia
             if (technician.yearsExp > 0) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.WorkHistory, contentDescription = null, tint = Primary, modifier = Modifier.size(14.dp))
@@ -1369,11 +1319,9 @@ fun TecnicoAsignadoCard(technician: UserModel, onWhatsApp: () -> Unit) {
     }
 }
 
+// Barra visual con los pasos del estado de la solicitud
 @Composable
 fun StatusProgressBar(status: String) {
-    // "en_camino" eliminado del flujo
-    // MODIFICADO - MULTIDIOMA:
-    // Los códigos internos de estado se mantienen; solo cambian sus etiquetas.
     val steps = listOf(
         "pendiente" to stringResource(R.string.status_pending),
         "en_revision" to stringResource(R.string.status_under_review),
@@ -1381,7 +1329,6 @@ fun StatusProgressBar(status: String) {
         "completada" to stringResource(R.string.status_completed)
     )
 
-    // Estados intermedios de confirmación se mapean visualmente a "aceptada"
     val statusVisual = when (status) {
         "pendiente_confirmacion", "pendiente_sin_continuar" -> "aceptada"
         "sin_continuar" -> "completada"
@@ -1434,8 +1381,7 @@ fun StatusProgressBar(status: String) {
     }
 }
 
-// MODIFICADO - MULTIDIOMA:
-// Traduce únicamente la descripción visible del estado.
+// Devuelve el texto descriptivo según el estado actual de la solicitud
 @Composable
 fun getStatusDescription(status: String): String = when (status) {
     "pendiente" ->

@@ -3,52 +3,21 @@ package com.tunegocio.homefix.ui.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.tunegocio.homefix.ui.theme.*
-
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.ui.text.input.KeyboardType
-
-import com.tunegocio.homefix.ui.theme.Success
-import com.tunegocio.homefix.ui.theme.Error
-import com.tunegocio.homefix.ui.theme.TextSecondary
-import com.tunegocio.homefix.ui.theme.Primary
-import com.tunegocio.homefix.ui.theme.CardBorder
-
-import androidx.compose.ui.Alignment
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-
-// NUEVO - MULTIDIOMA:
-// Permite obtener los textos de accesibilidad y requisitos de contraseña
-// desde strings_components.xml según el idioma activo.
-import androidx.compose.ui.res.stringResource
-
-// NUEVO - MULTIDIOMA:
-// Permite acceder a las claves definidas en strings_components.xml.
 import com.tunegocio.homefix.R
-
+import com.tunegocio.homefix.ui.theme.*
 
 // Botón principal
 @Composable
@@ -138,7 +107,7 @@ fun HomefixTextField(
             else
                 VisualTransformation.None,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
-            // Ícono del ojo — solo aparece en campos de contraseña
+            // Ícono del ojo, solo en campos de contraseña
             trailingIcon = {
                 if (isPassword) {
                     IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
@@ -147,16 +116,11 @@ fun HomefixTextField(
                                 Icons.Default.VisibilityOff
                             else
                                 Icons.Default.Visibility,
-
-                            // MODIFICADO - MULTIDIOMA:
-                            // Solo se traduce la descripción accesible del icono.
-                            // La lógica para mostrar u ocultar la contraseña no cambia.
                             contentDescription = if (isPasswordVisible) {
                                 stringResource(R.string.component_hide_password)
                             } else {
                                 stringResource(R.string.component_show_password)
                             },
-
                             tint = TextSecondary
                         )
                     }
@@ -200,12 +164,13 @@ fun HomefixCard(
     }
 }
 
+// Valida que el texto tenga un formato de correo electrónico correcto
 fun isValidEmail(email: String): Boolean {
     val emailRegex = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
     return emailRegex.matches(email.trim())
 }
 
-// Nueva función
+// Representa el estado de cada requisito de seguridad de la contraseña
 data class PasswordValidation(
     val hasMinLength: Boolean = false,
     val hasUppercase: Boolean = false,
@@ -214,6 +179,7 @@ data class PasswordValidation(
     val isValid get() = hasMinLength && hasUppercase && hasNumber
 }
 
+// Evalúa la contraseña ingresada contra los requisitos mínimos de seguridad
 fun validatePassword(password: String): PasswordValidation {
     return PasswordValidation(
         hasMinLength = password.length >= 6,
@@ -222,6 +188,7 @@ fun validatePassword(password: String): PasswordValidation {
     )
 }
 
+// Muestra la lista de requisitos de contraseña con indicador visual de cumplimiento
 @Composable
 fun PasswordRequirements(password: String) {
     val validation = validatePassword(password)
@@ -235,34 +202,27 @@ fun PasswordRequirements(password: String) {
         verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         PasswordRequirementItem(
-            // MODIFICADO - MULTIDIOMA:
-            // La validación sigue usando validation.hasMinLength.
-            // Solo cambia el texto visible.
             text = stringResource(R.string.component_password_min_length),
             isMet = validation.hasMinLength
         )
         PasswordRequirementItem(
-            // MODIFICADO - MULTIDIOMA:
-            // La validación de mayúscula no cambia.
             text = stringResource(R.string.component_password_uppercase),
             isMet = validation.hasUppercase
         )
         PasswordRequirementItem(
-            // MODIFICADO - MULTIDIOMA:
-            // La validación numérica no cambia.
             text = stringResource(R.string.component_password_number),
             isMet = validation.hasNumber
         )
     }
 }
 
+// Renderiza un ítem individual de requisito con su círculo indicador (verde o rojo)
 @Composable
 fun PasswordRequirementItem(text: String, isMet: Boolean) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        // Círculo verde o rojo
         Surface(
             modifier = Modifier.size(8.dp),
             shape = androidx.compose.foundation.shape.CircleShape,

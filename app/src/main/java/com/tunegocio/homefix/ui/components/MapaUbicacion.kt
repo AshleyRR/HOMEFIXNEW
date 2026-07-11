@@ -20,11 +20,12 @@ import com.google.maps.android.compose.*
 private val LIMA_CENTRO = LatLng(-12.0464, -77.0428)
 private const val ZOOM_INICIAL = 15f
 
-// Verifica que el punto esté dentro de Lima
+// Valida si una coordenada cae dentro del área de cobertura de Lima
 fun estaDentroDeLima(lat: Double, lng: Double): Boolean {
     return lat in -12.5..-11.7 && lng in -77.2..-76.7
 }
 
+// Composable que muestra el mapa con pin central y notifica la ubicación seleccionada
 @Composable
 fun MapaUbicacion(
     lat: Double,
@@ -40,7 +41,7 @@ fun MapaUbicacion(
         position = CameraPosition.fromLatLngZoom(posicionInicial, ZOOM_INICIAL)
     }
 
-    // Cuando cambian lat/lng desde búsqueda, mueve la cámara
+    // Mueve la cámara cuando lat/lng cambian desde una búsqueda externa
     LaunchedEffect(lat, lng) {
         if (lat != 0.0 && lng != 0.0) {
             camaraState.animate(
@@ -49,7 +50,7 @@ fun MapaUbicacion(
         }
     }
 
-    // Notifica la ubicación cuando la cámara deja de moverse
+    // Notifica la ubicación seleccionada cuando la cámara deja de moverse
     LaunchedEffect(camaraState.isMoving) {
         if (!camaraState.isMoving) {
             val centro = camaraState.position.target
